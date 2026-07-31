@@ -306,10 +306,11 @@ for (my $index = 0; $index <= $#lines; $index++) {
 
     if ($line =~ /^- \[([ x])\] (GP-[1-9][0-9]{2,})\b/) {
         my ($box, $id) = ($1, $2);
-        my ($wave_phase, $wave_tag);
-        if ($line =~ /^- \[[ x]\] \Q$id\E (?:\[P\] )?\[W([1-9][0-9]*)\.([1-9][0-9]*)\] \S/) {
-            $wave_phase = $1;
-            $wave_tag = "W$1.$2";
+        my ($wave_phase, $wave_tag, $parallel);
+        if ($line =~ /^- \[[ x]\] \Q$id\E (\[P\] )?\[W([1-9][0-9]*)\.([1-9][0-9]*)\] \S/) {
+            $parallel = defined $1 ? 1 : 0;
+            $wave_phase = $2;
+            $wave_tag = "W$2.$3";
         } else {
             fail("$id has malformed task heading");
         }
@@ -320,6 +321,7 @@ for (my $index = 0; $index <= $#lines; $index++) {
             line => $index + 1,
             phase => $current_phase,
             wave => $wave_tag,
+            parallel => $parallel ? 1 : 0,
         };
         push @tasks, $task;
         push @{$phases[$current_phase]{tasks}}, $#tasks if $current_phase >= 0;
@@ -452,6 +454,48 @@ for my $task (@tasks) {
                 next if $catalog_requirements{$requirement_id};
                 fail("$task->{id} cites undefined requirement $requirement_id");
             }
+        }
+    }
+}
+
+# [P] promises an executor it may run this task beside its wave siblings. Check
+# the promise instead of trusting it: a shared path means two concurrent writers
+# to one file, the fictional parallelism the roadmap module already refuses.
+my %wave_members;
+for my $task_index (0 .. $#tasks) {
+    my $task = $tasks[$task_index];
+    next if $task->{done};
+    next unless defined $task->{wave};
+    push @{$wave_members{$task->{wave}}}, $task_index;
+}
+
+my %task_files;
+for my $task_index (0 .. $#tasks) {
+    my $task = $tasks[$task_index];
+    next unless exists $task->{fields}{Files} && @{$task->{fields}{Files}} == 1;
+    my %paths;
+    for my $path (split /\s*,\s*/, $task->{fields}{Files}[0], -1) {
+        $path = trim($path);
+        next if $path eq '' || $path =~ /^none\b/i;
+        $path =~ s{^\./}{};
+        $paths{$path} = 1;
+    }
+    $task_files{$task_index} = \%paths;
+}
+
+for my $wave (sort keys %wave_members) {
+    my @members = @{$wave_members{$wave}};
+    for my $left (0 .. $#members) {
+        for my $right ($left + 1 .. $#members) {
+            my ($first, $second) = ($members[$left], $members[$right]);
+            next unless $tasks[$first]{parallel} || $tasks[$second]{parallel};
+            next unless exists $task_files{$first} && exists $task_files{$second};
+            my @shared = sort grep { exists $task_files{$second}{$_} }
+                keys %{$task_files{$first}};
+            next unless @shared;
+            fail("$tasks[$first]{id} and $tasks[$second]{id} are both in $wave"
+                . " and one is marked [P], but they share "
+                . join(', ', @shared));
         }
     }
 }
@@ -713,6 +757,51 @@ if ($matrix_count == 1) {
     }
 }
 
+# The three frontmatter lists index the matrix; the matrix decides. Recompute
+# them from the rows and fail on drift, the same parity the provenance block
+# gets, so a summary can never quietly contradict the section it summarizes.
+if (%domain_disposition) {
+    my %expected;
+    for my $domain (sort keys %domain_disposition) {
+        push @{$expected{$domain_disposition{$domain}}}, $domain;
+    }
+    my %list_key = (
+        applicable => 'domains_applicable',
+        deferred   => 'domains_deferred',
+        excluded   => 'domains_excluded',
+    );
+    for my $status (qw(applicable deferred excluded)) {
+        my $key = $list_key{$status};
+        next unless exists $frontmatter{$key};
+        my $raw = trim($frontmatter{$key});
+        if ($raw !~ /^\[(.*)\]$/) {
+            fail("frontmatter $key must be a single inline list such as [product, security]");
+            next;
+        }
+        my %declared;
+        my $malformed = 0;
+        for my $domain (split /\s*,\s*/, $1, -1) {
+            $domain = trim($domain);
+            next if $domain eq '';
+            if (!exists $known_domain{$domain}) {
+                fail("frontmatter $key names unknown domain $domain");
+                $malformed = 1;
+                next;
+            }
+            fail("frontmatter $key lists $domain twice") if $declared{$domain}++;
+        }
+        next if $malformed;
+        my %wanted = map { $_ => 1 } @{$expected{$status} || []};
+        my @missing = sort grep { !$declared{$_} } keys %wanted;
+        my @extra = sort grep { !$wanted{$_} } keys %declared;
+        fail("frontmatter $key does not match the applicability matrix: missing "
+            . join(', ', @missing)) if @missing;
+        fail("frontmatter $key does not match the applicability matrix: $_ is "
+            . ($domain_disposition{$_} || 'absent') . " in the matrix")
+            for @extra;
+    }
+}
+
 my $decisions_count = scalar grep { $_ eq '## Decisions' } @lines;
 fail("expected exactly one ## Decisions section, found $decisions_count")
     if $decisions_count != 1;
@@ -908,6 +997,7 @@ if ($emit_json ne '') {
             phase        => $phases[$task->{phase}]{number} + 0,
             wave         => $task->{wave},
             done         => $task->{done} ? JSON::PP::true : JSON::PP::false,
+            parallel     => $task->{parallel} ? JSON::PP::true : JSON::PP::false,
             files        => $task->{fields}{Files}[0],
             depends_on   => \@depends_on,
             reuses       => $task->{fields}{Reuses}[0],

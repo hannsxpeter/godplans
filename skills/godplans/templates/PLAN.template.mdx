@@ -178,8 +178,18 @@ Checkpoint verify: `exact full-suite and smoke command`
 
 ## Open Questions
 
-The only enumeration of open decisions. Each: why it matters, options,
-recommended default, and what happens if unanswered.
+The only enumeration of open decisions, and only the residual ones: an unknown
+that must be settled before dependent work is a flagged hypothesis in Decisions
+with an R-ROAD-7 validation task scheduled ahead of it, not a question. Write
+`None.` when there are none; otherwise one `### Q<n>:` entry each.
+
+### Q1: (the question, phrased so its answer is a decision)
+- Owner: (the role that answers; say when the answer is not the agent's to give)
+- Blocks: build | ship | nothing, and the boundary it blocks at
+- Decide by: (date, phase start, or wave boundary; never "later")
+- Why it matters: (what changes on each answer)
+- Options: (a) ...; (b) ...; (c) the option from outside the shared framing
+- Recommended default: (the option the plan executes on if nobody answers, and why taking it early is safe)
 
 ## Rules for executing agents
 
@@ -188,7 +198,7 @@ recommended default, and what happens if unanswered.
 >
 > 1. Before any work: read the frontmatter and `## Plan provenance`, then re-derive state from disk. Recheck recorded completed or imported evidence; if material evidence drifted, change status to `planning`, record the stale evidence, and stop for replan. Otherwise refuse unless `status` is `approved` or `executing`. `planning` awaits sign-off; `done` is closed. Run `bash .godplans/validate-plan.sh .godplans/PLAN.mdx`. If status is `approved`, change it to `executing` and update the date before the first task.
 > 2. Find the first unchecked task in wave order. Re-derive state from checkboxes; trust nothing remembered.
-> 3. One task at a time. Respect Depends on. Run tasks marked [P] concurrently only when their Files lists are disjoint.
+> 3. One task at a time. Respect Depends on. Tasks marked [P] may run concurrently; the validator has already proved their Files lists are disjoint from every other unchecked task in the wave, so treat [P] as the schedulable set and never widen it by hand.
 > 4. Run the task's Verify command. Only after it passes, flip [ ] to [x] and update the frontmatter counters and `updated:` date in the same edit. Never batch check-offs. Regenerate the sidecar in the same batch: `bash .godplans/validate-plan.sh --allow-planning --emit-json .godplans/PLAN.json .godplans/PLAN.mdx`.
 > 5. If Verify fails: the box stays unchecked. Append an indented `- Note (YYYY-MM-DD):` line under the task saying what happened.
 > 6. Phase-boundary gate: before the first task of a new phase, run `bash .godplans/validate-plan.sh --drift-check N .godplans/PLAN.mdx`, replacing N with the completed phase. The command recomputes `[recheck]` provenance files, reruns a deterministic sample of up to three completed task Verify commands, and reruns the phase's Checkpoint verify command. Any failure returns status to `planning` and stops execution for replan.
@@ -201,4 +211,4 @@ recommended default, and what happens if unanswered.
 
 ## Session log
 
-- YYYY-MM-DD plan created (godplans v1.9.0)
+- YYYY-MM-DD plan created (godplans v1.10.0)

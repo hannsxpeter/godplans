@@ -119,7 +119,7 @@ By the end of Phase 3 the following exist, ready for the domain passes:
 - The applicability matrix, complete.
 - The user's answers, verbatim where load-bearing.
 - The assumptions ledger: every default taken, each flagged as a hypothesis.
-- The hard-to-reverse bets list, each either answered or queued for the Decisions section.
+- The hard-to-reverse bets list, each either answered or queued for the Decisions section. An empty list is a finding, not a silence: it means wire formats, public identifiers, data-model shape, and auth and ownership boundaries were each examined and located in this project, so say where each one landed. A list that is empty because nobody looked is the mind-reader anti-pattern with better manners.
 - Brownfield only: the fingerprint summary (stack, structure, style genome extract, existing conventions files).
 
 ## Anti-patterns refused

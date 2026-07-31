@@ -1,8 +1,10 @@
 # godplans
 
 [![lint](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml/badge.svg)](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml)
-[![version](https://img.shields.io/badge/version-1.9.0-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.10.0-blue)](CHANGELOG.md)
 [![agent skills](https://img.shields.io/badge/Agent%20Skills-compatible-2f6fed)](skills/godplans/SKILL.md)
+[![planning domains](https://img.shields.io/badge/planning%20domains-18-2f6fed)](#lineage)
+[![plan gate](https://img.shields.io/badge/plan%20gate-machine%20checked-2f6fed)](skills/godplans/scripts/validate-plan.sh)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 Plan everything before anything. godplans is a single-command AI agent skill that produces an audit-aware, agent-executable master plan (`.godplans/PLAN.mdx`) before application code is written.
@@ -47,10 +49,11 @@ One canonical plan document, `.godplans/PLAN.mdx`, containing:
 - Architecture as mermaid diagrams (components with trust boundaries, data model, load-bearing flows) placed next to the claims they support.
 - A style genome so the first commit already matches the intended code DNA, and the agent-memory files (AGENTS.md, pillars) the scaffold will emit.
 - Phases and waves of checkbox tasks. Every task: a stable GP-number, exact files, dependencies, what it reuses, grep-verifiable acceptance criteria, one verify command whose exit code proves it, and requirement traceability.
-- Goal-backward must-haves per phase, an executable phase checkpoint, a mandatory final verification phase, exactly one Open Questions section with recommended defaults, embedded rules for executing agents, and a session log.
-- A generated `.godplans/PLAN.json` sidecar carrying decisions, applicability, phases, active and superseded tasks, dependencies, requirements, and plan half-life metrics for tools that should not parse MDX.
+- Goal-backward must-haves per phase, an executable phase checkpoint, a mandatory final verification phase, embedded rules for executing agents, and a session log.
+- Exactly one Open Questions section, holding only the residual unknowns the plan can execute past. Each carries an owner, what it blocks, when the default fires, and the recommended default. An unknown that dependent work cannot start without is not a question: it is a flagged hypothesis whose validation task is scheduled ahead of everything that assumes it.
+- A generated `.godplans/PLAN.json` sidecar carrying decisions, applicability, phases, active and superseded tasks, dependencies, requirements, parallel-safety, and plan half-life metrics for tools that should not parse MDX.
 
-The skill also emits `.godplans/validate-plan.sh`, a self-contained companion that validates lifecycle state, provenance formats, product form, conditional public-release gates, counters, phase and task grammar, ordered dependency and requirement references, deferral constraints, falsifier blocks, executable checkpoints, banned characters, and final-phase structure. Its explicit drift mode recomputes marked provenance files, reruns a deterministic sample of completed Verify commands, and reproves the phase checkpoint. The plan remains the only source of product and execution truth; PLAN.json is generated atomically from it.
+The skill also emits `.godplans/validate-plan.sh`, a self-contained companion that validates lifecycle state, provenance formats, product form, conditional public-release gates, counters, phase and task grammar, ordered dependency and requirement references, deferral constraints, falsifier blocks, executable checkpoints, banned characters, and final-phase structure. It also holds the plan to its own internal promises: the three frontmatter domain lists must say what the applicability matrix says, and a task marked parallel-safe must touch files no other unchecked task in its wave touches. A marker an executor acts on is checked, not trusted. Its explicit drift mode recomputes marked provenance files, reruns a deterministic sample of completed Verify commands, and reproves the phase checkpoint. The plan remains the only source of product and execution truth; PLAN.json is generated atomically from it.
 
 The plan is the handoff: any coding agent (the same one, or a different tool entirely) executes it checkbox by checkbox. Interrupted work resumes by re-reading the file, not the chat.
 
@@ -146,7 +149,7 @@ An auditor that finds a missing tenant-isolation policy after three weeks of bui
 
 ## Lineage
 
-godplans consolidates and inverts thirteen skills into one command:
+godplans consolidates and inverts fourteen skills into one command:
 
 | Source | What carries over |
 |---|---|
@@ -161,6 +164,7 @@ godplans consolidates and inverts thirteen skills into one command:
 | [pillars](https://github.com/hannsxpeter/pillars) | Pillars 1.1 agent memory: nested scopes, local absent catalogs, deterministic routing, and context budgets |
 | [codedna](https://github.com/hannsxpeter/codedna) | The style genome: prescribed for greenfield, fingerprinted for brownfield |
 | [BuilderIO visual-plan](https://github.com/BuilderIO/skills) | Plan discipline: hard-to-reverse bets first, reuse-first steps, one Open Questions section, the standalone-plan rule, the visual layer |
+| [wayfinder](https://github.com/mattpocock/skills/blob/main/skills/engineering/wayfinder/SKILL.md) (MIT, Matt Pocock) | Two ideas, re-expressed for a single-file plan: a fact lives in exactly one place (the frontmatter domain lists are now checked against the applicability matrix that decides them), and the set of work safe to take next is proved rather than asserted (`[P]` parallel-safety is now enforced, not promised). Also the refer-by-name presentation rule. No text, prompt, or code copied; godplans takes none of its issue-tracker map, ticket types, fog-of-war section, or one-ticket-per-session protocol |
 | [ADHD](https://github.com/UditAkhourii/adhd) (MIT, Udit Akhouri) | Two ideas, re-expressed for planning: the critic must not be the author (Phase 6), and a menu of options is not a set of alternatives (R-STACK-21, the R-ARCH-4 open set, the Open Questions off-framing rule). No text, prompt, or code copied; godplans takes none of its novelty scoring, frame library, or runtime |
 
 ## Modes
