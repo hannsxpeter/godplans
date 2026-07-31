@@ -5,19 +5,19 @@
     "limitation": "Provider tokenizers differ. Published model runs record actual input and output token usage in RUNNER.txt and METRICS.json."
   },
   "portable_core": {
-    "bytes": 247631,
-    "estimated_tokens": 61908,
-    "sha256": "2be363c852d64c94a45564b2b3410c6123ebfd1280ac057316a9b7ee27499cff"
+    "bytes": 258088,
+    "estimated_tokens": 64522,
+    "sha256": "225f6fd23089b3bc918c0761a7e472ad416d29bd1ac0a84994d06ef41eee79e7"
   },
   "portable_full_generated": {
-    "bytes": 551875,
-    "estimated_tokens": 137969,
-    "sha256": "6ba066499d86ee50ae1fdc25c0b540d435abc19514f83c5c9c9443f85c924026"
+    "bytes": 562332,
+    "estimated_tokens": 140583,
+    "sha256": "2b501cd1966eee4bd11ebd214af503020f8b46f5f6aa77ff5ab1b9932fa562ce"
   },
   "native_skill_entry": {
-    "bytes": 19150,
-    "estimated_tokens": 4788,
-    "sha256": "63dd61d32001e98d0edc2a9a8394f304b40f4ff412cdc8cab778e6e8665c1927"
+    "bytes": 19856,
+    "estimated_tokens": 4964,
+    "sha256": "aba72ed94a7fdb3e58c5974c5c2ab283c704033ce2310d441a562983e3567dd7"
   },
   "core_modules": {
     "compliance": {
@@ -26,9 +26,9 @@
       "sha256": "d795b29189693e0fd92f97c6a184228ab8374f172d32c6fcea33c57f4aaaad13"
     },
     "discovery": {
-      "bytes": 14705,
-      "estimated_tokens": 3677,
-      "sha256": "b76541f03905324820de871d8d6c96084c3830389da43813f50c8b0183162a7a"
+      "bytes": 15017,
+      "estimated_tokens": 3755,
+      "sha256": "62e45fde8ce3a46b4123d9ba4fba3c01e3273fcd1b352c41b544dd314497afac"
     },
     "product": {
       "bytes": 21204,
@@ -56,19 +56,19 @@
       "sha256": "716f58ebdc726ca06125f8f30a6ae380459cc3edfd49d983bd5e8f4269bcb68c"
     },
     "exemplar": {
-      "bytes": 5477,
-      "estimated_tokens": 1370,
-      "sha256": "53f8057000dab6791c97dab0a8897feee3d112aa2772083720864e1bbf502cb4"
+      "bytes": 6283,
+      "estimated_tokens": 1571,
+      "sha256": "c8f12ea6ef366f783a57c16ad08236a9648ffb177e2599558064a56b9464ea2c"
     },
     "plan-format": {
-      "bytes": 22166,
-      "estimated_tokens": 5542,
-      "sha256": "07937f71d8aeb4f8f6b10ab1a806fc54bc3f944ee901bda5958ab9ab6186edbf"
+      "bytes": 26268,
+      "estimated_tokens": 6567,
+      "sha256": "4aa2cf2508765f5ef99880a7325909a0e761c28e6a924255687ef4fab1befbca"
     }
   },
   "core_modules_total": {
-    "bytes": 177701,
-    "estimated_tokens": 44429
+    "bytes": 182921,
+    "estimated_tokens": 45733
   },
   "lazy_modules": {
     "llm": {

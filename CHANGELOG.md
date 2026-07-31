@@ -3,6 +3,75 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [1.10.0] - 2026-07-31
+
+This release applies one discipline borrowed from mattpocock/skills wayfinder:
+a fact lives in exactly one place, and the edge of what is safe to work on is
+proved rather than asserted. Three places where godplans stated a rule but did
+not gate it are now gated. No new plan sections, no new domains, and no change
+to the scale ceilings.
+
+### Fixed
+
+- The validator accepted a plan whose `domains_applicable`, `domains_deferred`,
+  and `domains_excluded` frontmatter flatly contradicted its own applicability
+  matrix. A plan declaring `security` and `database` excluded while the matrix
+  marked both applicable validated `ok` and exited 0, so the never-excluded-set
+  check (which reads only the matrix) could be bypassed by the summary that was
+  supposed to index it. The three lists are now recomputed from the matrix rows
+  and any disagreement fails, the same parity already enforced between the
+  `## Plan provenance` block and its frontmatter values.
+- The frontmatter form documented in `references/plan-format.md` could not
+  validate. The block-mapping shape for `domains_deferred` and
+  `domains_excluded` (`- name:` / `trigger:` / `reason:`) failed with
+  `frontmatter field is empty: domains_deferred`. The documentation now shows
+  the single inline list every emitted plan actually uses, and the trigger and
+  reversibility reason live only in the matrix row that decides them.
+- `[P]` promised an executor that a task was safe to run beside its wave
+  siblings, and nothing checked it. Two `[P]` tasks in one wave writing the
+  same file validated `ok` and exited 0, despite the task grammar, R-ROAD-8,
+  and the fictional-parallelism refusal all forbidding it. A `[P]` task whose
+  Files list intersects another unchecked task in its wave now fails.
+- `references/plan-format.md` told replans to cut completed phases into
+  `.godplans/archive/PLAN-v<n>.mdx` while R-ROAD-18 requires completed phases to
+  be archived in place and never overwritten. Cutting them out would delete the
+  execution history the drift check and the supersession metric read. The
+  archive path now holds whole superseded plan versions, and the live plan keeps
+  its finished phases.
+- The validator's own golden fixture declared two applicable domains while its
+  matrix marked ten applicable and eight excluded. It passed because nothing
+  compared them; it is now consistent and the new parity check covers it.
+
+### Added
+
+- A question grammar in `references/plan-format.md` and the PLAN template that
+  carries the four fields R-PRD-10 already required and the format contract did
+  not state: owner, blocking flag, decide-by, and recommended default. The
+  contract also now says plainly that `## Open Questions` holds the residual
+  unknowns a plan can execute past on a default, and that an unknown dependent
+  work cannot start without is a flagged hypothesis whose R-ROAD-7 validation
+  task carries a real `Depends on` edge.
+- `parallel` on every task in the generated PLAN.json, so a runner can schedule
+  a wave from the validated marker instead of re-deriving which tasks are safe
+  to run at once. It is a required property in `schemas/PLAN.schema.json`;
+  consumers pinned to the previous schema must regenerate their sidecar.
+- Seven validator regression checks covering frontmatter-matrix drift in both
+  directions, an invented deferral, an unknown domain name, the rejected
+  block-mapping form, a `[P]` file collision, and a passing disjoint `[P]` pair.
+- A presentation rule in Phase 7: name tasks, decisions, and questions by title
+  with the ID in support. IDs are how the machine addresses the plan; a wall of
+  them is how a human loses it.
+- A disposition for an empty hard-to-reverse-bets list in `references/discovery.md`.
+  Empty is a finding that each of the four bet categories was examined and
+  located, not permission to skip the pass.
+
+### Changed
+
+- Lineage credits mattpocock/skills wayfinder for the two ideas taken: one fact
+  in one place, and a frontier that is proved rather than asserted. No text,
+  prompt, or code was copied, and godplans takes none of its issue-tracker map,
+  ticket types, or session protocol.
+
 ## [1.9.0] - 2026-07-23
 
 This release turns the evidence critique into product contracts and publishes

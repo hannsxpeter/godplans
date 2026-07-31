@@ -27,9 +27,9 @@ public_release: false
 source_revision: none
 input_digest: sha256:1c7ca1006bb3157ad989c1f1dd1cd1d6e8e2a44d9509821ffa43f3be205a12d5
 validated_at: 2026-07-13T12:00:00Z
-domains_applicable: [product, code-quality]
+domains_applicable: [product, architecture, stack, security, code-quality, style-genome, agent-memory, repo, build, roadmap]
 domains_deferred: []
-domains_excluded: []
+domains_excluded: [database, llm, ux, ui, seo, deploy, observe, launch]
 progress:
   phases_total: 2
   phases_done: 0
@@ -536,7 +536,37 @@ expect_fail "duplicate public activation markers" "public release requires exact
 DEFERRED_PLAN="$TMP_DIR/valid-deferred-domain.mdx"
 cp "$BASE_PLAN" "$DEFERRED_PLAN"
 perl -0pi -e 's/\| seo \| excluded \| validator has no crawlable surface \|/| seo | deferred | trigger: the first public page task enters the roadmap; reversible until pages ship without metadata |/' "$DEFERRED_PLAN"
+perl -0pi -e 's/^domains_deferred: \[\]$/domains_deferred: [seo]/m; s/^(domains_excluded: \[[^\]]*), seo(.*)$/$1$2/m' "$DEFERRED_PLAN"
 expect_pass "deferred domain with trigger" --allow-planning "$DEFERRED_PLAN"
+
+new_case
+perl -0pi -e 's/^(domains_excluded: \[)database, /$1/m' "$CASE_FILE"
+expect_fail "frontmatter drops an excluded domain" "frontmatter domains_excluded does not match the applicability matrix: missing database" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^(domains_applicable: \[product), /$1, database, /m' "$CASE_FILE"
+expect_fail "frontmatter promotes an excluded domain" "frontmatter domains_applicable does not match the applicability matrix: database is excluded in the matrix" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^domains_deferred: \[\]$/domains_deferred: [product]/m' "$CASE_FILE"
+expect_fail "frontmatter invents a deferral" "frontmatter domains_deferred does not match the applicability matrix: product is applicable in the matrix" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^domains_deferred: \[\]$/domains_deferred: [analytics]/m' "$CASE_FILE"
+expect_fail "frontmatter names an unknown domain" "frontmatter domains_deferred names unknown domain analytics" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^domains_deferred: \[\]$/domains_deferred:\n  - name: observe\n    trigger: first real user/m' "$CASE_FILE"
+expect_fail "frontmatter domain list must be inline" "frontmatter domains_deferred must be a single inline list" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/- \[ \] GP-101 \[W1\.1\]/- [ ] GP-101 [P] [W1.1]/; s{  - Files: tests/validate-plan\.sh\n  - Depends on: GP-101}{  - Files: skills/godplans/scripts/validate-plan.sh\n  - Depends on: GP-101}' "$CASE_FILE"
+expect_fail "parallel task shares a wave file" "GP-101 and GP-102 are both in W1.1 and one is marked [P], but they share skills/godplans/scripts/validate-plan.sh" --allow-planning "$CASE_FILE"
+
+PARALLEL_PLAN="$TMP_DIR/valid-parallel-tasks.mdx"
+cp "$BASE_PLAN" "$PARALLEL_PLAN"
+perl -0pi -e 's/- \[ \] GP-101 \[W1\.1\]/- [ ] GP-101 [P] [W1.1]/; s/- \[ \] GP-102 \[W1\.1\]/- [ ] GP-102 [P] [W1.1]/' "$PARALLEL_PLAN"
+expect_pass "parallel tasks with disjoint files" --allow-planning "$PARALLEL_PLAN"
 
 new_case
 perl -0pi -e 's/\| seo \| excluded \| validator has no crawlable surface \|/| seo | deferred | reversible until pages ship |/' "$CASE_FILE"

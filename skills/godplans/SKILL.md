@@ -3,7 +3,7 @@ name: godplans
 description: "Produce an audit-aware, agent-executable master plan (PLAN.mdx) for a software project before application code is written. One command runs discovery, forces hard-to-reverse decisions, and plans product, architecture, roadmap, stack, repo, build, deploy, observability, launch, security, code quality, style genome, database, LLM integration, SEO, UI, UX, and agent memory upfront. After-the-fact audit checks become plan-time acceptance criteria, and a self-contained validator enforces task structure and approval state. Use when the user says: plan this project, godplans, master plan, plan everything upfront, idea to plan, plan before code, audit-aware plan, replan, or starts a greenfield project or major feature. Refuses plan theater (sections filled, decisions absent), vague tasks without verification, unsupported quality guarantees, and projects whose core purpose violates the Anthropic Usage Policy."
 license: MIT
 metadata:
-  version: "1.9.0"
+  version: "1.10.0"
   author: aihxp
   homepage: https://github.com/hannsxpeter/godplans
 ---
@@ -16,7 +16,7 @@ Plan everything before anything. godplans is a planning superskill: it runs the 
 
 The core move is inversion. Auditors run after the work exists and tell you what is wrong. godplans takes the dimensions those auditors check (code quality, security, database, LLM integration, SEO, UI, UX) and the disciplines the arc tiers enforce (PRD, architecture, roadmap, stack, repo, build, deploy, observability, launch, hardening) and converts applicable checks into plan-time requirements with acceptance criteria on concrete tasks. This is designed to prevent avoidable findings and rewrites; it does not replace runtime verification or an independent final audit.
 
-godplans descends from: hannsxpeter/arc-ready and hannsxpeter/ready-suite (the tier disciplines), hannsxpeter/codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, and uxauditor (the inverted audit dimensions), hannsxpeter/pillars (agent memory), hannsxpeter/codedna (style genome), and BuilderIO visual-plan (plan discipline and the visual layer).
+godplans descends from: hannsxpeter/arc-ready and hannsxpeter/ready-suite (the tier disciplines), hannsxpeter/codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, and uxauditor (the inverted audit dimensions), hannsxpeter/pillars (agent memory), hannsxpeter/codedna (style genome), BuilderIO visual-plan (plan discipline and the visual layer), and mattpocock/skills wayfinder (one fact in one place, and a frontier that is proved rather than asserted).
 
 ## Ground rules (non-negotiable)
 
@@ -122,7 +122,7 @@ Print the scorecard in chat when done, including whether the critic ran isolated
 
 1. Read `references/plan-format.md` and `templates/PLAN.template.mdx`. Assemble `.godplans/PLAN.mdx` per that contract: frontmatter machine state, mermaid visuals where they carry weight, phases and waves, GP-numbered checkbox tasks with Files, Depends on, Reuses, Acceptance, Verify, and Requirements lines, one Open Questions section at the bottom, executor rules, session log.
 2. Complete the three-artifact emission gate before any response: re-copy `scripts/validate-plan.sh` from this skill byte-for-byte to the pre-created `.godplans/validate-plan.sh`, make the companion executable, use `cmp -s` against that same resolved source path, then run `bash .godplans/validate-plan.sh --allow-planning --emit-json .godplans/PLAN.json .godplans/PLAN.mdx`. The emission is incomplete if PLAN.mdx, its executable validator, or PLAN.json is missing. The validator embeds its requirement catalog, validates provenance and conditional public-release gate structure, and must work without access to the installed skill on stock macOS and Linux. It is the machine gate; do not recreate its checks with grep. Fix every failure before presenting. PLAN.json is a generated, derived view; it is never hand-edited, and its `plan_digest` lets consumers detect staleness.
-3. Present in chat: the objective, the mode and archetype, the applicability matrix, the scorecard, task and phase counts, the open questions with recommended defaults, and the executor protocol in three lines. Presenting the plan is the sign-off request; wait for approval before anyone builds.
+3. Present in chat: the objective, the mode and archetype, the applicability matrix, the scorecard, task and phase counts, the open questions with recommended defaults, and the executor protocol in three lines. Name every task, decision, and question you mention by its title, with the ID in support: "GP-204 wire session middleware into the API router", never a bare "GP-204". IDs are how the machine addresses the plan; a wall of them is how a human loses it. Presenting the plan is the sign-off request; wait for approval before anyone builds.
 4. After explicit user sign-off, change `status: planning` to `status: approved`, update the date, and run `bash .godplans/validate-plan.sh .godplans/PLAN.mdx`. Do not start application work as part of approval.
 
 Final artifact check: `test -f .godplans/PLAN.mdx && test -x .godplans/validate-plan.sh && test -f .godplans/PLAN.json`. Never present a plan until this command and the structural validator both exit zero.
@@ -146,6 +146,7 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 - **Scope leak at plan time**: godplans does not write application code, scaffold repos, or run deploys. It plans them.
 - **Policy-violating projects**: the Phase 1 gate is not advisory. Prohibited purposes get a refusal with the policy category named.
 - **Silent domain skipping**: a domain is planned now, deferred with an observable trigger and reversibility argument, or excluded with a reason in the matrix. Never silently absent.
+- **Ungated promises**: a marker an executor acts on that nothing verifies. `[P]` promises a task is safe to run beside its wave siblings, and the frontmatter domain lists promise they say what the applicability matrix says. Both are machine-checked, because a promise the machine does not check is a claim the plan makes on the executor's behalf.
 
 ## File map
 
@@ -162,4 +163,4 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 | `scripts/plan-halflife.sh` | Replan metric generator for cumulative and per-domain task supersession |
 | `schemas/PLAN.schema.json` | Published JSON Schema for the generated PLAN.json sidecar |
 
-## Skill version: 1.9.0
+## Skill version: 1.10.0

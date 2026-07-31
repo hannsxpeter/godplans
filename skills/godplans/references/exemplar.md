@@ -78,22 +78,33 @@ No options, no default, no owner of the consequence. "Later" is where plans go t
 
 ```markdown
 ### Q2: Can a board be shared outside its workspace?
-
-Why it matters: a yes turns the permission model from workspace-scoped
-RLS into per-object ACLs, which changes GP-201 and every query in Phase 4.
-Options:
+- Owner: product lead; the answer is theirs to give and the plan must not invent it
+- Blocks: nothing, because (b) is additive; it would block build from Phase 4 if the default were structural
+- Decide by: 2026-08-14, the Phase 4 wave boundary
+- Why it matters: a yes turns the permission model from workspace-scoped
+  RLS into per-object ACLs, which changes GP-201 and every query in Phase 4.
+- Options:
   (a) No; boards live and die inside one workspace.
   (b) Read-only public links with unguessable tokens.
   (c) Full cross-workspace membership.
   (d) No sharing primitive at all; export a read-only snapshot, which
       moves the question out of the permission model entirely.
-Recommended default: (b). It satisfies the stated sharing story (R-1.6)
-without per-object ACLs; the token table is additive, not structural.
-Outside the framing: (a) through (c) only vary how much sharing the
-permission model allows. (d) was generated and rejected; it wins only if
-sharing stays read-only permanently, which R-1.6 does not promise.
-If unanswered by Phase 4 start: the plan proceeds on (b).
+- Recommended default: (b). It satisfies the stated sharing story (R-1.6)
+  without per-object ACLs; the token table is additive, not structural, so
+  building it before the answer lands wastes nothing if the answer is (a).
+- Outside the framing: (a) through (c) only vary how much sharing the
+  permission model allows. (d) was generated and rejected; it wins only if
+  sharing stays read-only permanently, which R-1.6 does not promise.
 ```
+
+The four fields R-PRD-10 demands (owner, decide-by, blocking flag, recommended
+default) are what make the difference. The bad version cannot be scheduled, cannot
+be chased, and cannot be executed past. This one can be all three.
+
+An unknown whose answer the plan **cannot** proceed past does not belong here at
+all: it is a hypothesis in `## Decisions` whose R-ROAD-7 validation task is
+scheduled before every task that assumes it, so the ordering is a real
+`Depends on` edge rather than a note at the bottom of the document.
 
 ## 4. A requirement with acceptance criteria
 

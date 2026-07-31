@@ -121,12 +121,13 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "phase", "wave", "done", "files", "depends_on", "reuses", "acceptance", "verify", "requirements"],
+        "required": ["id", "phase", "wave", "done", "parallel", "files", "depends_on", "reuses", "acceptance", "verify", "requirements"],
         "properties": {
           "id": { "type": "string", "pattern": "^GP-[1-9][0-9]{2,}$" },
           "phase": { "type": "integer", "minimum": 1 },
           "wave": { "type": "string", "pattern": "^W[1-9][0-9]*[.][1-9][0-9]*$" },
           "done": { "type": "boolean" },
+          "parallel": { "type": "boolean" },
           "files": { "type": "string", "minLength": 1 },
           "depends_on": { "type": "array", "items": { "type": "string" } },
           "reuses": { "type": "string", "minLength": 1 },
