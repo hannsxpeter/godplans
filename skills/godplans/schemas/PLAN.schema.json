@@ -13,6 +13,8 @@
     "mode",
     "product_form",
     "archetype",
+    "archetype_confidence",
+    "overlays",
     "public_release",
     "source_revision",
     "input_digest",
@@ -47,6 +49,21 @@
       ]
     },
     "archetype": { "type": "string", "minLength": 1 },
+    "archetype_confidence": { "enum": ["high", "medium", "low"] },
+    "overlays": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "ai-system",
+          "public-ui",
+          "shipped-artifact",
+          "operated-by-others",
+          "regulated-data",
+          "agent-skill-package"
+        ]
+      }
+    },
     "public_release": { "type": "boolean" },
     "source_revision": { "type": "string", "minLength": 1 },
     "input_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },

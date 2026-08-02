@@ -80,7 +80,7 @@ stop creates neither artifact.
 Read the inlined discovery reference. Establish:
 
 1. **Product form**: web application, API or service, CLI or SDK, mobile or desktop, data or ML, or infrastructure or IaC. Pick this before archetype and domain composition because it defines vertical slices and completion evidence. Record secondary forms only when they have independent users, contracts, distribution paths, and deliverables.
-2. **Archetype**: cli-tool, api-service, saas-dashboard, marketing-site, library, mobile-app, ml-pipeline, extension, game, or hybrid (see the module for the detection rules).
+2. **Archetype and overlays**: score the nine archetypes on weighted signals with vetoes, record primary, runner-up, margin, and the confidence those numbers give, and price what changes if the runner-up is right. Below the 0.45 floor the archetype is `unknown` and takes a slot in the question batch. Then add the overlays that fire (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`). An archetype says what this is; an overlay says what extra obligations it carries, and an overlay raises a domain's disposition and never lowers it.
 3. **Applicability matrix**: every planning domain in the table below is applicable, deferred, or excluded. A CLI tool excludes seo and ui; it does not get empty SEO sections. An excluded row carries three things: the evidence state (`absent:` or `by-design:`), the project-specific reason, and a `revisit when:` predicate that would make the domain applicable again. Deferral is reserved for the deferrable set in the discovery module (seo, launch, observe, ui, deploy): the row names the observable trigger that forces the domain pass and argues reversibility until then. The matrix goes into the plan verbatim.
 4. **Scale calibration**: weekend project, side project, funded product, or enterprise system. Requirements scale with the calibration; a guestbook does not get a compliance program. Weekend plans have at most 3 phases and 8 tasks. Treat that as a hard ceiling, not a target, and fit the total task appetites inside the user's stated capacity.
 
@@ -251,6 +251,27 @@ Brownfield fingerprint, read-only, before any planning: stack and versions from 
 
 Record what the fingerprint did **not** reach as explicitly as what it found. A pass that was never run is not a pass that came back empty, and the applicability matrix below refuses to treat the two the same way.
 
+### Reuse an existing inventory before re-deriving one
+
+If `.godaudits/EVIDENCE.json` exists, read it before scanning. godaudits already inventories manifests, lockfiles, languages, file hashes, high-signal source locations, and, most useful here, **absence evidence**: the things it looked for and did not find, with what it searched. That is the expensive half of a brownfield fingerprint and the half an agent is worst at doing honestly from memory.
+
+- **Fresh** means its recorded revision matches the revision this plan is binding to. A fresh inventory is cited: add it to the provenance evidence inventory as a `[recheck]` entry so a later phase-boundary drift check recomputes it.
+- **Stale or absent** means the fingerprint runs normally, and the plan says which of the two happened. Reusing a stale inventory is worse than not having one, because it reads exactly like a fresh one.
+
+godplans does not require godaudits and does not call it. This is a read of an artifact that may happen to be there, never a dependency: the plan must be authorable, and the validator must pass, on a machine that has never installed it.
+
+### An `absent:` reason names what looked
+
+In brownfield mode, `absent:` is a negative claim about a codebase, and the claims-and-evidence contract in the inlined plan-format reference already says a negative claim needs a command rather than a file citation. Excluded rows are where that rule is broken most often, because the sentence is short and sounds checked.
+
+So a brownfield `absent:` reason carries a backticked citation: the search that came back empty, or the evidence artifact that recorded the absence.
+
+```
+| seo | excluded | absent: no HTML template, route table, or static site config under src/ (`rg -l "<html|<!DOCTYPE|createServer" src/` returns nothing); revisit when: any task adds a server-rendered route or a static site config |
+```
+
+`by-design:` needs no command. It is the plan deciding, not the plan reporting, and there is nothing to have looked at. This is why greenfield exclusions are almost always `by-design:` and brownfield exclusions are usually not.
+
 ## Evidence states
 
 Every claim the matrix and the documentation set make about this project carries one of five states. The state is what licenses the disposition, so it is recorded before the disposition is chosen.
@@ -266,7 +287,7 @@ Every claim the matrix and the documentation set make about this project carries
 `unknown` is not `absent`, and conflating them is the failure this table exists to prevent. Reporting "we did not look" as "we decided this does not apply" produces two sentences that read identically and have opposite consequences a year later.
 
 - **Greenfield**: the honest state for anything the plan settles is `by-design`. There is nothing to inspect, and the plan is the decision. `llm | excluded | by-design: the product answers from indexed text with no model call` is a decision. `llm | excluded | no model calls` is a claim about a codebase that does not exist yet.
-- **Brownfield**: `absent` requires that something actually looked, and the reason names it. `seo | excluded | absent: no HTML template, route table, or static site config anywhere under src/` is checkable. A bare "no public pages" is not.
+- **Brownfield**: `absent` requires that something actually looked, and the reason names it with a backticked command or evidence artifact. `absent: no HTML template, route table, or static site config under src/ (`rg -l "<html|<!DOCTYPE" src/` returns nothing)` is checkable. A bare "no public pages" is not.
 - **`unknown` and `hint` never exclude.** A domain whose state is either becomes applicable, or its question goes to `## Open Questions` with a recommended default. One confidently false exclusion costs more trust than ten honest unknowns, because the unknowns advertise themselves and the false exclusion does not.
 
 ## Product-form routing
@@ -288,21 +309,78 @@ Pick one primary form and write its slug to frontmatter as `product_form`. A sec
 
 ## Archetype detection
 
-Pick the closest archetype; hybrids name a primary and a secondary. The archetype drives the applicability matrix defaults.
+The archetype drives the applicability matrix defaults and, through it, the documentation set. A wrong archetype therefore mis-selects two downstream artifacts at once, silently, so it is scored rather than eyeballed and the score is written into the plan.
 
-| Archetype | Signals | Typical exclusions |
+Signals beat labels. What the user calls the project is one input; what the project does is the evidence.
+
+| Archetype | Positive signals (weight) | Veto: score is zero if present |
 |---|---|---|
-| cli-tool | runs in a terminal, no server, distributed as a binary or package | seo, ui (terminal output is ux, not ui), launch (often), llm |
-| library | consumed by other code; the API is the product | seo, ui, observe (consumer-side), launch (registry release instead) |
-| api-service | HTTP or RPC surface, no first-party frontend | seo, ui |
-| saas-dashboard | authenticated web app over domain data | none by default |
-| marketing-site | public content, conversion goals, little state | database (often), llm (often) |
-| mobile-app | app-store distribution, native or cross-platform | seo (store listing replaces it) |
-| ml-pipeline | batch or streaming data and model flows | seo, ui (unless it has an ops console) |
-| extension | lives inside a host (browser, editor, platform) | seo, deploy becomes store publishing |
-| game | real-time loop, assets, scenes | seo (store listing), database varies |
+| cli-tool | terminal entry point (3), no listening socket (2), distributed as a binary or package (2) | a first-party HTTP surface end users reach |
+| library | consumed as an API by other code (3), published package manifest (2), no entry point of its own (2) | a first-party HTTP surface, an app-store target |
+| api-service | HTTP or RPC surface (3), service deploy target (2), no first-party frontend (2) | an app-store target |
+| saas-dashboard | authenticated session (3), first-party frontend over domain data (3), per-user or per-tenant data (2) | none |
+| marketing-site | public crawlable pages (3), a conversion goal (2), little or no persisted domain state (2) | an authenticated session over domain data |
+| mobile-app | app-store or device target (3), native or cross-platform UI SDK (3) | none |
+| ml-pipeline | batch or streaming data flow (3), a training or inference step (3), a dataset or feature store (2) | an app-store target |
+| extension | host extension manifest (3), runs inside a host surface (2) | a deploy target of its own |
+| game | real-time loop (3), a scene or asset pipeline (2) | none |
 
-Signals beat labels: a "CLI tool" with a companion web dashboard is a hybrid and gets both matrices merged, dashboard rules winning conflicts.
+### Scoring
+
+A weighted sum, not a decision tree. A tree returns one answer, no runner-up, and nothing to show when it is wrong. A sum returns a second place and a distance, which is what the confidence and the counterfactual need.
+
+1. **Score** each archetype as matched weight over that archetype's total positive weight, to two decimals. A veto signal zeroes the score outright; it is not a penalty, because a published package that also serves HTTP is not a library and no amount of matched weight should make it one.
+2. **Primary** is the highest score. **Runner-up** is the second highest above zero, or `none` when nothing else scored.
+3. **Margin** is `(primary - runner-up) * 100`, rounded to the nearest integer, in points. With no runner-up the margin is the primary score times 100.
+4. **Floor is 0.45.** Below it the archetype is `unknown`, the archetype question takes a slot in the interview batch, and no default may be taken for it.
+5. **Confidence** is `high` only at a margin of 15 points or more **and** a primary score of 0.70 or more. Exactly one of the two gives `medium`. Neither gives `low`.
+
+Confidence is arithmetic, not a feeling. The validator recomputes the margin from the two scores and the confidence from the margin and the primary score, and refuses a plan whose stated confidence does not follow from its own numbers.
+
+### What low confidence costs
+
+`low` confidence is not a disclaimer, it withholds two things until a human confirms the archetype:
+
+- The archetype goes into `## Open Questions` as a decision ticket with a recommended default.
+- No `assure`-stage documentation-set row may be marked `not-applicable`. The assure stage is where threat models and compliance records live, and those are exactly the rows a misread archetype deletes without anyone noticing.
+
+`medium` confidence carries the counterfactual and nothing else. `high` confidence carries it too, because the cheapest moment to price a wrong archetype is before any task is written.
+
+### The archetype counterfactual
+
+Every plan records what changes if the runner-up is right, priced in the same units as the blast radius rule: tasks and phases. This is the archetype-level version of that rule, and it exists for the same reason. A number next to the alternative converts "are you sure" into a decision the user can make in one sentence.
+
+```markdown
+### Archetype confidence
+
+- Primary: saas-dashboard (score 0.88)
+- Runner-up: api-service (score 0.57)
+- Margin: 31 points
+- Confidence: high
+- Vetoes applied: none
+- If the runner-up is right: +2 tasks and +0 phases; the ui and seo rows flip to excluded, GP-210 through GP-212 drop, and the contract-test task in Phase 3 grows a consumer fixture
+```
+
+Hybrids are not a merge. A project that scores close on two archetypes has one primary and, where the second thing is real, an overlay. Merging two matrices and letting one win conflicts forces a false choice at the top of the tree and produces the wrong set for exactly the project that is both.
+
+## Overlays
+
+An archetype answers what this thing is. An overlay answers what extra obligations it carries. Overlays are additive and orthogonal: a project has exactly one archetype and zero or more overlays.
+
+| Overlay | Fires when | Forbids excluding |
+|---|---|---|
+| `ai-system` | the product calls a model at runtime, or ships one | llm |
+| `public-ui` | the project owns rendered pixels somebody outside the team reaches | ui, seo |
+| `shipped-artifact` | users install, download, or depend on a versioned artifact | deploy |
+| `operated-by-others` | somebody other than the author runs it in production | observe, deploy |
+| `regulated-data` | personal, health, payment, or otherwise regulated data is stored | database, llm when `ai-system` also fires |
+| `agent-skill-package` | the deliverable is instructions an AI agent consumes | agent-memory |
+
+**Overlays raise and never lower.** An overlay moves its domains up the lattice `excluded < deferred < applicable`; nothing an overlay does may push a domain down it. Concretely, an overlay forbids `excluded` for its domains. Deferral stays available wherever the deferrable set already allows it, so `public-ui` on a project whose visual system genuinely comes later still defers `ui` with its trigger. What it cannot do is deny that `ui` exists.
+
+This is the same monotonic rule the module disposition enforces one level down, applied to the matrix itself. Without it, an overlay written to add obligations could be read as a license to trim, which is the failure mode that makes a selection engine worse than no engine.
+
+Record overlays in frontmatter as `overlays: [ai-system, regulated-data]`, or `overlays: []` when none fire. An empty list is a finding like an empty hard-to-reverse-bets list: it says each overlay was considered and none applied, not that nobody looked.
 
 ## Scale calibration
 
@@ -421,7 +499,9 @@ Question quality bar, by example. Bad: "What database do you want?" (module deci
 
 By the end of Phase 3 the following exist, ready for the domain passes:
 
-- Mode, primary product form, any independently justified secondary form, archetype (with hybrid note), and scale calibration.
+- Mode, primary product form, any independently justified secondary form, and scale calibration.
+- The archetype with its score, its runner-up, the margin, the derived confidence, any veto applied, and the counterfactual priced in tasks and phases. A `low` confidence archetype additionally appears in Open Questions.
+- The overlay list, or an explicit empty list meaning each was considered and none fired.
 - Plan provenance: source revision or `none`, evidence inventory, SHA-256 input digest, and UTC validation timestamp.
 - The applicability matrix, complete: every excluded row carrying its evidence state, reason, and `revisit when` predicate.
 - The user's answers, verbatim where load-bearing.
@@ -444,6 +524,12 @@ By the end of Phase 3 the following exist, ready for the domain passes:
 - **Unknown as absent**: excluding a domain because nothing looked at it, phrased as though something had. Refused: `unknown` and `hint` cannot exclude; the domain becomes applicable or its question goes to Open Questions with a default.
 - **The unpriced assumption**: a ledger entry that flags a hypothesis without saying what it costs to be wrong. Refused: blast radius in tasks and phases, or the entry is a disclaimer rather than a decision aid.
 - **Anonymous requirement drop**: a module requirement missing from the plan with no record of which layer removed it. Refused: `dropped-by scale`, `archetype`, or `form`, with a reason, so a cut is distinguishable from an oversight.
+- **The confident archetype**: one label picked from the user's phrasing, with no runner-up, no margin, and no record of what the alternative would have cost. Refused: score it, name the second place, and price the counterfactual; an archetype nobody can argue with is an archetype nobody checked.
+- **Confidence as a mood**: a stated confidence that does not follow from the recorded scores, usually `high` on a 4-point margin. Refused: confidence is recomputed from the margin and the primary score, and the validator fails the mismatch.
+- **The merged hybrid**: two archetypes blended into one matrix with a tie-break rule, which produces the wrong set for precisely the project that is both. Refused: one primary archetype plus overlays.
+- **The subtractive overlay**: an overlay read as permission to trim a domain, so a project that carries more obligations ends up planning fewer. Refused: overlays raise and never lower; an overlay domain is never excluded.
+- **Borrowed staleness**: reusing a `.godaudits/EVIDENCE.json` from an older revision because it was there. Refused: fresh means the revision matches; anything else is re-derived, and the plan says which happened.
+- **The unlooked absence**: a brownfield `absent:` reason with no command behind it, which is the negative claim that reads most checked and is checked least. Refused: cite the search that came back empty, or use `by-design:` and own the decision.
 
 
 ---
@@ -1423,6 +1509,8 @@ updated: YYYY-MM-DD
 mode: greenfield
 product_form: web-application
 archetype: saas-dashboard
+archetype_confidence: high
+overlays: [public-ui, regulated-data]
 public_release: true
 source_revision: 0123456789abcdef0123456789abcdef01234567
 input_digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
@@ -1442,6 +1530,8 @@ Allowed modes are `greenfield`, `brownfield`, and `replan`. Frontmatter is the d
 
 Allowed product forms are `web-application`, `api-or-service`, `cli-or-sdk`, `mobile-or-desktop`, `data-or-ml`, and `infrastructure-or-iac`. `public_release` is `true` only when execution can activate a public site, service, package, store artifact, model, or infrastructure surface. Internal and local-only projects set it to `false`; they do not inherit a public-activation gate.
 
+`archetype_confidence` is `high`, `medium`, or `low`, and it is derived, not asserted: the validator recomputes it from the scores in the `### Archetype confidence` block and fails any disagreement. `overlays` is an inline list from the fixed set in `discovery.md` (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`), or `[]`. Overlays raise and never lower: a domain any listed overlay covers may be `applicable` or `deferred` but never `excluded`, and the validator enforces that against the matrix.
+
 `source_revision` is the full Git commit used for planning, or `none` when no revision exists. `validated_at` is a UTC ISO-8601 timestamp. The `## Plan provenance` values repeat those frontmatter values exactly, with no trailing punctuation. Its machine-readable inventory contains one or more lines shaped ``- `<label>` = `sha256:<64-lowercase-hex>` ``. Prefix a stable file artifact with `[recheck]` when phase-boundary drift checks must recompute it: ``- [recheck] `path/to/artifact` = `sha256:<64-lowercase-hex>` ``. A recheck label is a repository-relative file path, not an alias. Labels use only ASCII letters, digits, `.`, `_`, `/`, and `-`; labels are unique; and exactly one label is `intake`. Hash normalized intake text for `intake`, and hash raw file bytes for file entries. To derive `input_digest`, sort entries lexicographically by label, concatenate each as `<label><TAB><64-lowercase-hex><LF>`, hash the UTF-8 bytes with SHA-256, and prefix the result with `sha256:`. The `[recheck]` marker does not enter the digest. Inventory display order does not affect the aggregate. These values bind the plan to its inputs; they are not claims that later execution leaves the repository unchanged.
 
 The status lifecycle is `planning -> approved -> executing -> done`:
@@ -1458,13 +1548,35 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
 1. `# <Project> master plan` and a one-paragraph objective ending with an observable definition of done.
 2. `## Scope and non-goals`. Non-goals are named, not implied. State the scale calibration, available capacity, phase and task ceiling, and the sum of task appetites. A weekend plan has at most 3 phases and 8 tasks.
 3. `## Plan provenance`. Record the source revision, stable evidence inventory, digest algorithm and SHA-256 input digest, validation timestamp, and the completed or imported evidence that must be rechecked on resume.
-4. `## Product form`. Name the primary form, its vertical-slice definition, form-specific completion evidence, and any secondary form that passes the independent-deliverable rule.
+4. `## Product form`. Name the primary form, its vertical-slice definition, form-specific completion evidence, and any secondary form that passes the independent-deliverable rule. The section closes with exactly one `### Archetype confidence` block, because the archetype is what licenses the matrix defaults that follow it:
+
+   ```markdown
+   ### Archetype confidence
+
+   - Primary: saas-dashboard (score 0.88)
+   - Runner-up: api-service (score 0.57)
+   - Margin: 31 points
+   - Confidence: high
+   - Vetoes applied: none
+   - Overlays: public-ui, regulated-data
+   - If the runner-up is right: +2 tasks and +0 phases; the ui and seo rows flip to excluded and GP-210 through GP-212 drop
+   ```
+
+   Scores are two decimals from `0.00` to `1.00`. `Primary` repeats the frontmatter `archetype`. `Runner-up` is another archetype with its score, or `none` when nothing else scored above zero. `Margin` is `(primary - runner-up) * 100` rounded to an integer, and the validator recomputes it. `Confidence` is `high` at a margin of 15 or more and a primary score of 0.70 or more, `medium` with exactly one of those, `low` with neither, and the validator recomputes that too, so a confidence that does not follow from the plan's own arithmetic fails. `Overlays` repeats the frontmatter list or reads `none`. `If the runner-up is right:` is priced in tasks and phases on the same bar as a blast radius; adjectives are refused. A `low` confidence archetype additionally appears in `## Open Questions`, and no `assure`-stage documentation-set row may be `not-applicable` while it stands.
 5. `## Compliance gate`. One short section: pass, or the mitigations injected (with task IDs).
 6. `## Applicability matrix`. The full table: every domain marked applicable, deferred, or excluded. Deferred is reserved for the deferrable set named in `discovery.md` (seo, launch, observe, ui, deploy): the row names the trigger, an observable event that forces the domain pass, and argues why the decision is reversible until the trigger fires. Excluded rows carry three things in one cell, in this order: an evidence state (`absent:` for something checked, `by-design:` for something the plan settles; `unknown:` and `hint:` are refused because neither licenses an exclusion), a project-specific reason, and a `revisit when:` predicate that is observable on the same bar as a deferral trigger. An exclusion without a tripwire is permanent by accident. After the table, add the compact module disposition described below.
 
    ```markdown
    | llm | excluded | by-design: expense splitting is arithmetic, so no model call is planned; revisit when: any task adds a model SDK dependency, an inference endpoint, or a prompt template |
    ```
+
+   Two constraints ride on the exclusion cell. A domain covered by any declared overlay may not be excluded at all, because overlays raise and never lower. And in `brownfield` or `replan` mode an `absent:` reason carries a backticked command or evidence artifact, since `absent:` is a negative claim about existing code and the claims-and-evidence rule above already refuses those without a search:
+
+   ```markdown
+   | seo | excluded | absent: no HTML template, route table, or static site config under src/ (`rg -l "<html|<!DOCTYPE" src/` returns nothing); revisit when: any task adds a server-rendered route or a static site config |
+   ```
+
+   `by-design:` needs no command in any mode. It records a decision rather than an observation, and there is nothing yet to have looked at.
 
    The module disposition follows the table, one line per applicable module, naming which layer dropped anything it dropped:
 
@@ -1664,7 +1776,7 @@ The emitted companion is the only machine-check entry point. Copy it byte-for-by
 bash .godplans/validate-plan.sh --allow-planning .godplans/PLAN.mdx
 ```
 
-The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan. Without it, the validator is also an execution gate and accepts only `approved` or `executing`. It checks essential frontmatter, provenance parity and aggregate input digest, product form, conditional public-release gate structure, and lifecycle values; derived task and phase counters; sequential phase numbers and matching wave tags; unique IDs on task definition headers; all required task fields; earlier dependency targets; local and module-catalog requirement references; every applicability-matrix domain exactly once, deferral only for the reversible set, deferred triggers and reversibility reasons, and excluded rows carrying an accepted evidence state, a reason, and an observable `revisit when` predicate; the module disposition grammar, including the `dropped-by` layer name and the rule that a dropped requirement appears on no task; parity between the three frontmatter domain lists and the matrix rows they index; disjoint file sets for `[P]` tasks against every other unchecked task in their wave; the three-field `Falsifier:` block on every `### D<n>` decision entry; documentation-set rows for catalog ids, known stages and verdicts, a task reference on every required row, and the same tripwire grammar on every not-applicable row; phase Checkpoint and Checkpoint verify lines; banned Unicode through portable Perl; exactly one Plan provenance section; exactly one Applicability matrix section; exactly one Decisions section; exactly one Documentation set section; exactly one Open Questions section; and a final Verification phase. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
+The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan. Without it, the validator is also an execution gate and accepts only `approved` or `executing`. It checks essential frontmatter, provenance parity and aggregate input digest, product form, the archetype-confidence arithmetic (margin and confidence recomputed from the plan's own scores, the 0.45 floor, the runner-up counterfactual priced in tasks and phases, and parity with the frontmatter), overlay membership and the rule that an overlay's domains are never excluded, conditional public-release gate structure, and lifecycle values; derived task and phase counters; sequential phase numbers and matching wave tags; unique IDs on task definition headers; all required task fields; earlier dependency targets; local and module-catalog requirement references; every applicability-matrix domain exactly once, deferral only for the reversible set, deferred triggers and reversibility reasons, and excluded rows carrying an accepted evidence state, a reason, and an observable `revisit when` predicate; the module disposition grammar, including the `dropped-by` layer name and the rule that a dropped requirement appears on no task; parity between the three frontmatter domain lists and the matrix rows they index; disjoint file sets for `[P]` tasks against every other unchecked task in their wave; the three-field `Falsifier:` block on every `### D<n>` decision entry; documentation-set rows for catalog ids, known stages and verdicts, a task reference on every required row, and the same tripwire grammar on every not-applicable row; phase Checkpoint and Checkpoint verify lines; banned Unicode through portable Perl; exactly one Plan provenance section; exactly one Applicability matrix section; exactly one Decisions section; exactly one Documentation set section; exactly one Open Questions section; and a final Verification phase. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
 
 ## Machine-readable sidecar
 
@@ -1706,6 +1818,8 @@ updated: YYYY-MM-DD
 mode: greenfield
 product_form: PRODUCT-FORM
 archetype: ARCHETYPE
+archetype_confidence: ARCHETYPE-CONFIDENCE
+overlays: []
 public_release: PUBLIC-RELEASE-BOOLEAN
 source_revision: SOURCE-REVISION-OR-NONE
 input_digest: sha256:INPUT-DIGEST
@@ -1748,6 +1862,22 @@ Primary: web application | API or service | CLI or SDK | mobile or desktop | dat
 Vertical slice: the form-specific end-to-end path from discovery.md.
 Completion evidence: the form-specific gate that proves a user-operable increment.
 Secondary form: none, unless it has its own user, contract, distribution path, deliverable, and completion evidence.
+
+### Archetype confidence
+
+- Primary: ARCHETYPE (score 0.00)
+- Runner-up: RUNNER-UP-ARCHETYPE (score 0.00)
+- Margin: N points
+- Confidence: high | medium | low
+- Vetoes applied: none, or the archetype and the signal that zeroed it
+- Overlays: none, or the frontmatter list
+- If the runner-up is right: +N tasks and +N phases; what flips in the matrix and which GP tasks appear or drop
+
+Margin is (primary - runner-up) * 100 rounded. Confidence is high at margin 15
+or more and score 0.70 or more, medium with exactly one, low with neither; the
+validator recomputes both. A low-confidence archetype also appears in Open
+Questions, and no assure-stage documentation row may be not-applicable while it
+stands.
 
 ## Compliance gate
 
@@ -2112,10 +2242,10 @@ if ($frontmatter_end > 0) {
     }
 }
 
-for my $key (qw(name plan_version status created updated mode product_form archetype public_release source_revision input_digest validated_at domains_applicable domains_deferred domains_excluded)) {
+for my $key (qw(name plan_version status created updated mode product_form archetype archetype_confidence overlays public_release source_revision input_digest validated_at domains_applicable domains_deferred domains_excluded)) {
     if (!exists $frontmatter{$key}) {
         fail("missing frontmatter field: $key");
-    } elsif ($frontmatter{$key} eq '' && $key ne 'domains_excluded') {
+    } elsif ($frontmatter{$key} eq '' && $key ne 'domains_excluded' && $key ne 'overlays') {
         fail("frontmatter field is empty: $key");
     }
     fail("duplicate frontmatter field: $key")
@@ -2149,6 +2279,52 @@ my %allowed_product_form = map { $_ => 1 } qw(web-application api-or-service cli
 if (exists $frontmatter{product_form} && !$allowed_product_form{$frontmatter{product_form}}) {
     fail("invalid product_form '$frontmatter{product_form}'; expected web-application, api-or-service, cli-or-sdk, mobile-or-desktop, data-or-ml, or infrastructure-or-iac");
 }
+
+my %allowed_confidence = map { $_ => 1 } qw(high medium low);
+if (exists $frontmatter{archetype_confidence}
+        && !$allowed_confidence{$frontmatter{archetype_confidence}}) {
+    fail("invalid archetype_confidence '$frontmatter{archetype_confidence}'; expected high, medium, or low");
+}
+
+# An overlay answers what extra obligations a project carries, never what it is.
+# Overlays are additive: each one forbids excluding the domains it covers, so a
+# list written to add obligations can never be read as a licence to trim.
+my %overlay_domains = (
+    'ai-system'           => ['llm'],
+    'public-ui'           => ['ui', 'seo'],
+    'shipped-artifact'    => ['deploy'],
+    'operated-by-others'  => ['observe', 'deploy'],
+    'regulated-data'      => ['database'],
+    'agent-skill-package' => ['agent-memory'],
+);
+my @overlays;
+my %overlay_declared;
+if (exists $frontmatter{overlays}) {
+    my $raw = trim($frontmatter{overlays});
+    if ($raw !~ /^\[(.*)\]$/) {
+        fail('frontmatter overlays must be a single inline list such as [ai-system] or []');
+    } else {
+        for my $overlay (split /\s*,\s*/, $1, -1) {
+            $overlay = trim($overlay);
+            next if $overlay eq '';
+            if (!exists $overlay_domains{$overlay}) {
+                fail("frontmatter overlays names unknown overlay $overlay; expected ai-system, public-ui, shipped-artifact, operated-by-others, regulated-data, or agent-skill-package");
+                next;
+            }
+            fail("frontmatter overlays lists $overlay twice") if $overlay_declared{$overlay}++;
+            push @overlays, $overlay;
+        }
+        @overlays = sort @overlays;
+    }
+}
+# regulated-data reaches llm only when the project actually calls a model;
+# regulated data on its own says nothing about model integration.
+my %overlay_protected;
+for my $overlay (@overlays) {
+    $overlay_protected{$_} = $overlay for @{$overlay_domains{$overlay}};
+}
+$overlay_protected{'llm'} = 'regulated-data'
+    if $overlay_declared{'regulated-data'} && $overlay_declared{'ai-system'};
 
 if (exists $frontmatter{public_release}
         && $frontmatter{public_release} ne 'true'
@@ -2612,6 +2788,147 @@ my $product_form_count = scalar grep { $_ eq '## Product form' } @lines;
 fail("expected exactly one ## Product form section, found $product_form_count")
     if $product_form_count != 1;
 
+# Archetype confidence is arithmetic, not a feeling. The plan states its own
+# scores; everything downstream of them is recomputed here, so a confident
+# label that does not follow from the plan's own numbers cannot ship.
+my $archetype_low = 0;
+my %archetype_block;
+my $archetype_count = scalar grep { $_ eq '### Archetype confidence' } @lines;
+fail("expected exactly one ### Archetype confidence block, found $archetype_count")
+    if $archetype_count != 1;
+
+if ($archetype_count == 1) {
+    my $inside = 0;
+    for my $line (@lines) {
+        if ($line eq '### Archetype confidence') {
+            $inside = 1;
+            next;
+        }
+        last if $inside && $line =~ /^#{1,3} /;
+        next unless $inside;
+        next unless $line =~ /^-[ \t]+([A-Za-z][A-Za-z -]*?)[ \t]*:[ \t]*(\S.*)$/;
+        my ($field, $value) = ($1, $2);
+        fail("archetype confidence has duplicate field $field")
+            if exists $archetype_block{$field};
+        $archetype_block{$field} = $value;
+    }
+
+    for my $field ('Primary', 'Runner-up', 'Margin', 'Confidence', 'Vetoes applied', 'Overlays') {
+        fail("archetype confidence is missing $field")
+            unless exists $archetype_block{$field};
+    }
+
+    my ($primary_name, $primary_score);
+    if (defined $archetype_block{Primary}) {
+        if ($archetype_block{Primary} =~ /^([a-z0-9-]+)[ \t]*\(score[ \t]+([01]\.[0-9]{2})\)$/) {
+            ($primary_name, $primary_score) = ($1, $2 + 0);
+        } else {
+            fail("archetype confidence Primary must read '<archetype> (score 0.NN)'");
+        }
+    }
+    my ($runner_name, $runner_score);
+    if (defined $archetype_block{'Runner-up'}) {
+        if (lc $archetype_block{'Runner-up'} eq 'none') {
+            $runner_score = 0;
+        } elsif ($archetype_block{'Runner-up'} =~ /^([a-z0-9-]+)[ \t]*\(score[ \t]+([01]\.[0-9]{2})\)$/) {
+            ($runner_name, $runner_score) = ($1, $2 + 0);
+        } else {
+            fail("archetype confidence Runner-up must read '<archetype> (score 0.NN)' or 'none'");
+        }
+    }
+
+    if (defined $primary_score) {
+        fail("archetype confidence Primary score exceeds 1.00") if $primary_score > 1;
+        if (exists $frontmatter{archetype} && defined $primary_name
+                && $frontmatter{archetype} ne 'unknown'
+                && $primary_name ne $frontmatter{archetype}) {
+            fail("archetype confidence Primary is $primary_name but frontmatter archetype is $frontmatter{archetype}");
+        }
+        # Below the floor the archetype is not decided, and a named archetype
+        # would license matrix defaults and a document set nothing supports.
+        if ($primary_score < 0.45) {
+            $archetype_low = 1;
+            fail("archetype confidence Primary score $primary_score is below the 0.45 floor, so frontmatter archetype must be unknown")
+                if exists $frontmatter{archetype} && $frontmatter{archetype} ne 'unknown';
+        }
+    }
+
+    if (defined $primary_score && defined $runner_score) {
+        fail("archetype confidence Runner-up scores at or above Primary")
+            if defined $runner_name && $runner_score >= $primary_score;
+        fail("archetype confidence Runner-up repeats the Primary archetype")
+            if defined $runner_name && defined $primary_name && $runner_name eq $primary_name;
+        my $expected_margin = int(($primary_score - $runner_score) * 100 + 0.5);
+        if (defined $archetype_block{Margin}) {
+            if ($archetype_block{Margin} =~ /^(-?[0-9]+)[ \t]+points?$/) {
+                fail("archetype confidence Margin is $1 but the scores give $expected_margin")
+                    if $1 != $expected_margin;
+            } else {
+                fail("archetype confidence Margin must read '<n> points'");
+            }
+        }
+        my $expected_confidence =
+            ($expected_margin >= 15 && $primary_score >= 0.70) ? 'high'
+            : ($expected_margin >= 15 || $primary_score >= 0.70) ? 'medium'
+            : 'low';
+        $archetype_low = 1 if $expected_confidence eq 'low';
+        if (defined $archetype_block{Confidence}) {
+            my $stated = lc $archetype_block{Confidence};
+            if (!$allowed_confidence{$stated}) {
+                fail("archetype confidence Confidence must be high, medium, or low");
+            } elsif ($stated ne $expected_confidence) {
+                fail("archetype confidence states $stated but a margin of $expected_margin with a primary score of $primary_score gives $expected_confidence");
+            }
+        }
+        if (exists $frontmatter{archetype_confidence}
+                && $allowed_confidence{$frontmatter{archetype_confidence}}
+                && $frontmatter{archetype_confidence} ne $expected_confidence) {
+            fail("frontmatter archetype_confidence is $frontmatter{archetype_confidence} but the block's scores give $expected_confidence");
+        }
+    }
+
+    # A counterfactual priced in adjectives cannot be acted on. Tasks and
+    # phases are the units the rest of the plan already trades in.
+    if (defined $runner_name) {
+        my $counterfactual = $archetype_block{'If the runner-up is right'};
+        if (!defined $counterfactual) {
+            fail("archetype confidence names a runner-up but no 'If the runner-up is right:' counterfactual");
+        } elsif ($counterfactual !~ /[+-]?[0-9]+[ \t]+tasks?\b/
+                || $counterfactual !~ /[+-]?[0-9]+[ \t]+phases?\b/) {
+            fail("archetype confidence counterfactual must be priced in tasks and phases, not adjectives");
+        }
+    }
+
+    if (defined $archetype_block{Overlays}) {
+        my $stated = trim($archetype_block{Overlays});
+        my @stated_overlays = lc($stated) eq 'none'
+            ? ()
+            : sort grep { $_ ne '' } map { trim($_) } split /\s*,\s*/, $stated, -1;
+        my $stated_key = join ',', @stated_overlays;
+        my $frontmatter_key = join ',', @overlays;
+        fail("archetype confidence Overlays says '$stated' but frontmatter overlays is [$frontmatter_key]")
+            if $stated_key ne $frontmatter_key;
+    }
+}
+
+# Low confidence is not a disclaimer. It withholds the archetype as a settled
+# fact until a human confirms it, so the question has to be on the page.
+if ($archetype_low) {
+    my $inside = 0;
+    my $asked = 0;
+    for my $line (@lines) {
+        if ($line eq '## Open Questions') {
+            $inside = 1;
+            next;
+        }
+        last if $inside && $line =~ /^## /;
+        next unless $inside;
+        $asked = 1 if $line =~ /^### Q[1-9][0-9]*:/ && $line =~ /archetype/i;
+    }
+    fail("archetype confidence is low, so the archetype belongs in ## Open Questions as a ### Q<n>: entry naming it")
+        unless $asked;
+}
+
 if ($provenance_count == 1) {
     my $inside = 0;
     my @body;
@@ -2747,6 +3064,8 @@ if ($matrix_count == 1) {
         if ($disposition eq 'excluded') {
             fail("applicability matrix cannot exclude load-bearing domain $domain; it scales down instead")
                 if $never_excludable{$domain};
+            fail("applicability matrix excludes $domain, which the $overlay_protected{$domain} overlay covers; overlays raise and never lower, so this row may be applicable or deferred but not excluded")
+                if $overlay_protected{$domain};
             my ($state) = $reason =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
             $state = defined $state ? lc $state : '';
             my ($predicate) = $reason =~ /revisit when[ \t]*:[ \t]*(.*)$/i;
@@ -2765,6 +3084,15 @@ if ($matrix_count == 1) {
                 fail("applicability matrix excludes $domain with a vague revisit when: predicate");
             } elsif ($predicate ne '' && length($predicate) < 12) {
                 fail("applicability matrix excludes $domain with a revisit when: predicate too short to observe");
+            }
+            # `absent:` against existing code is a negative claim, and the
+            # claims-and-evidence rule refuses those without a search. Greenfield
+            # has nothing to have looked at, so only `by-design:` applies there.
+            if ($state eq 'absent'
+                    && exists $frontmatter{mode}
+                    && ($frontmatter{mode} eq 'brownfield' || $frontmatter{mode} eq 'replan')
+                    && $reason !~ /`[^`]+`/) {
+                fail("applicability matrix excludes $domain on an absent: claim with no backticked command or evidence artifact; a negative claim about existing code needs the search that came back empty");
             }
             $domain_evidence_state{$domain} = $state;
             $domain_revisit_when{$domain} = $predicate;
@@ -3047,6 +3375,11 @@ if ($docset_count == 1) {
             fail("documentation set row $id is $verdict but its owner module $owner is excluded in the applicability matrix")
                 if defined $owner_status && $owner_status eq 'excluded';
         } elsif ($verdict eq 'not-applicable') {
+            # A misread archetype deletes assure-stage rows silently, and those
+            # are the threat models and compliance records. Withhold them until
+            # the archetype is confirmed.
+            fail("documentation set marks the assure-stage row $id not-applicable while archetype confidence is low; confirm the archetype first")
+                if $archetype_low && $stage eq 'assure';
             my ($state) = $detail =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
             $state = defined $state ? lc $state : '';
             my ($predicate) = $detail =~ /revisit when[ \t]*:[ \t]*(.*)$/i;
@@ -3377,6 +3710,8 @@ if ($emit_json ne '') {
         mode            => $frontmatter{mode},
         product_form    => $frontmatter{product_form},
         archetype       => $frontmatter{archetype},
+        archetype_confidence => $frontmatter{archetype_confidence},
+        overlays        => \@overlays,
         public_release  => $frontmatter{public_release} eq 'true'
             ? JSON::PP::true : JSON::PP::false,
         source_revision => $frontmatter{source_revision},

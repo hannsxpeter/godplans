@@ -5,19 +5,19 @@
     "limitation": "Provider tokenizers differ. Published model runs record actual input and output token usage in RUNNER.txt and METRICS.json."
   },
   "portable_core": {
-    "bytes": 297120,
-    "estimated_tokens": 74280,
-    "sha256": "f81c3e8e8e3299224d69de6107f4717f47df593869e5483848baf204dbeda307"
+    "bytes": 320783,
+    "estimated_tokens": 80196,
+    "sha256": "fbcfe79a9dcfbf245f268cdbe308e984848beaab4e580f6dcb1c7d718ba9d9be"
   },
   "portable_full_generated": {
-    "bytes": 636013,
-    "estimated_tokens": 159004,
-    "sha256": "1bfeee663d38640a86fe8cdd6cf2e764095fc894dd51976cc9ffea129cea7a0c"
+    "bytes": 659676,
+    "estimated_tokens": 164919,
+    "sha256": "fd5eae18d25a9b90a51d2f3e58f19af48d41cfaa12b407bed483ccc19ebec141"
   },
   "native_skill_entry": {
-    "bytes": 21895,
-    "estimated_tokens": 5474,
-    "sha256": "fbf0df0f1133a34f2968f6829d493bd56c8618a60a255d25d7b016435d15442e"
+    "bytes": 22313,
+    "estimated_tokens": 5579,
+    "sha256": "42792b002bd177509016ae5a017e1252c0fa14912ef5178049944cd240753ae6"
   },
   "core_modules": {
     "compliance": {
@@ -26,9 +26,9 @@
       "sha256": "d795b29189693e0fd92f97c6a184228ab8374f172d32c6fcea33c57f4aaaad13"
     },
     "discovery": {
-      "bytes": 23033,
-      "estimated_tokens": 5759,
-      "sha256": "692c96b751247dcb15de67fa9de7f30a07013bd036150e42e3a2334e8161b71f"
+      "bytes": 32106,
+      "estimated_tokens": 8027,
+      "sha256": "235b95d15b3106c13634bc306da8f1739ffad7e6e6fa2333e530b67646db90b0"
     },
     "product": {
       "bytes": 21204,
@@ -61,14 +61,14 @@
       "sha256": "0ace9cd94fb222468ce9f6515add88ea4ca0dd0ea4c018e1230eb4d37dda23a1"
     },
     "plan-format": {
-      "bytes": 34667,
-      "estimated_tokens": 8667,
-      "sha256": "9452e69a80660864fb22f9a7077a20a3063eba2d4d5723e8bee7119101147482"
+      "bytes": 37760,
+      "estimated_tokens": 9440,
+      "sha256": "fe9301797068da9e4b6546e28f85f46562b24450bb0ea3cf7bee73c64dbb063e"
     }
   },
   "core_modules_total": {
-    "bytes": 201801,
-    "estimated_tokens": 50454
+    "bytes": 213967,
+    "estimated_tokens": 53495
   },
   "lazy_modules": {
     "doc-set": {

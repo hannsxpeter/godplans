@@ -40,6 +40,8 @@ updated: YYYY-MM-DD
 mode: greenfield
 product_form: web-application
 archetype: saas-dashboard
+archetype_confidence: high
+overlays: [public-ui, regulated-data]
 public_release: true
 source_revision: 0123456789abcdef0123456789abcdef01234567
 input_digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
@@ -59,6 +61,8 @@ Allowed modes are `greenfield`, `brownfield`, and `replan`. Frontmatter is the d
 
 Allowed product forms are `web-application`, `api-or-service`, `cli-or-sdk`, `mobile-or-desktop`, `data-or-ml`, and `infrastructure-or-iac`. `public_release` is `true` only when execution can activate a public site, service, package, store artifact, model, or infrastructure surface. Internal and local-only projects set it to `false`; they do not inherit a public-activation gate.
 
+`archetype_confidence` is `high`, `medium`, or `low`, and it is derived, not asserted: the validator recomputes it from the scores in the `### Archetype confidence` block and fails any disagreement. `overlays` is an inline list from the fixed set in `discovery.md` (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`), or `[]`. Overlays raise and never lower: a domain any listed overlay covers may be `applicable` or `deferred` but never `excluded`, and the validator enforces that against the matrix.
+
 `source_revision` is the full Git commit used for planning, or `none` when no revision exists. `validated_at` is a UTC ISO-8601 timestamp. The `## Plan provenance` values repeat those frontmatter values exactly, with no trailing punctuation. Its machine-readable inventory contains one or more lines shaped ``- `<label>` = `sha256:<64-lowercase-hex>` ``. Prefix a stable file artifact with `[recheck]` when phase-boundary drift checks must recompute it: ``- [recheck] `path/to/artifact` = `sha256:<64-lowercase-hex>` ``. A recheck label is a repository-relative file path, not an alias. Labels use only ASCII letters, digits, `.`, `_`, `/`, and `-`; labels are unique; and exactly one label is `intake`. Hash normalized intake text for `intake`, and hash raw file bytes for file entries. To derive `input_digest`, sort entries lexicographically by label, concatenate each as `<label><TAB><64-lowercase-hex><LF>`, hash the UTF-8 bytes with SHA-256, and prefix the result with `sha256:`. The `[recheck]` marker does not enter the digest. Inventory display order does not affect the aggregate. These values bind the plan to its inputs; they are not claims that later execution leaves the repository unchanged.
 
 The status lifecycle is `planning -> approved -> executing -> done`:
@@ -75,13 +79,35 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
 1. `# <Project> master plan` and a one-paragraph objective ending with an observable definition of done.
 2. `## Scope and non-goals`. Non-goals are named, not implied. State the scale calibration, available capacity, phase and task ceiling, and the sum of task appetites. A weekend plan has at most 3 phases and 8 tasks.
 3. `## Plan provenance`. Record the source revision, stable evidence inventory, digest algorithm and SHA-256 input digest, validation timestamp, and the completed or imported evidence that must be rechecked on resume.
-4. `## Product form`. Name the primary form, its vertical-slice definition, form-specific completion evidence, and any secondary form that passes the independent-deliverable rule.
+4. `## Product form`. Name the primary form, its vertical-slice definition, form-specific completion evidence, and any secondary form that passes the independent-deliverable rule. The section closes with exactly one `### Archetype confidence` block, because the archetype is what licenses the matrix defaults that follow it:
+
+   ```markdown
+   ### Archetype confidence
+
+   - Primary: saas-dashboard (score 0.88)
+   - Runner-up: api-service (score 0.57)
+   - Margin: 31 points
+   - Confidence: high
+   - Vetoes applied: none
+   - Overlays: public-ui, regulated-data
+   - If the runner-up is right: +2 tasks and +0 phases; the ui and seo rows flip to excluded and GP-210 through GP-212 drop
+   ```
+
+   Scores are two decimals from `0.00` to `1.00`. `Primary` repeats the frontmatter `archetype`. `Runner-up` is another archetype with its score, or `none` when nothing else scored above zero. `Margin` is `(primary - runner-up) * 100` rounded to an integer, and the validator recomputes it. `Confidence` is `high` at a margin of 15 or more and a primary score of 0.70 or more, `medium` with exactly one of those, `low` with neither, and the validator recomputes that too, so a confidence that does not follow from the plan's own arithmetic fails. `Overlays` repeats the frontmatter list or reads `none`. `If the runner-up is right:` is priced in tasks and phases on the same bar as a blast radius; adjectives are refused. A `low` confidence archetype additionally appears in `## Open Questions`, and no `assure`-stage documentation-set row may be `not-applicable` while it stands.
 5. `## Compliance gate`. One short section: pass, or the mitigations injected (with task IDs).
 6. `## Applicability matrix`. The full table: every domain marked applicable, deferred, or excluded. Deferred is reserved for the deferrable set named in `discovery.md` (seo, launch, observe, ui, deploy): the row names the trigger, an observable event that forces the domain pass, and argues why the decision is reversible until the trigger fires. Excluded rows carry three things in one cell, in this order: an evidence state (`absent:` for something checked, `by-design:` for something the plan settles; `unknown:` and `hint:` are refused because neither licenses an exclusion), a project-specific reason, and a `revisit when:` predicate that is observable on the same bar as a deferral trigger. An exclusion without a tripwire is permanent by accident. After the table, add the compact module disposition described below.
 
    ```markdown
    | llm | excluded | by-design: expense splitting is arithmetic, so no model call is planned; revisit when: any task adds a model SDK dependency, an inference endpoint, or a prompt template |
    ```
+
+   Two constraints ride on the exclusion cell. A domain covered by any declared overlay may not be excluded at all, because overlays raise and never lower. And in `brownfield` or `replan` mode an `absent:` reason carries a backticked command or evidence artifact, since `absent:` is a negative claim about existing code and the claims-and-evidence rule above already refuses those without a search:
+
+   ```markdown
+   | seo | excluded | absent: no HTML template, route table, or static site config under src/ (`rg -l "<html|<!DOCTYPE" src/` returns nothing); revisit when: any task adds a server-rendered route or a static site config |
+   ```
+
+   `by-design:` needs no command in any mode. It records a decision rather than an observation, and there is nothing yet to have looked at.
 
    The module disposition follows the table, one line per applicable module, naming which layer dropped anything it dropped:
 
@@ -281,7 +307,7 @@ The emitted companion is the only machine-check entry point. Copy it byte-for-by
 bash .godplans/validate-plan.sh --allow-planning .godplans/PLAN.mdx
 ```
 
-The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan. Without it, the validator is also an execution gate and accepts only `approved` or `executing`. It checks essential frontmatter, provenance parity and aggregate input digest, product form, conditional public-release gate structure, and lifecycle values; derived task and phase counters; sequential phase numbers and matching wave tags; unique IDs on task definition headers; all required task fields; earlier dependency targets; local and module-catalog requirement references; every applicability-matrix domain exactly once, deferral only for the reversible set, deferred triggers and reversibility reasons, and excluded rows carrying an accepted evidence state, a reason, and an observable `revisit when` predicate; the module disposition grammar, including the `dropped-by` layer name and the rule that a dropped requirement appears on no task; parity between the three frontmatter domain lists and the matrix rows they index; disjoint file sets for `[P]` tasks against every other unchecked task in their wave; the three-field `Falsifier:` block on every `### D<n>` decision entry; documentation-set rows for catalog ids, known stages and verdicts, a task reference on every required row, and the same tripwire grammar on every not-applicable row; phase Checkpoint and Checkpoint verify lines; banned Unicode through portable Perl; exactly one Plan provenance section; exactly one Applicability matrix section; exactly one Decisions section; exactly one Documentation set section; exactly one Open Questions section; and a final Verification phase. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
+The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan. Without it, the validator is also an execution gate and accepts only `approved` or `executing`. It checks essential frontmatter, provenance parity and aggregate input digest, product form, the archetype-confidence arithmetic (margin and confidence recomputed from the plan's own scores, the 0.45 floor, the runner-up counterfactual priced in tasks and phases, and parity with the frontmatter), overlay membership and the rule that an overlay's domains are never excluded, conditional public-release gate structure, and lifecycle values; derived task and phase counters; sequential phase numbers and matching wave tags; unique IDs on task definition headers; all required task fields; earlier dependency targets; local and module-catalog requirement references; every applicability-matrix domain exactly once, deferral only for the reversible set, deferred triggers and reversibility reasons, and excluded rows carrying an accepted evidence state, a reason, and an observable `revisit when` predicate; the module disposition grammar, including the `dropped-by` layer name and the rule that a dropped requirement appears on no task; parity between the three frontmatter domain lists and the matrix rows they index; disjoint file sets for `[P]` tasks against every other unchecked task in their wave; the three-field `Falsifier:` block on every `### D<n>` decision entry; documentation-set rows for catalog ids, known stages and verdicts, a task reference on every required row, and the same tripwire grammar on every not-applicable row; phase Checkpoint and Checkpoint verify lines; banned Unicode through portable Perl; exactly one Plan provenance section; exactly one Applicability matrix section; exactly one Decisions section; exactly one Documentation set section; exactly one Open Questions section; and a final Verification phase. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
 
 ## Machine-readable sidecar
 

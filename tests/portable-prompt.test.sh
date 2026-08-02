@@ -100,8 +100,16 @@ grep -Fq 'Pick product form before archetype and domain composition.' "$PROMPT" 
 grep -Fq 'expected exactly one ## Plan provenance section' "$PROMPT" ||
   fail "portable prompt is missing provenance validation"
 
+# The budget exists to make growth visible, not to be raised whenever it fires.
+# Raised once, deliberately, at 1.11.0: that release added the archetype-scoring
+# and overlay contract to discovery, the documentation-set and exclusion-tripwire
+# grammar to plan-format, and roughly 25 KB of machine checks to the validator,
+# which the core inlines whole because the portable surface has no skill files to
+# read. 330000 leaves roughly 9 KB, less than any single core module, so the next
+# addition of this size fires the gate again rather than sliding past it. Cut
+# content or drop a module before moving this number a second time.
 prompt_bytes=$(wc -c < "$PROMPT" | tr -d ' ')
-[ "$prompt_bytes" -le 300000 ] || fail "portable core exceeds 300000-byte budget: $prompt_bytes"
+[ "$prompt_bytes" -le 330000 ] || fail "portable core exceeds 330000-byte budget: $prompt_bytes"
 
 unresolved=$(sed '/^# INLINED REFERENCE: /d; /^# INLINED TEMPLATE: /d; /^# INLINED VALIDATOR: /d' "$PROMPT" |
   grep -En 'templates/PLAN\.template\.mdx|skills/godplans/scripts/validate-plan\.sh|(^|[^[:alnum:]-])plan-format\.md([^[:alnum:]-]|$)' || true)

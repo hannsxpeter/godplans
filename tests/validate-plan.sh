@@ -23,6 +23,8 @@ updated: 2026-07-13
 mode: greenfield
 product_form: cli-or-sdk
 archetype: cli-tool
+archetype_confidence: high
+overlays: []
 public_release: false
 source_revision: none
 input_digest: sha256:1c7ca1006bb3157ad989c1f1dd1cd1d6e8e2a44d9509821ffa43f3be205a12d5
@@ -56,6 +58,16 @@ Evidence inventory:
 ## Product form
 
 Primary: CLI or SDK. A vertical slice runs from command parsing through deterministic output and a consumer fixture.
+
+### Archetype confidence
+
+- Primary: cli-tool (score 0.86)
+- Runner-up: library (score 0.29)
+- Margin: 57 points
+- Confidence: high
+- Vetoes applied: none
+- Overlays: none
+- If the runner-up is right: +1 tasks and +0 phases; the consumer fixture becomes a published API surface check
 
 ## Compliance gate
 
@@ -869,6 +881,103 @@ new_case
 perl -0pi -e 's/^\| operate\.runbook \| operate \| not-applicable \| observe \|[^\n]*\|$/| operate.runbook | operate | required | observe | always; written by GP-201 |/m' "$CASE_FILE"
 expect_fail "required document owned by an excluded module" "its owner module observe is excluded in the applicability matrix" --allow-planning "$CASE_FILE"
 
+# Archetype confidence: the label is arithmetic over the plan's own scores.
+
+new_case
+perl -0pi -e 's/^- Margin: 57 points$/- Margin: 40 points/m' "$CASE_FILE"
+expect_fail "archetype margin disagrees with the scores" "Margin is 40 but the scores give 57" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Confidence: high$/- Confidence: medium/m; s/^archetype_confidence: high$/archetype_confidence: medium/m' "$CASE_FILE"
+expect_fail "archetype confidence contradicts its own arithmetic" "archetype confidence states medium but a margin of 57" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^archetype_confidence: high$/archetype_confidence: low/m' "$CASE_FILE"
+expect_fail "frontmatter confidence contradicts the block" "frontmatter archetype_confidence is low but the block" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Primary: cli-tool \(score 0\.86\)$/- Primary: library (score 0.86)/m' "$CASE_FILE"
+expect_fail "archetype block disagrees with frontmatter" "Primary is library but frontmatter archetype is cli-tool" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Primary: cli-tool \(score 0\.86\)$/- Primary: cli-tool (score 0.40)/m; s/^- Runner-up: library \(score 0\.29\)$/- Runner-up: none/m; s/^- Margin: 57 points$/- Margin: 40 points/m; s/^- Confidence: high$/- Confidence: low/m; s/^archetype_confidence: high$/archetype_confidence: low/m' "$CASE_FILE"
+expect_fail "archetype below the floor keeps a named archetype" "below the 0.45 floor, so frontmatter archetype must be unknown" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- If the runner-up is right: [^\n]*$/- If the runner-up is right: some rework in the packaging tasks/m' "$CASE_FILE"
+expect_fail "archetype counterfactual priced in adjectives" "counterfactual must be priced in tasks and phases" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Overlays: none$/- Overlays: public-ui/m' "$CASE_FILE"
+expect_fail "archetype overlays disagree with frontmatter" "Overlays says 'public-ui' but frontmatter overlays is []" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^### Archetype confidence\n/### Archetype notes\n/m' "$CASE_FILE"
+expect_fail "missing archetype confidence block" "expected exactly one ### Archetype confidence block, found 0" --allow-planning "$CASE_FILE"
+
+LOW_CONFIDENCE_PLAN="$TMP_DIR/valid-low-confidence.mdx"
+cp "$BASE_PLAN" "$LOW_CONFIDENCE_PLAN"
+perl -0pi -e '
+  s/^archetype: cli-tool$/archetype: unknown/m;
+  s/^archetype_confidence: high$/archetype_confidence: low/m;
+  s/^- Primary: cli-tool \(score 0\.86\)$/- Primary: cli-tool (score 0.40)/m;
+  s/^- Runner-up: library \(score 0\.29\)$/- Runner-up: library (score 0.36)/m;
+  s/^- Margin: 57 points$/- Margin: 4 points/m;
+  s/^- Confidence: high$/- Confidence: low/m;
+  s/^None\.$/### Q1: Is this a cli-tool or a library, given the archetype score of 0.40?\n- Owner: the maintainer (the answer is theirs to give)\n- Blocks: build, from the start of Phase 1\n- Decide by: 2026-08-14, the Phase 1 wave boundary\n- Why it matters: the archetype sets the matrix defaults and the documentation set.\n- Options: (a) cli-tool; (b) library; (c) both, published as a library with a thin command wrapper.\n- Recommended default: (a), which the current entry point already matches./m
+' "$LOW_CONFIDENCE_PLAN"
+expect_pass "low confidence with the archetype asked" --allow-planning "$LOW_CONFIDENCE_PLAN"
+
+CASE_FILE="$TMP_DIR/low-confidence-unasked.mdx"
+cp "$LOW_CONFIDENCE_PLAN" "$CASE_FILE"
+perl -0pi -e 's/^### Q1: Is this a cli-tool or a library[^\n]*$/### Q1: Which package registry receives the release?/m' "$CASE_FILE"
+expect_fail "low confidence without the archetype question" "archetype belongs in ## Open Questions" --allow-planning "$CASE_FILE"
+
+CASE_FILE="$TMP_DIR/low-confidence-assure.mdx"
+cp "$LOW_CONFIDENCE_PLAN" "$CASE_FILE"
+perl -0pi -e 's/^\| serve\.user-guide \| serve \| not-applicable \| launch \|([^\n]*)\|$/| assure.threat-model | assure | not-applicable | security | by-design: no auth boundary and no stored personal data; revisit when: any task adds a session or persists user data |/m' "$CASE_FILE"
+expect_fail "low confidence deletes an assure row" "not-applicable while archetype confidence is low" --allow-planning "$CASE_FILE"
+
+# Overlays raise and never lower.
+
+new_case
+perl -0pi -e 's/^overlays: \[\]$/overlays: [public-ui]/m; s/^- Overlays: none$/- Overlays: public-ui/m' "$CASE_FILE"
+expect_fail "overlay domain excluded anyway" "which the public-ui overlay covers" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^overlays: \[\]$/overlays: [telemetry]/m' "$CASE_FILE"
+expect_fail "unknown overlay" "names unknown overlay telemetry" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^overlays: \[\]$/overlays: ai-system/m' "$CASE_FILE"
+expect_fail "overlays must be an inline list" "overlays must be a single inline list" --allow-planning "$CASE_FILE"
+
+OVERLAY_PLAN="$TMP_DIR/valid-overlay.mdx"
+cp "$BASE_PLAN" "$OVERLAY_PLAN"
+perl -0pi -e '
+  s/^overlays: \[\]$/overlays: [shipped-artifact]/m;
+  s/^- Overlays: none$/- Overlays: shipped-artifact/m;
+  s/^\| deploy \| excluded \|[^\n]*\|$/| deploy | deferred | trigger: the first distribution task enters the roadmap; reversible until an artifact is published |/m;
+  s/^(domains_excluded: \[[^\]]*), deploy(.*)$/$1$2/m;
+  s/^domains_deferred: \[\]$/domains_deferred: [deploy]/m
+' "$OVERLAY_PLAN"
+expect_pass "overlay domain may defer" --allow-planning "$OVERLAY_PLAN"
+
+# Brownfield absent: claims carry the search that came back empty.
+
+BROWNFIELD_PLAN="$TMP_DIR/valid-brownfield-absent.mdx"
+cp "$BASE_PLAN" "$BROWNFIELD_PLAN"
+perl -0pi -e '
+  s/^mode: greenfield$/mode: brownfield/m;
+  s/^\| seo \| excluded \|[^\n]*\|$/| seo | excluded | absent: no HTML template or route table under src (`grep -rl "<html" src` returns nothing); revisit when: the project publishes a page a search engine can reach |/m
+' "$BROWNFIELD_PLAN"
+expect_pass "brownfield absent claim with a citation" --allow-planning "$BROWNFIELD_PLAN"
+
+CASE_FILE="$TMP_DIR/brownfield-absent-uncited.mdx"
+cp "$BROWNFIELD_PLAN" "$CASE_FILE"
+perl -0pi -e 's/^\| seo \| excluded \|[^\n]*\|$/| seo | excluded | absent: no HTML template or route table under src; revisit when: the project publishes a page a search engine can reach |/m' "$CASE_FILE"
+expect_fail "brownfield absent claim with no search" "absent: claim with no backticked command" --allow-planning "$CASE_FILE"
+
 DOC_CATALOG_ACTUAL="$TMP_DIR/doc-catalog-actual"
 DOC_CATALOG_EMBEDDED="$TMP_DIR/doc-catalog-embedded"
 perl -ne 'print "$1 $3 $2\n" if /^\|\s*`([a-z]+\.[a-z0-9-]+)`\s*\|\s*(durable|evidence|transient)\s*\|\s*([a-z-]+)\s*\|/' \
@@ -891,6 +1000,8 @@ if "$VALIDATOR" --allow-planning --emit-json "$SIDECAR_JSON" "$SIDECAR_PLAN" >/d
       const repo = doc.module_disposition.find((row) => row.module === "repo");
       const readme = doc.documentation.find((row) => row.id === "build.readme");
       const product = doc.module_disposition.find((row) => row.module === "product");
+      if (doc.archetype_confidence !== "high") throw new Error("archetype confidence missing");
+      if (!Array.isArray(doc.overlays)) throw new Error("overlays missing");
       if (!seo || seo.evidence_state !== "by-design" || !seo.revisit_when) throw new Error("applicability tripwire missing");
       if (!repo || !repo.landed.includes("R-REPO-21")) throw new Error("module disposition missing");
       if (!product || product.dropped[0].layer !== "scale") throw new Error("dropped layer missing");

@@ -7,6 +7,8 @@ updated: YYYY-MM-DD
 mode: greenfield
 product_form: PRODUCT-FORM
 archetype: ARCHETYPE
+archetype_confidence: ARCHETYPE-CONFIDENCE
+overlays: []
 public_release: PUBLIC-RELEASE-BOOLEAN
 source_revision: SOURCE-REVISION-OR-NONE
 input_digest: sha256:INPUT-DIGEST
@@ -49,6 +51,22 @@ Primary: web application | API or service | CLI or SDK | mobile or desktop | dat
 Vertical slice: the form-specific end-to-end path from discovery.md.
 Completion evidence: the form-specific gate that proves a user-operable increment.
 Secondary form: none, unless it has its own user, contract, distribution path, deliverable, and completion evidence.
+
+### Archetype confidence
+
+- Primary: ARCHETYPE (score 0.00)
+- Runner-up: RUNNER-UP-ARCHETYPE (score 0.00)
+- Margin: N points
+- Confidence: high | medium | low
+- Vetoes applied: none, or the archetype and the signal that zeroed it
+- Overlays: none, or the frontmatter list
+- If the runner-up is right: +N tasks and +N phases; what flips in the matrix and which GP tasks appear or drop
+
+Margin is (primary - runner-up) * 100 rounded. Confidence is high at margin 15
+or more and score 0.70 or more, medium with exactly one, low with neither; the
+validator recomputes both. A low-confidence archetype also appears in Open
+Questions, and no assure-stage documentation row may be not-applicable while it
+stands.
 
 ## Compliance gate
 

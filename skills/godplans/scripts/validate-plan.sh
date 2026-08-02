@@ -161,10 +161,10 @@ if ($frontmatter_end > 0) {
     }
 }
 
-for my $key (qw(name plan_version status created updated mode product_form archetype public_release source_revision input_digest validated_at domains_applicable domains_deferred domains_excluded)) {
+for my $key (qw(name plan_version status created updated mode product_form archetype archetype_confidence overlays public_release source_revision input_digest validated_at domains_applicable domains_deferred domains_excluded)) {
     if (!exists $frontmatter{$key}) {
         fail("missing frontmatter field: $key");
-    } elsif ($frontmatter{$key} eq '' && $key ne 'domains_excluded') {
+    } elsif ($frontmatter{$key} eq '' && $key ne 'domains_excluded' && $key ne 'overlays') {
         fail("frontmatter field is empty: $key");
     }
     fail("duplicate frontmatter field: $key")
@@ -198,6 +198,52 @@ my %allowed_product_form = map { $_ => 1 } qw(web-application api-or-service cli
 if (exists $frontmatter{product_form} && !$allowed_product_form{$frontmatter{product_form}}) {
     fail("invalid product_form '$frontmatter{product_form}'; expected web-application, api-or-service, cli-or-sdk, mobile-or-desktop, data-or-ml, or infrastructure-or-iac");
 }
+
+my %allowed_confidence = map { $_ => 1 } qw(high medium low);
+if (exists $frontmatter{archetype_confidence}
+        && !$allowed_confidence{$frontmatter{archetype_confidence}}) {
+    fail("invalid archetype_confidence '$frontmatter{archetype_confidence}'; expected high, medium, or low");
+}
+
+# An overlay answers what extra obligations a project carries, never what it is.
+# Overlays are additive: each one forbids excluding the domains it covers, so a
+# list written to add obligations can never be read as a licence to trim.
+my %overlay_domains = (
+    'ai-system'           => ['llm'],
+    'public-ui'           => ['ui', 'seo'],
+    'shipped-artifact'    => ['deploy'],
+    'operated-by-others'  => ['observe', 'deploy'],
+    'regulated-data'      => ['database'],
+    'agent-skill-package' => ['agent-memory'],
+);
+my @overlays;
+my %overlay_declared;
+if (exists $frontmatter{overlays}) {
+    my $raw = trim($frontmatter{overlays});
+    if ($raw !~ /^\[(.*)\]$/) {
+        fail('frontmatter overlays must be a single inline list such as [ai-system] or []');
+    } else {
+        for my $overlay (split /\s*,\s*/, $1, -1) {
+            $overlay = trim($overlay);
+            next if $overlay eq '';
+            if (!exists $overlay_domains{$overlay}) {
+                fail("frontmatter overlays names unknown overlay $overlay; expected ai-system, public-ui, shipped-artifact, operated-by-others, regulated-data, or agent-skill-package");
+                next;
+            }
+            fail("frontmatter overlays lists $overlay twice") if $overlay_declared{$overlay}++;
+            push @overlays, $overlay;
+        }
+        @overlays = sort @overlays;
+    }
+}
+# regulated-data reaches llm only when the project actually calls a model;
+# regulated data on its own says nothing about model integration.
+my %overlay_protected;
+for my $overlay (@overlays) {
+    $overlay_protected{$_} = $overlay for @{$overlay_domains{$overlay}};
+}
+$overlay_protected{'llm'} = 'regulated-data'
+    if $overlay_declared{'regulated-data'} && $overlay_declared{'ai-system'};
 
 if (exists $frontmatter{public_release}
         && $frontmatter{public_release} ne 'true'
@@ -661,6 +707,147 @@ my $product_form_count = scalar grep { $_ eq '## Product form' } @lines;
 fail("expected exactly one ## Product form section, found $product_form_count")
     if $product_form_count != 1;
 
+# Archetype confidence is arithmetic, not a feeling. The plan states its own
+# scores; everything downstream of them is recomputed here, so a confident
+# label that does not follow from the plan's own numbers cannot ship.
+my $archetype_low = 0;
+my %archetype_block;
+my $archetype_count = scalar grep { $_ eq '### Archetype confidence' } @lines;
+fail("expected exactly one ### Archetype confidence block, found $archetype_count")
+    if $archetype_count != 1;
+
+if ($archetype_count == 1) {
+    my $inside = 0;
+    for my $line (@lines) {
+        if ($line eq '### Archetype confidence') {
+            $inside = 1;
+            next;
+        }
+        last if $inside && $line =~ /^#{1,3} /;
+        next unless $inside;
+        next unless $line =~ /^-[ \t]+([A-Za-z][A-Za-z -]*?)[ \t]*:[ \t]*(\S.*)$/;
+        my ($field, $value) = ($1, $2);
+        fail("archetype confidence has duplicate field $field")
+            if exists $archetype_block{$field};
+        $archetype_block{$field} = $value;
+    }
+
+    for my $field ('Primary', 'Runner-up', 'Margin', 'Confidence', 'Vetoes applied', 'Overlays') {
+        fail("archetype confidence is missing $field")
+            unless exists $archetype_block{$field};
+    }
+
+    my ($primary_name, $primary_score);
+    if (defined $archetype_block{Primary}) {
+        if ($archetype_block{Primary} =~ /^([a-z0-9-]+)[ \t]*\(score[ \t]+([01]\.[0-9]{2})\)$/) {
+            ($primary_name, $primary_score) = ($1, $2 + 0);
+        } else {
+            fail("archetype confidence Primary must read '<archetype> (score 0.NN)'");
+        }
+    }
+    my ($runner_name, $runner_score);
+    if (defined $archetype_block{'Runner-up'}) {
+        if (lc $archetype_block{'Runner-up'} eq 'none') {
+            $runner_score = 0;
+        } elsif ($archetype_block{'Runner-up'} =~ /^([a-z0-9-]+)[ \t]*\(score[ \t]+([01]\.[0-9]{2})\)$/) {
+            ($runner_name, $runner_score) = ($1, $2 + 0);
+        } else {
+            fail("archetype confidence Runner-up must read '<archetype> (score 0.NN)' or 'none'");
+        }
+    }
+
+    if (defined $primary_score) {
+        fail("archetype confidence Primary score exceeds 1.00") if $primary_score > 1;
+        if (exists $frontmatter{archetype} && defined $primary_name
+                && $frontmatter{archetype} ne 'unknown'
+                && $primary_name ne $frontmatter{archetype}) {
+            fail("archetype confidence Primary is $primary_name but frontmatter archetype is $frontmatter{archetype}");
+        }
+        # Below the floor the archetype is not decided, and a named archetype
+        # would license matrix defaults and a document set nothing supports.
+        if ($primary_score < 0.45) {
+            $archetype_low = 1;
+            fail("archetype confidence Primary score $primary_score is below the 0.45 floor, so frontmatter archetype must be unknown")
+                if exists $frontmatter{archetype} && $frontmatter{archetype} ne 'unknown';
+        }
+    }
+
+    if (defined $primary_score && defined $runner_score) {
+        fail("archetype confidence Runner-up scores at or above Primary")
+            if defined $runner_name && $runner_score >= $primary_score;
+        fail("archetype confidence Runner-up repeats the Primary archetype")
+            if defined $runner_name && defined $primary_name && $runner_name eq $primary_name;
+        my $expected_margin = int(($primary_score - $runner_score) * 100 + 0.5);
+        if (defined $archetype_block{Margin}) {
+            if ($archetype_block{Margin} =~ /^(-?[0-9]+)[ \t]+points?$/) {
+                fail("archetype confidence Margin is $1 but the scores give $expected_margin")
+                    if $1 != $expected_margin;
+            } else {
+                fail("archetype confidence Margin must read '<n> points'");
+            }
+        }
+        my $expected_confidence =
+            ($expected_margin >= 15 && $primary_score >= 0.70) ? 'high'
+            : ($expected_margin >= 15 || $primary_score >= 0.70) ? 'medium'
+            : 'low';
+        $archetype_low = 1 if $expected_confidence eq 'low';
+        if (defined $archetype_block{Confidence}) {
+            my $stated = lc $archetype_block{Confidence};
+            if (!$allowed_confidence{$stated}) {
+                fail("archetype confidence Confidence must be high, medium, or low");
+            } elsif ($stated ne $expected_confidence) {
+                fail("archetype confidence states $stated but a margin of $expected_margin with a primary score of $primary_score gives $expected_confidence");
+            }
+        }
+        if (exists $frontmatter{archetype_confidence}
+                && $allowed_confidence{$frontmatter{archetype_confidence}}
+                && $frontmatter{archetype_confidence} ne $expected_confidence) {
+            fail("frontmatter archetype_confidence is $frontmatter{archetype_confidence} but the block's scores give $expected_confidence");
+        }
+    }
+
+    # A counterfactual priced in adjectives cannot be acted on. Tasks and
+    # phases are the units the rest of the plan already trades in.
+    if (defined $runner_name) {
+        my $counterfactual = $archetype_block{'If the runner-up is right'};
+        if (!defined $counterfactual) {
+            fail("archetype confidence names a runner-up but no 'If the runner-up is right:' counterfactual");
+        } elsif ($counterfactual !~ /[+-]?[0-9]+[ \t]+tasks?\b/
+                || $counterfactual !~ /[+-]?[0-9]+[ \t]+phases?\b/) {
+            fail("archetype confidence counterfactual must be priced in tasks and phases, not adjectives");
+        }
+    }
+
+    if (defined $archetype_block{Overlays}) {
+        my $stated = trim($archetype_block{Overlays});
+        my @stated_overlays = lc($stated) eq 'none'
+            ? ()
+            : sort grep { $_ ne '' } map { trim($_) } split /\s*,\s*/, $stated, -1;
+        my $stated_key = join ',', @stated_overlays;
+        my $frontmatter_key = join ',', @overlays;
+        fail("archetype confidence Overlays says '$stated' but frontmatter overlays is [$frontmatter_key]")
+            if $stated_key ne $frontmatter_key;
+    }
+}
+
+# Low confidence is not a disclaimer. It withholds the archetype as a settled
+# fact until a human confirms it, so the question has to be on the page.
+if ($archetype_low) {
+    my $inside = 0;
+    my $asked = 0;
+    for my $line (@lines) {
+        if ($line eq '## Open Questions') {
+            $inside = 1;
+            next;
+        }
+        last if $inside && $line =~ /^## /;
+        next unless $inside;
+        $asked = 1 if $line =~ /^### Q[1-9][0-9]*:/ && $line =~ /archetype/i;
+    }
+    fail("archetype confidence is low, so the archetype belongs in ## Open Questions as a ### Q<n>: entry naming it")
+        unless $asked;
+}
+
 if ($provenance_count == 1) {
     my $inside = 0;
     my @body;
@@ -796,6 +983,8 @@ if ($matrix_count == 1) {
         if ($disposition eq 'excluded') {
             fail("applicability matrix cannot exclude load-bearing domain $domain; it scales down instead")
                 if $never_excludable{$domain};
+            fail("applicability matrix excludes $domain, which the $overlay_protected{$domain} overlay covers; overlays raise and never lower, so this row may be applicable or deferred but not excluded")
+                if $overlay_protected{$domain};
             my ($state) = $reason =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
             $state = defined $state ? lc $state : '';
             my ($predicate) = $reason =~ /revisit when[ \t]*:[ \t]*(.*)$/i;
@@ -814,6 +1003,15 @@ if ($matrix_count == 1) {
                 fail("applicability matrix excludes $domain with a vague revisit when: predicate");
             } elsif ($predicate ne '' && length($predicate) < 12) {
                 fail("applicability matrix excludes $domain with a revisit when: predicate too short to observe");
+            }
+            # `absent:` against existing code is a negative claim, and the
+            # claims-and-evidence rule refuses those without a search. Greenfield
+            # has nothing to have looked at, so only `by-design:` applies there.
+            if ($state eq 'absent'
+                    && exists $frontmatter{mode}
+                    && ($frontmatter{mode} eq 'brownfield' || $frontmatter{mode} eq 'replan')
+                    && $reason !~ /`[^`]+`/) {
+                fail("applicability matrix excludes $domain on an absent: claim with no backticked command or evidence artifact; a negative claim about existing code needs the search that came back empty");
             }
             $domain_evidence_state{$domain} = $state;
             $domain_revisit_when{$domain} = $predicate;
@@ -1096,6 +1294,11 @@ if ($docset_count == 1) {
             fail("documentation set row $id is $verdict but its owner module $owner is excluded in the applicability matrix")
                 if defined $owner_status && $owner_status eq 'excluded';
         } elsif ($verdict eq 'not-applicable') {
+            # A misread archetype deletes assure-stage rows silently, and those
+            # are the threat models and compliance records. Withhold them until
+            # the archetype is confirmed.
+            fail("documentation set marks the assure-stage row $id not-applicable while archetype confidence is low; confirm the archetype first")
+                if $archetype_low && $stage eq 'assure';
             my ($state) = $detail =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
             $state = defined $state ? lc $state : '';
             my ($predicate) = $detail =~ /revisit when[ \t]*:[ \t]*(.*)$/i;
@@ -1426,6 +1629,8 @@ if ($emit_json ne '') {
         mode            => $frontmatter{mode},
         product_form    => $frontmatter{product_form},
         archetype       => $frontmatter{archetype},
+        archetype_confidence => $frontmatter{archetype_confidence},
+        overlays        => \@overlays,
         public_release  => $frontmatter{public_release} eq 'true'
             ? JSON::PP::true : JSON::PP::false,
         source_revision => $frontmatter{source_revision},

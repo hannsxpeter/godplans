@@ -54,8 +54,28 @@ matrix, and give every excluded matrix row an evidence state and a tripwire.
   availability targets, recovery objectives, retention periods, error budgets,
   or review cadences, and exhaustive or negative claims about existing code
   need a command rather than a file citation.
-- `evidence_state`, `revisit_when`, `module_disposition`, and `documentation`
-  in the generated PLAN.json sidecar, with matching schema entries.
+- Scored archetype detection with vetoes, replacing the closest-match table. A
+  plan records primary and runner-up scores, a margin, the vetoes applied, and
+  what changes if the runner-up is right, priced in tasks and phases. Margin and
+  confidence are recomputed by the validator from those scores, so a confident
+  label that does not follow from the plan's own arithmetic fails. Below the
+  0.45 floor the archetype is `unknown`, goes to Open Questions, and withholds
+  every `assure`-stage documentation row from being marked not-applicable,
+  because a misread archetype deletes threat models silently.
+- Overlays (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`,
+  `regulated-data`, `agent-skill-package`) as an additive frontmatter list. An
+  archetype says what a project is; an overlay says what extra obligations it
+  carries. Overlays raise and never lower: a domain an overlay covers may be
+  applicable or deferred, never excluded.
+- A brownfield or replan `absent:` exclusion must carry a backticked command or
+  evidence artifact. It is a negative claim about existing code, and the
+  claims-and-evidence rule already refuses those without a search.
+- Optional reuse of `.godaudits/EVIDENCE.json` when it is fresh for the revision
+  being planned, cited as `[recheck]` provenance. godplans neither requires nor
+  calls godaudits; a stale inventory is refused because it reads like a fresh one.
+- `archetype_confidence`, `overlays`, `evidence_state`, `revisit_when`,
+  `module_disposition`, and `documentation` in the generated PLAN.json sidecar,
+  with matching schema entries.
 
 ### Changed
 
@@ -72,6 +92,12 @@ matrix, and give every excluded matrix row an evidence state and a tripwire.
 - The repo rubric adds a documentation-set dimension worth 15, and scores zero
   on it when any exclusion is unexplained. The style-genome rubric adds a
   measured-evidence dimension worth 10.
+- The portable-core byte budget moves from 300000 to 330000, once and on the
+  record. This release adds the archetype and overlay contract, the
+  documentation-set grammar, and about 25 KB of machine checks the core inlines
+  whole. The core now measures 320783 bytes, so the new ceiling leaves under
+  9 KB of headroom, less than any single core module: the next addition of this
+  size fires the gate rather than sliding past it.
 
 ## [1.10.0] - 2026-07-31
 
