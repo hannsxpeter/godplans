@@ -7,8 +7,13 @@ SemVer value.
 ## Release checklist
 
 1. Add the new top entry to CHANGELOG.md with the release date.
-2. Update the version in SKILL.md frontmatter and body, package.json,
-   marketplace metadata, plugin metadata, and the PLAN template.
+2. Update the version in package.json, which is the single source of truth, and
+   sync it into every other surface: SKILL.md frontmatter and body, marketplace
+   metadata, plugin metadata, the README version badge, and the PLAN template.
+   `npm run release:prepare -- <patch|minor|major|X.Y.Z>` does the bump, the
+   sync, the prompt rebuild, and a stubbed CHANGELOG entry in one command;
+   `scripts/version-sync.js` holds the authoritative surface list, so add new
+   surfaces there rather than to this checklist alone.
 3. Run `npm run build:prompt` after every inlined source is final.
 4. Install the pinned official validator in an isolated environment, then run
    `npm run release:check` from a clean checkout. It includes `npm run check`,
