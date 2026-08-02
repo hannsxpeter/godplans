@@ -44,9 +44,36 @@ if (errors.length) {
   process.exit(1);
 }
 
+// The documentation catalog is the same problem in a second table: the
+// validator has to know every catalog id and its owning module, and a
+// hand-maintained copy desyncs the first time doc-set.md gains a row.
+const docSetPath = path.join(referencesDir, 'doc-set.md');
+const documents = {};
+const docErrors = [];
+for (const line of fs.readFileSync(docSetPath, 'utf8').split(/\r?\n/)) {
+  const row = line.match(/^\|\s*`([a-z]+\.[a-z0-9-]+)`\s*\|\s*(durable|evidence|transient)\s*\|\s*([a-z-]+)\s*\|/);
+  if (!row) continue;
+  const [, id, durability, owner] = row;
+  if (documents[id]) docErrors.push(`${id}: duplicate catalog row`);
+  documents[id] = `${owner}|${durability}`;
+}
+if (!Object.keys(documents).length) docErrors.push('doc-set.md: no catalog rows matched');
+for (const [id, value] of Object.entries(documents)) {
+  const stage = id.split('.')[0];
+  if (!stage) docErrors.push(`${id}: no stage prefix`);
+  if (!value.split('|')[0]) docErrors.push(`${id}: no owner module`);
+}
+if (docErrors.length) {
+  process.stderr.write(`Document catalog problems:\n  ${docErrors.join('\n  ')}\n`);
+  process.exit(1);
+}
+
 const block = `my %catalog_max = (\n${Object.keys(maxima).sort().map((p) => `    ${p} => ${maxima[p]},`).join('\n')}\n);`;
+const docBlock = `my %doc_catalog = (\n${Object.keys(documents).sort().map((id) => `    '${id}' => '${documents[id]}',`).join('\n')}\n);`;
 const validator = fs.readFileSync(validatorPath, 'utf8');
-const rebuilt = validator.replace(/my %catalog_max = \([^)]*\);/, block);
+const rebuilt = validator
+  .replace(/my %catalog_max = \([^)]*\);/, block)
+  .replace(/my %doc_catalog = \([^)]*\);/, docBlock);
 
 if (check) {
   if (validator === rebuilt) {
@@ -59,5 +86,5 @@ if (check) {
   process.stdout.write('Validator catalog already fresh.\n');
 } else {
   fs.writeFileSync(validatorPath, rebuilt);
-  process.stdout.write(`Rewrote %catalog_max in validate-plan.sh (${Object.keys(maxima).length} prefixes).\n`);
+  process.stdout.write(`Rewrote %catalog_max (${Object.keys(maxima).length} prefixes) and %doc_catalog (${Object.keys(documents).length} documents) in validate-plan.sh.\n`);
 }

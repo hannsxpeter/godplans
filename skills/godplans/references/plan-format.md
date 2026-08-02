@@ -15,6 +15,19 @@ GFM-safe means these MDX hazards are banned in prose:
 
 Also banned everywhere in the plan, matching godplans house style: em dashes, en dashes, Unicode arrows (ASCII `->` only), box-drawing characters, emojis, smart quotes, and the ellipsis character.
 
+## Claims and evidence
+
+A plan makes two kinds of statement, and they are held to different bars.
+
+**A decision** is the plan's own choice. It needs a rationale, rejected alternatives, and a falsifier. Nothing outside the plan has to support it, because the plan is where it becomes true.
+
+**A claim about the world** is a statement about the existing codebase, the user's constraints, the platform, or a regime. It carries its source in the sentence: a repository-relative path with a symbol name or a verbatim anchor (never a bare line number, which does not survive a reformat), a command with its output, an external reference, or an explicit attribution to what the user said. A claim about the world with no source is a guess wearing a plan's clothes, and brownfield plans are made almost entirely of them.
+
+Two rules follow, and both are violated more often than the ban on vague acceptance criteria:
+
+- **An exhaustive or negative claim needs a command, not a file.** "Every handler validates its input", "no route bypasses the session middleware", "there are no other callers": a path citation resolves one symbol in one file and cannot carry any of those. Run the search and cite the command, narrow the claim to the set actually inspected, or mark it as an assumption with a validation task. This is the one class of claim that reads most confident and is checked least.
+- **No number is invented.** Availability targets, recovery objectives, retention periods, error budgets, review cadences, latency thresholds quoted as existing behavior, and user counts are decisions somebody owns. A number is cited to a source, taken from the user's answer, or it belongs in `## Open Questions` with a recommended default. A threshold invented at plan time is quoted back six months later as though somebody had committed to it. A number the plan *chooses* is different and legitimate: it lands in `## Decisions` as a decision with a falsifier whose failure boundary is that same number.
+
 ## Frontmatter (machine state)
 
 ```yaml
@@ -64,7 +77,21 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
 3. `## Plan provenance`. Record the source revision, stable evidence inventory, digest algorithm and SHA-256 input digest, validation timestamp, and the completed or imported evidence that must be rechecked on resume.
 4. `## Product form`. Name the primary form, its vertical-slice definition, form-specific completion evidence, and any secondary form that passes the independent-deliverable rule.
 5. `## Compliance gate`. One short section: pass, or the mitigations injected (with task IDs).
-6. `## Applicability matrix`. The full table: every domain marked applicable, deferred, or excluded. Applicable and excluded behave as before (excluded requires a project-specific reason). Deferred is reserved for the deferrable set named in `discovery.md` (seo, launch, observe, ui, deploy): the row names the trigger, an observable event that forces the domain pass, and argues why the decision is reversible until the trigger fires. After the table, add a compact module disposition that lists landed requirement IDs and groups scale-excluded IDs by module with a specific reason.
+6. `## Applicability matrix`. The full table: every domain marked applicable, deferred, or excluded. Deferred is reserved for the deferrable set named in `discovery.md` (seo, launch, observe, ui, deploy): the row names the trigger, an observable event that forces the domain pass, and argues why the decision is reversible until the trigger fires. Excluded rows carry three things in one cell, in this order: an evidence state (`absent:` for something checked, `by-design:` for something the plan settles; `unknown:` and `hint:` are refused because neither licenses an exclusion), a project-specific reason, and a `revisit when:` predicate that is observable on the same bar as a deferral trigger. An exclusion without a tripwire is permanent by accident. After the table, add the compact module disposition described below.
+
+   ```markdown
+   | llm | excluded | by-design: expense splitting is arithmetic, so no model call is planned; revisit when: any task adds a model SDK dependency, an inference endpoint, or a prompt template |
+   ```
+
+   The module disposition follows the table, one line per applicable module, naming which layer dropped anything it dropped:
+
+   ```markdown
+   ### Module disposition
+   - security: landed R-SEC-1, R-SEC-4, R-SEC-12; dropped-by scale R-SEC-22 (side-project: no SOC 2 program)
+   - ui: landed R-UI-2, R-UI-9; dropped-by archetype R-UI-14 (stock primitives, no design system to publish)
+   ```
+
+   `dropped-by` takes exactly one of `scale`, `archetype`, or `form`, and carries a parenthetical reason. A requirement listed as dropped may not appear on any task's `Requirements:` line, and the two lists in one module line may not overlap. Naming the dropping layer is what separates a decision from an oversight: without it, a requirement cut to fit a weekend appetite is indistinguishable from one nobody considered.
 7. `## Decisions`. Hard-to-reverse bets first: wire formats, public identifiers, data-model shape, auth and ownership boundaries. Each entry is a decision with rationale, a hypothesis with a validation plan, or a pointer to Open Questions. Where options were weighed, show the comparison in a small table. Every `### D<n>` decision entry carries this structured falsifier:
 
    ```markdown
@@ -74,15 +101,55 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
    - Replan action: return to planning and evaluate schema-per-tenant against the rejected shared-table design
    ```
 
-   `Signal` names observable evidence, `Failure boundary` states the event or numeric threshold that kills the decision, and `Replan action` names what is reconsidered after returning to planning. A falsifier that can never fire is decoration. Hypotheses in the assumptions ledger need no falsifier block; their validation task already is one.
+   `Signal` names observable evidence, `Failure boundary` states the event or numeric threshold that kills the decision, and `Replan action` names what is reconsidered after returning to planning. A falsifier that can never fire is decoration. Hypotheses in the assumptions ledger need no falsifier block; their validation task already is one. Each ledger entry does carry its price:
+
+   ```markdown
+   ### Assumptions ledger
+   - A1: a workspace's data is never visible across workspaces (assumed; no cross-org reporting was described)
+     - Blast radius: wrong costs +6 tasks and +1 phase; per-object ACLs replace workspace-scoped RLS, rewriting GP-201 and every Phase 4 query
+     - Validated by: GP-108
+   ```
+
+   `Blast radius` is counted in tasks and phases the plan would gain or lose, never in adjectives. "Significant rework" is refused. `+0 tasks` is a legitimate and useful answer: it tells the user which assumptions to stop worrying about.
 8. `## Requirements`. Numbered user stories with EARS acceptance criteria: `R-1.1: WHEN <trigger> THE SYSTEM SHALL <observable behavior>`. A compact table is also valid when the requirement ID is the first cell of each row. Task `Requirements:` lines point here and at module IDs (R-SEC-4 style).
 9. `## Architecture`. The mermaid visuals (see Visual layer) plus the prose that the diagrams support.
 10. `## Style genome`. Naming, idioms, structure conventions the first commit must already follow.
 11. `## Agent memory`. The AGENTS.md and pillar files the scaffold phase will emit.
-12. `## Phases`. The task body; see Task grammar.
-13. `## Open Questions`. Exactly one such section, at the bottom, the only enumeration of open decisions. Committed decisions never appear here. A complex plan with zero open questions is acceptable only when every meaningful decision has been explicitly made above; the legal empty form is a body of exactly `None.`. Otherwise every entry is a decision ticket in the grammar below. When every listed option is a variant of one framing, the question also names the option from outside that framing, or states that none survived and which constraint eliminated it; options that only vary a dial are a menu, not a set of alternatives.
-14. `## Rules for executing agents`. Copied verbatim from this module (below).
-15. `## Session log`. Append-only, one line per session.
+12. `## Documentation set`. Exactly one such section. The manifest of documents this project owes, what it does not owe, and what would reverse each of those answers. See Documentation set grammar below and `doc-set.md` for the catalog and the selection rules.
+13. `## Phases`. The task body; see Task grammar.
+14. `## Open Questions`. Exactly one such section, at the bottom, the only enumeration of open decisions. Committed decisions never appear here. A complex plan with zero open questions is acceptable only when every meaningful decision has been explicitly made above; the legal empty form is a body of exactly `None.`. Otherwise every entry is a decision ticket in the grammar below. When every listed option is a variant of one framing, the question also names the option from outside that framing, or states that none survived and which constraint eliminated it; options that only vary a dial are a menu, not a set of alternatives.
+15. `## Rules for executing agents`. Copied verbatim from this module (below).
+16. `## Session log`. Append-only, one line per session.
+
+## Documentation set grammar
+
+One table, one boundary statement, and nothing else. Read `doc-set.md` before authoring it; that file carries the catalog, the ten lifecycle stages, the durability contract, and the selection rules this grammar renders.
+
+```markdown
+## Documentation set
+
+This manifest covers documentation committed to this repository. Documents that live in a wiki, an intranet, or a compliance platform are marked present-elsewhere and are not planned here.
+
+| Document | Stage | Verdict | Owner | Selected by, or reason and revisit when |
+|---|---|---|---|---|
+| decide.adr | decide | required | architecture | always; ADR-001 through ADR-003 land in GP-104 |
+| build.config-reference | build | required | stack | the service reads 11 environment variables; written by GP-207 |
+| assure.threat-model | assure | required | security | session auth plus stored personal data; written by GP-306 |
+| operate.recovery | operate | recommended | deploy | durable user data exists; offered as GP-402 |
+| serve.support-policy | serve | not-applicable | launch | by-design: no paying users at side-project scale; revisit when: the plan adds a billing route or a paid tier |
+| verify.traceability | verify | not-applicable | roadmap | absent: no external authorizer was named in discovery; revisit when: a customer contract or a regulator requires an audit trail |
+```
+
+Grammar rules:
+
+- **Document**: a catalog id from `doc-set.md` section 5. An id outside that catalog is refused; extend the catalog instead of inventing a row, because an id nobody else uses cannot be cross-referenced.
+- **Stage**: one of the ten in `doc-set.md` section 2.
+- **Verdict**: `required`, `recommended`, `optional`, or `not-applicable`.
+- **Owner**: the module that plans the artifact, from the catalog. Exactly one module owns a document, so two passes never both plan the same file. A repo-pass task that writes an architecture-owned document is a boundary violation, not a convenience.
+- **Last cell**: for a selected row, what selected it plus the GP task that writes it, so the manifest is checkable against the phases. For a `not-applicable` row, an evidence state (`absent:` or `by-design:`), a reason, and a `revisit when:` predicate, on the same bar as an excluded applicability row. `unknown:` and `hint:` are refused here for the same reason they are refused there.
+- **Every required row names a task.** A required document with no GP number is a promise the plan does not keep.
+- **Brownfield and replan** additionally record state, so the action is a lookup rather than a judgment: an existing and current document is `adopt` (frontmatter only, no task), a drifted one is a refresh task, and a document the profile does not justify is an `orphan` row with a question, never a deletion task. The full lattice is `doc-set.md` section 6.
+- **No invented numbers.** Review cadence, retention, recovery objectives, availability targets, and support windows are cited or they are open questions. A number invented at plan time becomes a commitment nobody made.
 
 ## Task grammar
 
@@ -214,7 +281,7 @@ The emitted companion is the only machine-check entry point. Copy it byte-for-by
 bash .godplans/validate-plan.sh --allow-planning .godplans/PLAN.mdx
 ```
 
-The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan. Without it, the validator is also an execution gate and accepts only `approved` or `executing`. It checks essential frontmatter, provenance parity and aggregate input digest, product form, conditional public-release gate structure, and lifecycle values; derived task and phase counters; sequential phase numbers and matching wave tags; unique IDs on task definition headers; all required task fields; earlier dependency targets; local and module-catalog requirement references; every applicability-matrix domain exactly once, deferral only for the reversible set, deferred triggers and reversibility reasons, and excluded reasons; parity between the three frontmatter domain lists and the matrix rows they index; disjoint file sets for `[P]` tasks against every other unchecked task in their wave; the three-field `Falsifier:` block on every `### D<n>` decision entry; phase Checkpoint and Checkpoint verify lines; banned Unicode through portable Perl; exactly one Plan provenance section; exactly one Applicability matrix section; exactly one Decisions section; exactly one Open Questions section; and a final Verification phase. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
+The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan. Without it, the validator is also an execution gate and accepts only `approved` or `executing`. It checks essential frontmatter, provenance parity and aggregate input digest, product form, conditional public-release gate structure, and lifecycle values; derived task and phase counters; sequential phase numbers and matching wave tags; unique IDs on task definition headers; all required task fields; earlier dependency targets; local and module-catalog requirement references; every applicability-matrix domain exactly once, deferral only for the reversible set, deferred triggers and reversibility reasons, and excluded rows carrying an accepted evidence state, a reason, and an observable `revisit when` predicate; the module disposition grammar, including the `dropped-by` layer name and the rule that a dropped requirement appears on no task; parity between the three frontmatter domain lists and the matrix rows they index; disjoint file sets for `[P]` tasks against every other unchecked task in their wave; the three-field `Falsifier:` block on every `### D<n>` decision entry; documentation-set rows for catalog ids, known stages and verdicts, a task reference on every required row, and the same tripwire grammar on every not-applicable row; phase Checkpoint and Checkpoint verify lines; banned Unicode through portable Perl; exactly one Plan provenance section; exactly one Applicability matrix section; exactly one Decisions section; exactly one Documentation set section; exactly one Open Questions section; and a final Verification phase. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
 
 ## Machine-readable sidecar
 
@@ -237,3 +304,7 @@ The plan is re-read every session; bloat is a tax on every future turn. Budgets:
 When PLAN.mdx already exists: read it fully, recount progress from checkboxes, read the session log, and recompute the source evidence recorded under `## Plan provenance`. Recheck every artifact recorded as completed or imported. If its content, revision, or existence changed materially, mark the plan stale by returning `status` to `planning` before applying the delta; do not trust the chat or old validation timestamp. Completed work is history and never altered. New work gets fresh IDs continuing the sequence. Superseded unstarted tasks are not deleted. Strike only the heading (`~~- [ ] GP-310 [W3.1] Old work~~`), then retain `  - Superseded: <one-line reason>` and `  - Requirements: <original ids>` so the audit trail and domain metric survive. Refresh the evidence inventory, `input_digest`, and `validated_at`; bump `plan_version`; log the delta in the session log; and re-run the Phase 6 audit on any section that changed.
 
 Measure the outgoing plan before patching it: run `scripts/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json`. The report records active, superseded, and historical tasks, plus cumulative supersession and survival rates overall and per requirement domain. A domain whose tasks are struck repeatedly was over-planned at that scale; shrink its appetite on the next pass instead of reseeding the same tasks.
+
+Re-evaluate every tripwire on the way in, before anything else. An excluded domain whose `revisit when` predicate has become true, and a not-applicable documentation row whose predicate has become true, are the reason to replan at all, so they lead the delta rather than trailing it. A predicate that is true now is reported; one that is merely being watched is not.
+
+Report drift as leads, not as findings. `--drift-check` recomputes digests and reruns sampled commands, which establishes that something changed and never why. A recorded artifact whose hash moved may be a real regression, a reformat, or a rename, and presenting the three as one verdict trains the reader to skip the section. Name what changed, name what it might mean, and leave the judgment where the evidence is.

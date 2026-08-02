@@ -3,7 +3,7 @@ name: godplans
 description: "Produce an audit-aware, agent-executable master plan (PLAN.mdx) for a software project before application code is written. One command runs discovery, forces hard-to-reverse decisions, and plans product, architecture, roadmap, stack, repo, build, deploy, observability, launch, security, code quality, style genome, database, LLM integration, SEO, UI, UX, and agent memory upfront. After-the-fact audit checks become plan-time acceptance criteria, and a self-contained validator enforces task structure and approval state. Use when the user says: plan this project, godplans, master plan, plan everything upfront, idea to plan, plan before code, audit-aware plan, replan, or starts a greenfield project or major feature. Refuses plan theater (sections filled, decisions absent), vague tasks without verification, unsupported quality guarantees, and projects whose core purpose violates the Anthropic Usage Policy."
 license: MIT
 metadata:
-  version: "1.10.0"
+  version: "1.11.0"
   author: aihxp
   homepage: https://github.com/hannsxpeter/godplans
 ---
@@ -29,6 +29,8 @@ godplans descends from: hannsxpeter/arc-ready and hannsxpeter/ready-suite (the t
 7. **Never pad, never stub.** No single-step plans, no filler sections, no placeholder content. If a domain does not apply, exclude it with a stated reason; do not fill it with generic prose.
 8. **Read the module before authoring.** Each domain has a reference module under `references/`. Read it at the moment you author that plan section. Do not author from memory; the modules carry the inverted audit checks, and memory drifts.
 9. **Compliance is standing.** Follow `references/compliance.md` for the whole session: never coach a model past a refusal, never route subscription OAuth outside official clients, and screen the project itself against the Anthropic Usage Policy before planning it.
+10. **Absence of a look is never absence of a thing.** Every exclusion, of a domain or a document, records the evidence state behind it: `absent` when something checked and the reason names what checked, or `by-design` when the plan itself settles it. `unknown` and `hint` never exclude; they make the thing applicable or become an open question with a default. And every exclusion carries a `revisit when` predicate, because an exclusion with no expiry is a silence with a reason attached.
+11. **No invented numbers.** Availability targets, recovery objectives, retention periods, error budgets, review cadences, and thresholds quoted as existing behavior are commitments somebody owns. Cite the source, take the user's answer, make it a decision with a falsifier boundary, or put it in Open Questions with a recommended default. A number invented at plan time gets quoted back later as though somebody had committed to it.
 
 ## Method
 
@@ -42,7 +44,7 @@ Detect what exists. Look for:
 - Source code (manifests like `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`) -> **brownfield mode**.
 - Neither -> **greenfield mode**.
 
-Record the mode. Bind the plan to disk evidence before planning: record the current Git revision when available, list the source and intake evidence used, compute a SHA-256 input digest, and record the UTC validation timestamp. In brownfield mode, fingerprint before planning: read the manifests, entry points, directory shape, and enough representative source to capture the existing stack, structure, and style genome (naming, idioms, formatting habits). The plan must extend what exists, not fight it. This pass is read-only.
+Record the mode. Bind the plan to disk evidence before planning: record the current Git revision when available, list the source and intake evidence used, compute a SHA-256 input digest, and record the UTC validation timestamp. In brownfield mode, fingerprint before planning: read the manifests, entry points, and directory shape, run `python3 scripts/style-stats.py .` for the measured style baseline, then close-read enough representative source to interpret it. The plan must extend what exists, not fight it. This pass is read-only. Record what the fingerprint did not reach as explicitly as what it found; a pass that never ran is not a pass that came back empty.
 
 ### Phase 1: Compliance gate
 
@@ -66,7 +68,7 @@ Read `references/discovery.md`. Establish:
 
 1. **Product form**: web application, API or service, CLI or SDK, mobile or desktop, data or ML, or infrastructure or IaC. Pick this before archetype and domain composition because it defines vertical slices and completion evidence. Record secondary forms only when they have independent users, contracts, distribution paths, and deliverables.
 2. **Archetype**: cli-tool, api-service, saas-dashboard, marketing-site, library, mobile-app, ml-pipeline, extension, game, or hybrid (see the module for the detection rules).
-3. **Applicability matrix**: every planning domain in the table below is applicable, deferred, or excluded. A CLI tool excludes seo and ui with reasons; it does not get empty SEO sections. Deferral is reserved for the deferrable set in the discovery module (seo, launch, observe, ui, deploy): the row names the observable trigger that forces the domain pass and argues reversibility until then. The matrix goes into the plan verbatim.
+3. **Applicability matrix**: every planning domain in the table below is applicable, deferred, or excluded. A CLI tool excludes seo and ui; it does not get empty SEO sections. An excluded row carries three things: the evidence state (`absent:` or `by-design:`), the project-specific reason, and a `revisit when:` predicate that would make the domain applicable again. Deferral is reserved for the deferrable set in the discovery module (seo, launch, observe, ui, deploy): the row names the observable trigger that forces the domain pass and argues reversibility until then. The matrix goes into the plan verbatim.
 4. **Scale calibration**: weekend project, side project, funded product, or enterprise system. Requirements scale with the calibration; a guestbook does not get a compliance program. Weekend plans have at most 3 phases and 8 tasks. Treat that as a hard ceiling, not a target, and fit the total task appetites inside the user's stated capacity.
 
 ### Phase 3: Discovery
@@ -120,7 +122,7 @@ Print the scorecard in chat when done, including whether the critic ran isolated
 
 ### Phase 7: Emit and hand off
 
-1. Read `references/plan-format.md` and `templates/PLAN.template.mdx`. Assemble `.godplans/PLAN.mdx` per that contract: frontmatter machine state, mermaid visuals where they carry weight, phases and waves, GP-numbered checkbox tasks with Files, Depends on, Reuses, Acceptance, Verify, and Requirements lines, one Open Questions section at the bottom, executor rules, session log.
+1. Read `references/plan-format.md` and `templates/PLAN.template.mdx`. Assemble `.godplans/PLAN.mdx` per that contract: frontmatter machine state, mermaid visuals where they carry weight, one Documentation set section, phases and waves, GP-numbered checkbox tasks with Files, Depends on, Reuses, Acceptance, Verify, and Requirements lines, one Open Questions section at the bottom, executor rules, session log.
 2. Complete the three-artifact emission gate before any response: re-copy `scripts/validate-plan.sh` from this skill byte-for-byte to the pre-created `.godplans/validate-plan.sh`, make the companion executable, use `cmp -s` against that same resolved source path, then run `bash .godplans/validate-plan.sh --allow-planning --emit-json .godplans/PLAN.json .godplans/PLAN.mdx`. The emission is incomplete if PLAN.mdx, its executable validator, or PLAN.json is missing. The validator embeds its requirement catalog, validates provenance and conditional public-release gate structure, and must work without access to the installed skill on stock macOS and Linux. It is the machine gate; do not recreate its checks with grep. Fix every failure before presenting. PLAN.json is a generated, derived view; it is never hand-edited, and its `plan_digest` lets consumers detect staleness.
 3. Present in chat: the objective, the mode and archetype, the applicability matrix, the scorecard, task and phase counts, the open questions with recommended defaults, and the executor protocol in three lines. Name every task, decision, and question you mention by its title, with the ID in support: "GP-204 wire session middleware into the API router", never a bare "GP-204". IDs are how the machine addresses the plan; a wall of them is how a human loses it. Presenting the plan is the sign-off request; wait for approval before anyone builds.
 4. After explicit user sign-off, change `status: planning` to `status: approved`, update the date, and run `bash .godplans/validate-plan.sh .godplans/PLAN.mdx`. Do not start application work as part of approval.
@@ -145,7 +147,9 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 - **Feature laundry lists**: features without prioritization and sequencing are not a roadmap.
 - **Scope leak at plan time**: godplans does not write application code, scaffold repos, or run deploys. It plans them.
 - **Policy-violating projects**: the Phase 1 gate is not advisory. Prohibited purposes get a refusal with the policy category named.
-- **Silent domain skipping**: a domain is planned now, deferred with an observable trigger and reversibility argument, or excluded with a reason in the matrix. Never silently absent.
+- **Silent domain skipping**: a domain is planned now, deferred with an observable trigger and reversibility argument, or excluded with an evidence state, a reason, and a tripwire. Never silently absent.
+- **Laundered gaps**: an exclusion, of a domain or a document, that reads like a considered decision because nothing records whether anyone looked. The evidence state and the `revisit when` predicate are what separate a decision from a silence, and both are machine-checked.
+- **Invented numbers**: an availability target, recovery objective, retention period, or review cadence the plan made up so a section would be complete. Cite it, decide it with a falsifier, or ask it.
 - **Ungated promises**: a marker an executor acts on that nothing verifies. `[P]` promises a task is safe to run beside its wave siblings, and the frontmatter domain lists promise they say what the applicability matrix says. Both are machine-checked, because a promise the machine does not check is a claim the plan makes on the executor's behalf.
 
 ## File map
@@ -157,10 +161,12 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 | `references/discovery.md` | Intake, archetype detection, applicability matrix, interview protocol |
 | `references/compliance.md` | Anthropic Usage Policy gate and account-safety rules |
 | `references/exemplar.md` | Worked GOOD and BAD plan fragments; the quality bar |
+| `references/doc-set.md` | The documentation-set contract: catalog, lifecycle stages, durability, selection and exclusion rules |
 | `references/<domain>.md` | 18 domain modules (see Phase 4 table) |
 | `templates/PLAN.template.mdx` | The skeleton PLAN.mdx |
 | `scripts/validate-plan.sh` | Self-contained validator copied beside each emitted plan |
 | `scripts/plan-halflife.sh` | Replan metric generator for cumulative and per-domain task supersession |
+| `scripts/style-stats.py` | Measured style baseline for the style-genome pass (naming histograms, comment density, function length) |
 | `schemas/PLAN.schema.json` | Published JSON Schema for the generated PLAN.json sidecar |
 
-## Skill version: 1.10.0
+## Skill version: 1.11.0

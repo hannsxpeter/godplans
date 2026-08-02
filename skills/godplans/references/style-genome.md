@@ -4,7 +4,11 @@ Fixes the project's coding style genome (naming, comments, structure, control fl
 
 ## Lineage
 
-Descends from codedna (hannsxpeter/codedna), the skill that fingerprints a codebase's style so new or AI-written code is indistinguishable from the original author's. codedna works after the fact: Map extracts a CODEDNA.md profile from existing code, Match writes code that blends in, Check flags AI tells in diffs. godplans inverts the direction: for greenfield projects the genome is authored at plan time, so there is never anything to retro-extract. The discipline that carries over intact: layered evidence ordered cheapest and most authoritative first (tooling configs, then measured frequencies, then close-read voice), the specificity gate (a rule true of almost any repo gets sharpened or cut), the enforced-vs-observed split, the 15-item AI-tells catalog used as a pre-presentation self-check, and the rule that local file dialect wins over the global profile.
+Descends from codedna (hannsxpeter/codedna), the skill that fingerprints a codebase's style so new or AI-written code is indistinguishable from the original author's. codedna works after the fact: Map extracts a CODEDNA.md profile from existing code, Match writes code that blends in, Check flags AI tells in diffs. godplans inverts the direction: for greenfield projects the genome is authored at plan time, so there is never anything to retro-extract. The discipline that carries over intact: layered evidence ordered cheapest and most authoritative first (tooling configs, then measured frequencies, then close-read voice), the specificity gate (a rule true of almost any repo gets sharpened or cut), the enforced-vs-observed split, the AI-tells catalog used as a pre-presentation self-check, and the rule that local file dialect wins over the global profile.
+
+Two of those carry as artifacts rather than as advice. The AI-tells catalog is reproduced in full below, because a planner told to write an anti-tells appendix without the catalog is selecting from a list it does not have. And `scripts/style-stats.py`, vendored by copy from codedna, measures the frequencies R-DNA-5 and R-DNA-20 ask for, because a numeric function-size norm produced by eyeballing five files is an adjective with a number painted on it.
+
+Ported by copy in both directions: godplans depends on nothing from codedna at runtime, codedna depends on nothing from godplans, and a fix travels between the repositories as an edit rather than a reference.
 
 ## Decisions to force
 
@@ -83,6 +87,36 @@ Ordered hardest to reverse first.
   Criterion: WHEN the genome section is emitted, THE PLAN SHALL state the refresh triggers and the local-dialect-wins rule.
 - R-DNA-20 Brownfield fingerprint before authorship.
   Criterion: WHEN mode is brownfield, THE PLAN SHALL derive the genome from layered evidence (configs as enforced ground truth, measured frequencies such as naming histograms and comment density, then a close-read sample quoted in 2-4 line snippets, skipping vendored and generated paths), and SHALL record the dominant pattern plus real exceptions rather than inventing conventions the code does not exhibit.
+- R-DNA-21 Measured, not eyeballed. The numeric norms in this section come from `python3 scripts/style-stats.py <target>`, whose output the plan quotes: comment density per language, naming-casing histograms per identifier kind, median and p90 function length, median identifier length, quote and indentation habits, and documentation coverage. In brownfield the target is the existing tree, and the measured run is the second evidence layer between the configs and the close read. In greenfield there is nothing to measure, so the section states the target numbers as choices and names the run that will confirm them once the first modules land.
+  Criterion: IF mode is brownfield, THE PLAN SHALL quote measured values from the stats run for at least comment density, function-length median, and the casing histogram of the two most common identifier kinds, and every numeric norm in the genome SHALL trace to one of them; IF mode is greenfield, THE PLAN SHALL state each numeric norm as a chosen target and SHALL name the confirming run and the wave it happens in.
+- R-DNA-22 Config map before prose. The plan lists the enforced-layer config files it found or will commit, and next to each, the specific conventions that tool settles (line width, indentation, quotes, semicolons, trailing commas, import ordering, and any lint rule that rewrites rather than warns). That map is what makes R-DNA-1 checkable: a genome line covering a mapped convention is a duplicate with a second source of truth, and it is cut.
+  Criterion: WHEN the genome section is emitted, THE PLAN SHALL contain a config map naming each enforced file and the conventions it settles, and no genome rule SHALL restate a convention the map assigns to a tool.
+- R-DNA-23 Anti-tells selected from the catalog. The anti-tells appendix required by R-DNA-17 selects from the numbered catalog in this module and cites the catalog number for each entry, keeping only the tells this project actually deviates from, with the project-specific value that makes each one checkable ("comments: most functions carry none, not one per block").
+  Criterion: WHEN the anti-tells appendix is emitted, THE PLAN SHALL cite a catalog number and a project-specific value for every entry, and SHALL omit every catalog entry the project does not actually deviate on, so no check can flag conforming code.
+- R-DNA-24 The check runs as a command. The enforcement loop required by R-DNA-18 names an executable Verify command, not a prose instruction to review carefully. At minimum the formatter and linter check commands run in the hook and in CI; where a diff-level style check is available (a codedna Check invocation, a custom script, or a review-time checklist wired into the PR template with a machine-checked presence test), the plan names it and where it runs.
+  Criterion: WHEN the enforcement task is emitted, THE PLAN SHALL give it a Verify command whose exit code proves the check is wired, and SHALL NOT satisfy R-DNA-18 with an instruction that no command can fail.
+
+## AI tells catalog
+
+The reference list R-DNA-17 and R-DNA-23 select from. Carried in full rather than cited, so the planner is choosing from the catalog rather than remembering it.
+
+AI defaults to maximally explicit, maximally defensive, uniformly consistent, and eager to explain. Real authors are selectively terse, selectively defensive, characteristically inconsistent, and sparing with explanation. The appendix records where this project is deliberately the opposite of the default, and nothing else, because a tell that does not describe this project produces false positives, and a false tell costs as much trust as a missed one.
+
+1. **Over-commenting**: a comment above nearly every block.
+2. **Narrating the obvious**: a comment that restates the line below it.
+3. **Names longer than the house norm**: `responseData` and `handleButtonClickEvent` where the author writes `res` and `onClick`.
+4. **Defensive boilerplate**: try/catch blocks, null checks, and re-validation the author would not write.
+5. **Over-abstraction, or under**: a one-line helper, or a factory the project does not warrant, against an author who inlines; the reverse for an author who extracts early.
+6. **Uniform consistency**: every rule applied perfectly, flattening the characteristic local dialect of individual files.
+7. **Docstrings on everything**: `@param` and `@returns` blocks that restate the signature.
+8. **Explainer voice**: "Now we iterate", first-person plural, full sentences in a terse repository.
+9. **Section banners and dividers** in a repository that has none.
+10. **Emoji and decorative Unicode** in a repository that has none.
+11. **Restating the prompt or the plan** in comments.
+12. **Leftover scaffolding**: demo main blocks, debug logging, completed TODO markers.
+13. **Parallel utilities and vocabulary drift**: a second `formatDate`, or `fetch` and `load` used interchangeably.
+14. **Belt-and-suspenders typing**: explicit return types everywhere in an inferring codebase, redundant casts.
+15. **Verbose logging and error messages** in a codebase that logs sparingly.
 
 ## Task seeds
 
@@ -113,24 +147,37 @@ Ordered hardest to reverse first.
   - Requirements: R-DNA-18, R-DNA-19
 - [ ] GP-xxx Fingerprint existing codebase (brownfield only)
   - Files: CODEDNA.md
-  - Acceptance: enforced layer read from existing configs, not re-derived; measured frequencies recorded (casing histograms, comment density, quote style); each observed rule paired with a quoted 2-4 line snippet; known inconsistencies recorded with the local-dialect-wins rule
+  - Acceptance: enforced layer read from existing configs, not re-derived; measured frequencies recorded from the stats run (casing histograms, comment density, function-length median and p90, quote style); each observed rule paired with a quoted 2-4 line snippet; known inconsistencies recorded with the local-dialect-wins rule
   - Verify: grep -c '```' CODEDNA.md (snippet fences present) && grep -q 'Known inconsistencies' CODEDNA.md
-  - Requirements: R-DNA-20, R-DNA-19
+  - Requirements: R-DNA-20, R-DNA-21, R-DNA-19
+
+- [ ] GP-xxx Record the measured style baseline
+  - Files: CODEDNA.md, .godplans/style-stats.json
+  - Acceptance: `python3 scripts/style-stats.py . --json` output is stored; CODEDNA.md quotes comment density, function-length median and p90, and the casing histogram for functions and variables; every numeric norm in the genome traces to one of those values
+  - Verify: python3 scripts/style-stats.py . --json > .godplans/style-stats.json && grep -q 'median' CODEDNA.md
+  - Requirements: R-DNA-21, R-DNA-5
+
+- [ ] GP-xxx Publish the enforced-layer config map
+  - Files: CODEDNA.md
+  - Acceptance: each committed formatter and linter config is listed with the conventions it settles; no genome rule restates a mapped convention; the section says "run X" for each mapped tool
+  - Verify: grep -q 'Enforced by tooling' CODEDNA.md && ! grep -niE '^- (indentation|semicolons|quote style):' CODEDNA.md
+  - Requirements: R-DNA-22, R-DNA-1
 
 ## Self-audit rubric
 
 Score the plan's style genome section 0-100.
 
-- Enforced layer settled (12): configs and exact commands named at commit zero; zero formatter-settled rules restated in prose.
-- Naming genome complete (15): casing covers every identifier kind; verb dialect, boolean prefixes, private markers, handler convention, and abbreviation whitelist each fixed to one choice.
-- Comment contract (8): density, register, doc scope, and banner rule all explicit; why-not-what stated.
-- Structural genome (10): numeric function-size norm, stated extraction threshold, module shape, and paradigm all committed.
-- Control flow and error posture (12): every control-flow habit fixed; one error strategy and one defensiveness policy, cross-referenced to Decisions.
-- Types, imports, tests (10): each fixed or excluded with a stated reason; no rule both deferred to a linter and restated as prose.
-- Idiom registry and glossary (10): helpers named with paths, parallel-utility ban stated, glossary terms consistent with the data model.
-- Day-one CODEDNA.md and wiring (10): wave-one task emits the stamped profile before feature work; the marker block is planned inside agents/quality.md, with AGENTS.md and CLAUDE.md left untouched.
-- Anti-AI-tells appendix (8): lists only real project deviations from AI defaults; would produce no false tells.
-- Enforcement loop and freshness (5): diff-check step wired into a task; refresh triggers and local-dialect-wins rule stated.
+- Enforced layer settled (11): configs and exact commands named at commit zero; the config map assigns each mapped convention to its tool; zero formatter-settled rules restated in prose.
+- Measured evidence (10): brownfield numeric norms quoted from the stats run and traceable to it; greenfield norms stated as choices with a named confirming run and wave. Zero when a number appears with no measurement and no declared choice behind it.
+- Naming genome complete (13): casing covers every identifier kind; verb dialect, boolean prefixes, private markers, handler convention, and abbreviation whitelist each fixed to one choice.
+- Comment contract (7): density, register, doc scope, and banner rule all explicit; why-not-what stated.
+- Structural genome (9): numeric function-size norm, stated extraction threshold, module shape, and paradigm all committed.
+- Control flow and error posture (11): every control-flow habit fixed; one error strategy and one defensiveness policy, cross-referenced to Decisions.
+- Types, imports, tests (9): each fixed or excluded with a stated reason; no rule both deferred to a linter and restated as prose.
+- Idiom registry and glossary (9): helpers named with paths, parallel-utility ban stated, glossary terms consistent with the data model.
+- Day-one CODEDNA.md and wiring (9): wave-one task emits the stamped profile before feature work; the marker block is planned inside agents/quality.md, with AGENTS.md and CLAUDE.md left untouched.
+- Anti-AI-tells appendix (7): selects from the catalog with numbers cited; lists only real project deviations; would produce no false tells.
+- Enforcement loop and freshness (5): the check has an executable Verify command rather than a review instruction; refresh triggers and local-dialect-wins rule stated.
 
 Any dimension at zero, or a total under 85, sends the section back for revision before the plan is emitted.
 
@@ -145,4 +192,7 @@ Any dimension at zero, or a total under 85, sends the section back for revision 
 - Docstring-everything boilerplate: @param/@returns on every function by default. Refusal: doc scope is an explicit decision; the default is public API only.
 - Brownfield invention: writing a genome from taste instead of evidence. Refusal: layered fingerprint first (configs, then measured frequencies, then close read with quoted snippets); numbers are evidence to interpret, and when they disagree with the code, trust the code.
 - Stale genome: a profile whose date predates a deliberate style shift, silently mismatching new code. Refusal: stamp version and date, name refresh triggers, mandate re-ratification after them.
-- False tells: an anti-tells list so generic that checks flag correct code. Refusal: the appendix contains only deviations this project actually makes; a false tell is as unhelpful as a missed one.
+- False tells: an anti-tells list so generic that checks flag correct code. Refusal: the appendix contains only deviations this project actually makes, each citing its catalog number; a false tell is as unhelpful as a missed one.
+- Eyeballed numbers: "median under 10 lines" produced by reading five files and estimating. Refusal: brownfield numbers come from the stats run and are quoted; greenfield numbers are declared as targets with the run that will confirm them.
+- Unrunnable enforcement: an enforcement task whose Verify is a reminder to review the diff carefully. Refusal: the command's exit code proves the check is wired, or R-DNA-18 is not satisfied.
+- Prose that duplicates the config map: a genome rule restating a convention the map already assigns to a formatter. Refusal: the map is the source of truth for enforced conventions and the genome spends its lines only on what no tool settles.

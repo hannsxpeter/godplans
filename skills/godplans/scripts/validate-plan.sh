@@ -262,13 +262,13 @@ my %catalog_max = (
     CODE => 24,
     DB => 23,
     DEPLOY => 18,
-    DNA => 20,
+    DNA => 24,
     LAUNCH => 22,
     LLM => 23,
     MEM => 22,
-    OBS => 21,
+    OBS => 22,
     PRD => 17,
-    REPO => 21,
+    REPO => 25,
     ROAD => 21,
     SEC => 30,
     SEO => 22,
@@ -282,6 +282,53 @@ for my $prefix (keys %catalog_max) {
         $catalog_requirements{"R-$prefix-$number"} = 1;
     }
 }
+
+# Generated from references/doc-set.md by scripts/build-catalog.js. Values are
+# '<owner module>|<durability>'. The id prefix is the lifecycle stage.
+my %doc_catalog = (
+    'assure.accessibility-inputs' => 'ui|evidence',
+    'assure.dependency-inventory' => 'repo|evidence',
+    'assure.privacy-record' => 'security|durable',
+    'assure.scanning-index' => 'repo|evidence',
+    'assure.threat-model' => 'security|durable',
+    'build.agent-memory' => 'agent-memory|durable',
+    'build.api-reference' => 'build|durable',
+    'build.codebase-map' => 'agent-memory|durable',
+    'build.config-reference' => 'stack|durable',
+    'build.contributing' => 'repo|durable',
+    'build.dev-setup' => 'build|durable',
+    'build.feature-flags' => 'build|durable',
+    'build.llms-txt' => 'seo|durable',
+    'build.readme' => 'repo|durable',
+    'build.style-genome' => 'style-genome|durable',
+    'decide.adr' => 'architecture|durable',
+    'decide.design-proposal' => 'architecture|transient',
+    'design.api-contract' => 'architecture|durable',
+    'design.data-model' => 'database|durable',
+    'design.integration-map' => 'architecture|durable',
+    'design.ui-spec' => 'ui|durable',
+    'frame.business-case' => 'product|durable',
+    'frame.glossary' => 'style-genome|durable',
+    'frame.objective' => 'product|durable',
+    'frame.stakeholders' => 'repo|durable',
+    'govern.changelog' => 'repo|durable',
+    'govern.closeout' => 'roadmap|durable',
+    'govern.manifest' => 'repo|durable',
+    'govern.ownership' => 'repo|durable',
+    'govern.security-policy' => 'repo|durable',
+    'operate.oncall' => 'observe|durable',
+    'operate.postmortem' => 'observe|evidence',
+    'operate.readiness-review' => 'deploy|evidence',
+    'operate.recovery' => 'deploy|durable',
+    'operate.runbook' => 'observe|durable',
+    'operate.slo' => 'observe|durable',
+    'retire.archive-manifest' => 'roadmap|evidence',
+    'serve.support-policy' => 'launch|durable',
+    'serve.user-guide' => 'launch|durable',
+    'verify.dod' => 'product|durable',
+    'verify.test-strategy' => 'code-quality|durable',
+    'verify.traceability' => 'roadmap|durable',
+);
 
 my @phases;
 my @tasks;
@@ -712,6 +759,13 @@ my %known_domain = map { $_ => 1 } qw(
 );
 my %allowed_disposition = map { $_ => 1 } qw(applicable deferred excluded);
 my %deferrable_domain = map { $_ => 1 } qw(seo launch observe ui deploy);
+# These five scale down; they never leave the plan. A later layer may raise a
+# domain's disposition and never lower it out of existence, so an exclusion here
+# is a lowering the engine refuses rather than a judgement call.
+my %never_excludable = map { $_ => 1 } qw(security code-quality style-genome repo roadmap);
+my $vague_predicate = qr/^(?:later|eventually|when ready|post-mvp|future|tbd)\b/;
+my %domain_evidence_state;
+my %domain_revisit_when;
 my $matrix_count = scalar grep { $_ eq '## Applicability matrix' } @lines;
 fail("expected exactly one ## Applicability matrix section, found $matrix_count")
     if $matrix_count != 1;
@@ -735,8 +789,34 @@ if ($matrix_count == 1) {
             fail("applicability matrix row for $domain has invalid status '$disposition'; expected applicable, deferred, or excluded");
             next;
         }
-        if ($disposition eq 'excluded' && $reason eq '') {
-            fail("applicability matrix excludes $domain without a reason");
+        # An exclusion with no evidence state and no expiry is a silence with a
+        # reason attached: it reads exactly like a considered decision and
+        # nothing ever reopens it. Demand the state that licensed it and the
+        # predicate that would reverse it.
+        if ($disposition eq 'excluded') {
+            fail("applicability matrix cannot exclude load-bearing domain $domain; it scales down instead")
+                if $never_excludable{$domain};
+            my ($state) = $reason =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
+            $state = defined $state ? lc $state : '';
+            my ($predicate) = $reason =~ /revisit when[ \t]*:[ \t]*(.*)$/i;
+            $predicate = defined $predicate ? $predicate : '';
+            $predicate =~ s/[ \t]+$//;
+            if ($reason eq '') {
+                fail("applicability matrix excludes $domain without a reason");
+            } elsif ($state eq 'unknown' || $state eq 'hint') {
+                fail("applicability matrix excludes $domain on evidence state '$state'; only absent or by-design may exclude, so make the domain applicable or open a question");
+            } elsif ($state ne 'absent' && $state ne 'by-design') {
+                fail("applicability matrix excludes $domain without an evidence state; the reason must open with 'absent:' or 'by-design:'");
+            }
+            if ($reason ne '' && $predicate eq '') {
+                fail("applicability matrix excludes $domain without a revisit when: tripwire");
+            } elsif (lc($predicate) =~ $vague_predicate) {
+                fail("applicability matrix excludes $domain with a vague revisit when: predicate");
+            } elsif ($predicate ne '' && length($predicate) < 12) {
+                fail("applicability matrix excludes $domain with a revisit when: predicate too short to observe");
+            }
+            $domain_evidence_state{$domain} = $state;
+            $domain_revisit_when{$domain} = $predicate;
         }
         if ($disposition eq 'deferred') {
             fail("applicability matrix cannot defer load-bearing domain $domain")
@@ -754,6 +834,164 @@ if ($matrix_count == 1) {
     for my $domain (sort keys %known_domain) {
         fail("applicability matrix is missing domain $domain")
             unless $seen_domain{$domain};
+    }
+}
+
+# The module disposition is the only place a module requirement may leave the
+# plan. Precedence alone does not save it: a later layer is not a more correct
+# layer, only a later one, so the line names which layer dropped what. Without
+# that name, a requirement cut to fit a weekend appetite is indistinguishable
+# from one nobody ever considered, and only one of those is a decision.
+my %module_prefix = (
+    'product' => 'PRD', 'architecture' => 'ARCH', 'stack' => 'STACK',
+    'database' => 'DB', 'security' => 'SEC', 'llm' => 'LLM', 'ux' => 'UX',
+    'ui' => 'UI', 'seo' => 'SEO', 'code-quality' => 'CODE',
+    'style-genome' => 'DNA', 'agent-memory' => 'MEM', 'repo' => 'REPO',
+    'build' => 'BUILD', 'roadmap' => 'ROAD', 'deploy' => 'DEPLOY',
+    'observe' => 'OBS', 'launch' => 'LAUNCH',
+);
+my %dropped_layer = map { $_ => 1 } qw(scale archetype form);
+my @json_disposition;
+if (%domain_disposition) {
+    my %task_requirement;
+    for my $task (@tasks) {
+        next unless exists $task->{fields}{Requirements}
+            && @{$task->{fields}{Requirements}} == 1;
+        for my $id (split /\s*,\s*/, $task->{fields}{Requirements}[0], -1) {
+            $task_requirement{$id} = $task->{id};
+        }
+    }
+
+    my $inside = 0;
+    my $found = 0;
+    my %disposition_line;
+    my %referenced;
+    for (my $index = 0; $index <= $#lines; $index++) {
+        my $line = $lines[$index];
+        if ($line eq '### Module disposition') {
+            $inside = 1;
+            $found = 1;
+            next;
+        }
+        if ($inside && $line =~ /^#{1,3} /) {
+            $inside = 0;
+            next;
+        }
+        if (!$inside) {
+            $referenced{$1} = 1 while $line =~ /(R-[A-Z][A-Z0-9-]*-[0-9]+)/g;
+            next;
+        }
+        next if $line =~ /^\s*$/;
+        $disposition_line{$index + 1} = $line;
+    }
+
+    if (!$found) {
+        fail("expected a ### Module disposition block under ## Applicability matrix");
+    }
+
+    my %seen_module;
+    for my $line_number (sort { $a <=> $b } keys %disposition_line) {
+        my $line = $disposition_line{$line_number};
+        my ($module, $body) = $line =~ /^-[ \t]+([a-z0-9-]+)[ \t]*:[ \t]*(\S.*)$/;
+        if (!defined $module) {
+            fail("module disposition line $line_number must read '- <module>: landed <ids>[; dropped-by <layer> <ids> (<reason>)]'");
+            next;
+        }
+        if (!exists $module_prefix{$module}) {
+            fail("module disposition names unknown module $module on line $line_number");
+            next;
+        }
+        fail("module disposition has a duplicate line for $module")
+            if $seen_module{$module}++;
+        my $status = $domain_disposition{$module} || 'absent';
+        if ($status ne 'applicable') {
+            fail("module disposition covers $module, which the applicability matrix marks $status; only applicable modules land or drop requirements");
+            next;
+        }
+        my $prefix = $module_prefix{$module};
+        my %landed;
+        my %dropped;
+        my @dropped_entries;
+        my $malformed = 0;
+        for my $clause (split /\s*;\s*/, $body) {
+            next if $clause eq '';
+            if ($clause =~ /^landed[ \t]+(\S.*)$/i) {
+                my $ids = $1;
+                next if lc($ids) eq 'none';
+                for my $id (split /\s*,\s*/, $ids, -1) {
+                    $id =~ s/^\s+|\s+$//g;
+                    next if $id eq '';
+                    if ($id !~ /^R-\Q$prefix\E-[0-9]+$/) {
+                        fail("module disposition for $module lists $id, which is not an R-$prefix requirement");
+                        $malformed = 1;
+                        next;
+                    }
+                    if (!$catalog_requirements{$id}) {
+                        fail("module disposition for $module lands undefined requirement $id");
+                        $malformed = 1;
+                        next;
+                    }
+                    $landed{$id} = 1;
+                }
+            } elsif ($clause =~ /^dropped-by[ \t]+([a-z]+)[ \t]+(\S.*?)[ \t]*\((\S.*)\)$/i) {
+                my ($layer, $ids, $reason) = (lc $1, $2, $3);
+                if (!$dropped_layer{$layer}) {
+                    fail("module disposition for $module drops by unknown layer '$layer'; use scale, archetype, or form");
+                    $malformed = 1;
+                    next;
+                }
+                fail("module disposition for $module drops by $layer without a reason")
+                    if $reason =~ /^\s*$/;
+                my @ids;
+                for my $id (split /\s*,\s*/, $ids, -1) {
+                    $id =~ s/^\s+|\s+$//g;
+                    next if $id eq '';
+                    if ($id !~ /^R-\Q$prefix\E-[0-9]+$/) {
+                        fail("module disposition for $module drops $id, which is not an R-$prefix requirement");
+                        $malformed = 1;
+                        next;
+                    }
+                    if (!$catalog_requirements{$id}) {
+                        fail("module disposition for $module drops undefined requirement $id");
+                        $malformed = 1;
+                        next;
+                    }
+                    $dropped{$id} = 1;
+                    push @ids, $id;
+                }
+                push @dropped_entries, { layer => $layer, reason => $reason, requirements => \@ids };
+            } elsif ($clause =~ /^dropped-by\b/i) {
+                fail("module disposition for $module has a dropped-by clause without a parenthesised reason");
+                $malformed = 1;
+            } else {
+                fail("module disposition for $module has an unrecognised clause '$clause'");
+                $malformed = 1;
+            }
+        }
+        next if $malformed;
+        for my $id (sort keys %dropped) {
+            fail("module disposition for $module both lands and drops $id")
+                if $landed{$id};
+            fail("module disposition drops $id but $task_requirement{$id} still traces to it")
+                if exists $task_requirement{$id};
+        }
+        for my $id (sort keys %landed) {
+            fail("module disposition lands $id but nothing in the plan references it")
+                unless $referenced{$id};
+        }
+        push @json_disposition, {
+            module => $module,
+            landed => [sort keys %landed],
+            dropped => \@dropped_entries,
+        };
+    }
+
+    if ($found) {
+        for my $domain (sort keys %domain_disposition) {
+            next unless $domain_disposition{$domain} eq 'applicable';
+            fail("module disposition is missing applicable module $domain")
+                unless $seen_module{$domain};
+        }
     }
 }
 
@@ -800,6 +1038,96 @@ if (%domain_disposition) {
             . ($domain_disposition{$_} || 'absent') . " in the matrix")
             for @extra;
     }
+}
+
+# The documentation set is where an absence gets defended. A not-applicable row
+# with no evidence state and no tripwire launders a gap into a decision, which
+# is the one outcome this section exists to make structurally hard.
+my %doc_verdict = map { $_ => 1 } qw(required recommended optional not-applicable);
+my @json_documents;
+my $docset_count = scalar grep { $_ eq '## Documentation set' } @lines;
+fail("expected exactly one ## Documentation set section, found $docset_count")
+    if $docset_count != 1;
+
+if ($docset_count == 1) {
+    my $inside = 0;
+    my $boundary = 0;
+    my %seen_document;
+    my $rows = 0;
+    for my $line (@lines) {
+        if ($line eq '## Documentation set') {
+            $inside = 1;
+            next;
+        }
+        last if $inside && $line =~ /^## /;
+        next unless $inside;
+        $boundary = 1
+            if index(lc($line), 'committed to this repository') >= 0;
+        next unless $line =~ /^\|[ \t]*`?([a-z]+\.[a-z0-9-]+)`?[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*(.*?)[ \t]*\|[ \t]*$/;
+        my ($id, $stage, $verdict, $owner, $detail) = ($1, $2, $3, $4, $5);
+        $rows++;
+        if (!exists $doc_catalog{$id}) {
+            fail("documentation set names $id, which is not a doc-set.md catalog id");
+            next;
+        }
+        fail("documentation set has a duplicate row for $id")
+            if $seen_document{$id}++;
+        my ($catalog_owner, $durability) = split /\|/, $doc_catalog{$id};
+        my ($catalog_stage) = $id =~ /^([a-z]+)\./;
+        fail("documentation set row $id declares stage '$stage'; the catalog stage is $catalog_stage")
+            if $stage ne $catalog_stage;
+        if (!$doc_verdict{$verdict}) {
+            fail("documentation set row $id has invalid verdict '$verdict'; expected required, recommended, optional, or not-applicable");
+            next;
+        }
+        fail("documentation set row $id names owner '$owner'; the catalog owner is $catalog_owner, and exactly one module owns a document")
+            if $owner ne $catalog_owner;
+        if ($verdict eq 'required' || $verdict eq 'recommended') {
+            my @task_refs = $detail =~ /(GP-[0-9]+)/g;
+            if (!@task_refs) {
+                fail("documentation set row $id is $verdict but names no GP task that writes it");
+            } else {
+                for my $ref (@task_refs) {
+                    fail("documentation set row $id names $ref, which is not a task in this plan")
+                        unless exists $all_task_definitions{$ref};
+                }
+            }
+            my $owner_status = $domain_disposition{$owner};
+            fail("documentation set row $id is $verdict but its owner module $owner is excluded in the applicability matrix")
+                if defined $owner_status && $owner_status eq 'excluded';
+        } elsif ($verdict eq 'not-applicable') {
+            my ($state) = $detail =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
+            $state = defined $state ? lc $state : '';
+            my ($predicate) = $detail =~ /revisit when[ \t]*:[ \t]*(.*)$/i;
+            $predicate = defined $predicate ? $predicate : '';
+            $predicate =~ s/[ \t]+$//;
+            if ($state eq 'unknown' || $state eq 'hint') {
+                fail("documentation set excludes $id on evidence state '$state'; only absent or by-design may exclude");
+            } elsif ($state ne 'absent' && $state ne 'by-design') {
+                fail("documentation set excludes $id without an evidence state; the cell must open with 'absent:' or 'by-design:'");
+            }
+            if ($predicate eq '') {
+                fail("documentation set excludes $id without a revisit when: tripwire");
+            } elsif (lc($predicate) =~ $vague_predicate) {
+                fail("documentation set excludes $id with a vague revisit when: predicate");
+            } elsif (length($predicate) < 12) {
+                fail("documentation set excludes $id with a revisit when: predicate too short to observe");
+            }
+        } elsif ($detail eq '') {
+            fail("documentation set row $id is optional but says nothing about why");
+        }
+        push @json_documents, {
+            id => $id,
+            stage => $stage,
+            verdict => $verdict,
+            owner => $owner,
+            durability => $durability,
+            detail => $detail,
+        };
+    }
+    fail("documentation set contains no catalog rows") unless $rows;
+    fail("documentation set must state its boundary: the sentence that the manifest covers documentation committed to this repository")
+        unless $boundary;
 }
 
 my $decisions_count = scalar grep { $_ eq '## Decisions' } @lines;
@@ -1080,6 +1408,10 @@ if ($emit_json ne '') {
             domain => $_,
             status => $domain_disposition{$_},
             reason => $domain_reason{$_},
+            evidence_state => defined $domain_evidence_state{$_}
+                ? $domain_evidence_state{$_} : undef,
+            revisit_when => defined $domain_revisit_when{$_}
+                ? $domain_revisit_when{$_} : undef,
         }
     } sort keys %domain_disposition;
 
@@ -1106,6 +1438,8 @@ if ($emit_json ne '') {
             tasks_done   => $counter{tasks_done} + 0,
         },
         applicability   => \@json_applicability,
+        module_disposition => \@json_disposition,
+        documentation   => \@json_documents,
         decisions       => \@json_decisions,
         phases          => \@json_phases,
         tasks           => \@json_tasks,

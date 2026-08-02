@@ -60,31 +60,38 @@ Account safety: unattended runs use supported workload authentication; no subscr
 
 Statuses: applicable (pass runs now), deferred (deferrable set only: seo,
 launch, observe, ui, deploy; the row names the trigger and the reversibility
-argument), excluded (project-specific reason).
+argument), excluded (evidence state + project-specific reason + revisit when).
+
+An excluded cell reads: `absent:` or `by-design:`, then the reason, then
+`revisit when:` and an observable predicate. `unknown:` and `hint:` are refused.
 
 | Domain | Status | Reason |
 |---|---|---|
 | product | applicable | |
 | architecture | applicable | |
 | stack | applicable | |
-| database | applicable-or-excluded | reason |
+| database | applicable-or-excluded | state: reason; revisit when: predicate |
 | security | applicable | never excluded or deferred, scales with calibration |
-| llm | applicable-or-excluded | reason |
-| ux | applicable-or-excluded | reason |
-| ui | applicable-deferred-or-excluded | reason; deferred: trigger + reversibility |
-| seo | applicable-deferred-or-excluded | reason; deferred: trigger + reversibility |
+| llm | applicable-or-excluded | state: reason; revisit when: predicate |
+| ux | applicable-or-excluded | state: reason; revisit when: predicate |
+| ui | applicable-deferred-or-excluded | excluded: state + reason + revisit when; deferred: trigger + reversibility |
+| seo | applicable-deferred-or-excluded | excluded: state + reason + revisit when; deferred: trigger + reversibility |
 | code-quality | applicable | never excluded or deferred, scales with calibration |
 | style-genome | applicable | |
 | agent-memory | applicable | |
 | repo | applicable | |
 | build | applicable | |
 | roadmap | applicable | |
-| deploy | applicable-deferred-or-excluded | reason; deferred: trigger + reversibility |
-| observe | applicable-deferred-or-excluded | reason; deferred: trigger + reversibility |
-| launch | applicable-deferred-or-excluded | reason; deferred: trigger + reversibility |
+| deploy | applicable-deferred-or-excluded | excluded: state + reason + revisit when; deferred: trigger + reversibility |
+| observe | applicable-deferred-or-excluded | excluded: state + reason + revisit when; deferred: trigger + reversibility |
+| launch | applicable-deferred-or-excluded | excluded: state + reason + revisit when; deferred: trigger + reversibility |
 
-Module disposition: list landed requirement IDs by applicable module and group
-scale-excluded IDs with a project-specific reason.
+### Module disposition
+
+One line per applicable module. `dropped-by` names the layer that removed a
+requirement: scale, archetype, or form. A dropped ID appears on no task.
+
+- MODULE: landed R-XXX-n, R-XXX-n; dropped-by scale R-XXX-n (reason)
 
 Scale calibration: weekend | side-project | funded-product | enterprise.
 
@@ -111,7 +118,12 @@ Falsifier:
 - Failure boundary: (numeric threshold or observable event that kills D3)
 - Replan action: return to planning and (reconsidered alternative or migration)
 ### Assumptions ledger
-Defaults taken without asking, each flagged as a hypothesis with the task that validates it.
+Defaults taken without asking, each flagged as a hypothesis, priced in tasks and
+phases, and pointed at the task that validates it.
+
+- A1: (the default taken, and what suggested it)
+  - Blast radius: wrong costs +N tasks and +N phases; (what structurally changes)
+  - Validated by: GP-nnn
 
 ## Requirements
 
@@ -134,6 +146,25 @@ authority. Brownfield: extracted from the codebase, with file citations.
 
 The AGENTS.md and pillar files the scaffold task emits, listed with their
 one-line purposes.
+
+## Documentation set
+
+This manifest covers documentation committed to this repository. Documents that
+live in a wiki, an intranet, or a compliance platform are marked
+present-elsewhere and are not planned here.
+
+Catalog ids, stages, owners, and selection rules come from doc-set.md. Required
+and recommended rows name the task that writes them. Not-applicable rows carry
+an evidence state (absent or by-design), a reason, and a revisit-when predicate.
+
+| Document | Stage | Verdict | Owner | Selected by, or reason and revisit when |
+|---|---|---|---|---|
+| decide.adr | decide | required | architecture | always; written by GP-nnn |
+| build.readme | build | required | repo | always; written by GP-nnn |
+| build.style-genome | build | required | style-genome | always; written by GP-nnn |
+| assure.threat-model | assure | required-or-not-applicable | security | selecting signal and its task, or state + reason + revisit when |
+| operate.runbook | operate | required-or-not-applicable | observe | selecting signal and its task, or state + reason + revisit when |
+| verify.traceability | verify | not-applicable | roadmap | by-design: no external authorizer; revisit when: a contract or regulator requires an audit trail |
 
 ## Phases
 
@@ -211,4 +242,4 @@ with an R-ROAD-7 validation task scheduled ahead of it, not a question. Write
 
 ## Session log
 
-- YYYY-MM-DD plan created (godplans v1.10.0)
+- YYYY-MM-DD plan created (godplans v1.11.0)

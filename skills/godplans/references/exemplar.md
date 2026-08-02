@@ -129,11 +129,35 @@ CI via Lighthouse assert) and GP-508 (mutation queue with idempotency
 keys).
 ```
 
-## The pattern under all four
+## 5. A defended absence
+
+An absence is the hardest thing in a plan to score, because a bad one and a good one read the same at a glance. The difference is whether anything could ever prove it wrong.
+
+**Never produce this:**
+
+```markdown
+| llm | excluded | not needed |
+| serve.support-policy | serve | not-applicable | launch | no paying users |
+```
+
+Both are true today, unfalsifiable forever, and indistinguishable from nobody having looked. "Not needed" also survives the substitution test against every project ever planned.
+
+**This is the bar:**
+
+```markdown
+| llm | excluded | by-design: splitting an expense is arithmetic over the ledger table, and the receipt parser is a regex over merchant strings; revisit when: any task adds a model SDK dependency, an inference endpoint, or a prompt template |
+
+| serve.support-policy | serve | not-applicable | launch | absent: intake named no paying user and no billing surface exists in the data model; revisit when: the plan adds a billing route, a paid tier, or an external support address |
+```
+
+Three parts, each doing work the other two cannot. The **evidence state** says whether anybody looked: `by-design` means the plan settles it, `absent` means something checked and the reason names what checked. `unknown` is refused outright, because "we did not look" and "we decided this does not apply" read identically and have opposite consequences a year later. The **reason** is specific enough to become false. The **`revisit when` predicate** is what makes the row a decision with an expiry rather than a silence, and an executor that trips it returns the plan to `planning`.
+
+## The pattern under all five
 
 1. Name the thing (real files, real numbers, real commands), never the category of the thing.
 2. Show the rejected alternatives; a decision without a loser is a description.
 3. Make failure detectable: every claim carries the check that would catch its violation, and every hard-to-reverse bet carries the falsifier that would kill it.
 4. Flag what is guessed, and attach the task that turns the guess into knowledge.
+5. Defend every absence: what state licensed it, and what would reverse it.
 
-Score any plan fragment against these four. A fragment that names nothing, rejects nothing, checks nothing, and flags nothing scores zero, no matter how professional it reads. A hard-to-reverse decision with no falsifier has decided nothing either: a bet you cannot lose is not a bet, it is a posture.
+Score any plan fragment against these five. A fragment that names nothing, rejects nothing, checks nothing, and flags nothing scores zero, no matter how professional it reads. A hard-to-reverse decision with no falsifier has decided nothing either: a bet you cannot lose is not a bet, it is a posture. And an exclusion with no tripwire has not decided anything either; it has only stopped the conversation.

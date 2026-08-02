@@ -8,7 +8,27 @@ Loaded in Phase 2 and Phase 3. Turns a raw idea (or an existing codebase) into t
 - Source manifests exist (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `Gemfile`, `pom.xml`, `mix.exs`, `Package.swift`) -> brownfield.
 - Otherwise -> greenfield.
 
-Brownfield fingerprint, read-only, before any planning: stack and versions from manifests; directory shape and module boundaries; entry points; test and CI setup; the style genome sample (naming, file organization, error-handling idiom, comment density) from 5 to 10 representative source files; anything under `agents/`, `AGENTS.md`, `CLAUDE.md`, or `.cursor/rules/` that records existing conventions. Record the current Git revision when available, a SHA-256 digest of the stable intake and source evidence, and a UTC validation timestamp. The plan extends what exists; a brownfield plan that reads like a greenfield plan has failed before it ships.
+Brownfield fingerprint, read-only, before any planning: stack and versions from manifests; directory shape and module boundaries; entry points; test and CI setup; the style genome measured with `scripts/style-stats.py` and then close-read across 5 to 10 representative source files; anything under `agents/`, `AGENTS.md`, `CLAUDE.md`, or `.cursor/rules/` that records existing conventions. Record the current Git revision when available, a SHA-256 digest of the stable intake and source evidence, and a UTC validation timestamp. The plan extends what exists; a brownfield plan that reads like a greenfield plan has failed before it ships.
+
+Record what the fingerprint did **not** reach as explicitly as what it found. A pass that was never run is not a pass that came back empty, and the applicability matrix below refuses to treat the two the same way.
+
+## Evidence states
+
+Every claim the matrix and the documentation set make about this project carries one of five states. The state is what licenses the disposition, so it is recorded before the disposition is chosen.
+
+| State | What the plan is saying | May it exclude a domain or document? |
+|---|---|---|
+| `present` | this project has the thing, and here is where | no, it selects |
+| `absent` | this was checked and the thing is not there; the reason names what checked | yes |
+| `by-design` | the plan decides this project will not have the thing | yes |
+| `unknown` | nobody looked, or the answer is not derivable from what the plan has | **no** |
+| `hint` | something matched and it is not enough to decide on | **no** |
+
+`unknown` is not `absent`, and conflating them is the failure this table exists to prevent. Reporting "we did not look" as "we decided this does not apply" produces two sentences that read identically and have opposite consequences a year later.
+
+- **Greenfield**: the honest state for anything the plan settles is `by-design`. There is nothing to inspect, and the plan is the decision. `llm | excluded | by-design: the product answers from indexed text with no model call` is a decision. `llm | excluded | no model calls` is a claim about a codebase that does not exist yet.
+- **Brownfield**: `absent` requires that something actually looked, and the reason names it. `seo | excluded | absent: no HTML template, route table, or static site config anywhere under src/` is checkable. A bare "no public pages" is not.
+- **`unknown` and `hint` never exclude.** A domain whose state is either becomes applicable, or its question goes to `## Open Questions` with a recommended default. One confidently false exclusion costs more trust than ten honest unknowns, because the unknowns advertise themselves and the false exclusion does not.
 
 ## Product-form routing
 
@@ -58,7 +78,23 @@ Calibration is a ceiling-setter, not an excuse: a weekend project with user pass
 
 ## The applicability matrix
 
-Every domain gets a row with one of three statuses. Applicable means the domain pass runs now and its requirements bind. Excluded requires a reason specific to this project; "not needed" is banned by the substitution test. Deferred means the domain's decisions are reversible until a named trigger fires, so the pass is postponed rather than skipped: the row names the trigger (an observable event, never "later") and argues why waiting is safe. When the trigger fires, the plan returns to `planning` and the deferred domain pass runs as a replan.
+Every domain gets a row with one of three statuses. Applicable means the domain pass runs now and its requirements bind. Excluded requires an evidence state, a reason specific to this project, and a tripwire; "not needed" is banned by the substitution test. Deferred means the domain's decisions are reversible until a named trigger fires, so the pass is postponed rather than skipped: the row names the trigger (an observable event, never "later") and argues why waiting is safe. When the trigger fires, the plan returns to `planning` and the deferred domain pass runs as a replan.
+
+### Excluded rows carry a tripwire
+
+A deferred row already names the event that forces its pass. An excluded row used to name only a reason, which made it permanent: true the day it was written and silently wrong the week the project changed. Every excluded row now carries all three parts, in this cell order:
+
+```
+| llm | excluded | by-design: the product ranks indexed text with BM25 and makes no model call; revisit when: any task adds a model SDK dependency, an inference endpoint, or a prompt template |
+```
+
+- **Evidence state**: `absent:` or `by-design:` opens the cell. `unknown:` and `hint:` are refused, because neither licenses an exclusion.
+- **Reason**: specific enough to fail the substitution test against another project.
+- **`revisit when:`**: an observable predicate that would make the domain applicable again. Same bar as a deferral trigger: an event somebody could notice, never "later", "eventually", "post-MVP", or "if needed". An executor that trips the predicate returns the plan to `planning` and runs the domain pass, exactly as a deferral trigger does.
+
+An exclusion with no tripwire is not a decision with an expiry, it is a silence with a reason attached, and it is the row an auditor pulls first.
+
+The five never-excludable domains (security, code-quality, style-genome, repo, roadmap) scale down instead, so they never carry a tripwire; they carry a scale note.
 
 Deferral is a privilege of the reversible. Only these domains may defer, and only with the trigger landing before the work gets expensive to redo:
 
@@ -80,7 +116,7 @@ Never deferrable: product, architecture, stack, database, security, llm (when ap
 | stack | applicable | |
 | database | applicable | |
 | security | applicable | security is never excluded or deferred, only scaled |
-| llm | excluded | no model calls anywhere in the product |
+| llm | excluded | by-design: expense splitting is arithmetic, so no model call is planned; revisit when: any task adds a model SDK dependency, an inference endpoint, or a prompt template |
 | ux | applicable | |
 | ui | applicable | |
 | seo | deferred | trigger: the first public marketing page task enters the roadmap; reversible until pages ship without metadata |
@@ -92,10 +128,26 @@ Never deferrable: product, architecture, stack, database, security, llm (when ap
 | roadmap | applicable | |
 | deploy | applicable | |
 | observe | applicable | |
-| launch | excluded | internal tool; adoption is an email, not a launch |
+| launch | excluded | by-design: internal tool, adoption is an email; revisit when: the plan adds a sign-up route reachable without an invite, or `public_release` flips to true |
 ```
 
 Hard rules: security, code-quality, style-genome, repo, roadmap are never excluded and never deferred (they scale down instead). seo requires a public crawlable surface. llm requires actual model integration; "we might add AI later" is a roadmap entry, not an llm pass and not a deferral. ui requires rendered pixels the project owns.
+
+### Module disposition and monotonic escalation
+
+After the table, the compact module disposition records what each applicable module's requirements did. Its grammar is one line per module:
+
+```
+- security: landed R-SEC-1, R-SEC-4, R-SEC-12; dropped-by scale R-SEC-22, R-SEC-27 (side-project: no SOC 2 program and no dedicated security review board)
+- ui: landed R-UI-2, R-UI-9; dropped-by archetype R-UI-14 (no design system to publish; the app uses stock primitives)
+```
+
+Three layers may drop a requirement, and the line names which one did: `scale`, `archetype`, or `form`. That naming is the whole point. Precedence alone does not save a plan, because a later layer is not a more correct layer, it is only a later one. Without a recorded dropper, a requirement cut to fit a weekend appetite looks identical to a requirement nobody ever considered, and only one of those is a decision.
+
+Two rules ride on top:
+
+- **A dropped requirement may not appear on any task's `Requirements:` line.** Claiming a requirement was cut while a task still traces to it means one of the two is lying, and the validator refuses both.
+- **A landed requirement appears somewhere concrete**: a decision, a task acceptance line, or an open question. Landed is a claim about the document, not about intent.
 
 ## The interview
 
@@ -105,8 +157,24 @@ One batch, 3 to 5 questions, only questions that change the plan. Rules:
 2. **Every question ships a recommended default**, so "defaults" is a complete answer. Format: the question, why it matters (one line), options, the recommendation marked.
 3. **Batch, do not drip.** One message with all questions. Follow-ups only when an answer creates a genuine fork.
 4. **Everything not asked becomes a stated assumption**, flagged in the plan as a hypothesis with a validation plan. The assumptions ledger goes into the Decisions section, labeled.
-5. **Brownfield asks less.** The codebase already answered most questions; asking the user something the code answers is a discovery failure.
-6. **Non-interactive fallback.** When no user is available to answer (CI, autonomous runs), take every default, mark all of them as hypotheses, and say so at the top of the plan.
+5. **Every assumption is priced.** See the blast radius rule below. An unpriced assumption asks the user to audit the plan for free.
+6. **Brownfield asks less.** The codebase already answered most questions; asking the user something the code answers is a discovery failure.
+7. **Non-interactive fallback.** When no user is available to answer (CI, autonomous runs), take every default, mark all of them as hypotheses, and say so at the top of the plan.
+8. **Ask where the documentation lives** whenever the project is brownfield or has more than one maintainer. A repository cannot see a wiki, and a documentation set that reports "absent" for something already written in Confluence discredits every other row. When the question is not worth a slot in the batch, take `repo` as the default, price it, and state the boundary in the documentation set section either way (`doc-set.md` section 8).
+
+### The blast radius rule
+
+Every entry in the assumptions ledger carries what changes if it is wrong, measured in plan units:
+
+```markdown
+- A3: a workspace's data is never visible across workspaces (assumed; no cross-org reporting was described)
+  - Blast radius: wrong costs +6 tasks and +1 phase; per-object ACLs replace workspace-scoped RLS, rewriting GP-201 and every Phase 4 query
+  - Validated by: GP-108
+```
+
+Two properties make this worth the line it costs. It converts a formless worry into something the user can act on in one sentence, and it is the artifact a lead forwards upward, because it prices a product decision in units of work. It is also what makes "answer defaults" an informed choice rather than a shrug: a wrong assumption is cheap when its cost is printed next to it.
+
+The prices are counts of tasks and phases the plan would gain or lose, not adjectives. "Significant rework" is refused; "+6 tasks and +1 phase" is not. Where the honest answer is that the plan barely moves, say `+0 tasks; the token table is additive`, because a cheap assumption is exactly the one the user should stop worrying about.
 
 Question quality bar, by example. Bad: "What database do you want?" (module decides with a default). Good: "Is a workspace's data ever visible across workspaces (shared boards, cross-org reporting)? Recommendation: no, hard tenant isolation; this decides the schema and every query." Bad: "Do you want tests?" (never a question). Good: "Is the public API versioned from day one? Recommendation: yes, `/v1/` prefix; unversioned public APIs are the most expensive reversal in this archetype."
 
@@ -116,9 +184,10 @@ By the end of Phase 3 the following exist, ready for the domain passes:
 
 - Mode, primary product form, any independently justified secondary form, archetype (with hybrid note), and scale calibration.
 - Plan provenance: source revision or `none`, evidence inventory, SHA-256 input digest, and UTC validation timestamp.
-- The applicability matrix, complete.
+- The applicability matrix, complete: every excluded row carrying its evidence state, reason, and `revisit when` predicate.
 - The user's answers, verbatim where load-bearing.
-- The assumptions ledger: every default taken, each flagged as a hypothesis.
+- The assumptions ledger: every default taken, each flagged as a hypothesis and priced with its blast radius in tasks and phases.
+- The documentation-set inputs: system of record, external authorizer, maintainer count, and whether the repository is public, so the repo pass can select the document set without a second interview.
 - The hard-to-reverse bets list, each either answered or queued for the Decisions section. An empty list is a finding, not a silence: it means wire formats, public identifiers, data-model shape, and auth and ownership boundaries were each examined and located in this project, so say where each one landed. A list that is empty because nobody looked is the mind-reader anti-pattern with better manners.
 - Brownfield only: the fingerprint summary (stack, structure, style genome extract, existing conventions files).
 
@@ -132,3 +201,7 @@ By the end of Phase 3 the following exist, ready for the domain passes:
 - **Decorative secondary form**: a supporting component labeled secondary without its own user or deliverable. Refused: secondary forms require an independent contract, distribution path, and completion evidence.
 - **Scale theater**: enterprise ceremony on a weekend project, or weekend sloppiness on a funded product. Refused: calibration is stated and modules scale to it.
 - **Deferral theater**: deferring a load-bearing domain to avoid deciding it, or deferring with a trigger that can never be observed. Refused: only the named deferrable set may defer, the trigger is an observable event with a reversibility argument, and the never-excluded set never defers.
+- **Exclusion theater**: an excluded row whose reason is true today and unfalsifiable forever, so nothing ever reopens it. Refused: every exclusion carries an observable `revisit when` predicate, which is what makes it a decision with an expiry rather than a silence.
+- **Unknown as absent**: excluding a domain because nothing looked at it, phrased as though something had. Refused: `unknown` and `hint` cannot exclude; the domain becomes applicable or its question goes to Open Questions with a default.
+- **The unpriced assumption**: a ledger entry that flags a hypothesis without saying what it costs to be wrong. Refused: blast radius in tasks and phases, or the entry is a disclaimer rather than a decision aid.
+- **Anonymous requirement drop**: a module requirement missing from the plan with no record of which layer removed it. Refused: `dropped-by scale`, `archetype`, or `form`, with a reason, so a cut is distinguishable from an oversight.
