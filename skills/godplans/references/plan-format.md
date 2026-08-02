@@ -15,6 +15,19 @@ GFM-safe means these MDX hazards are banned in prose:
 
 Also banned everywhere in the plan, matching godplans house style: em dashes, en dashes, Unicode arrows (ASCII `->` only), box-drawing characters, emojis, smart quotes, and the ellipsis character.
 
+## Claims and evidence
+
+A plan makes two kinds of statement, and they are held to different bars.
+
+**A decision** is the plan's own choice. It needs a rationale, rejected alternatives, and a falsifier. Nothing outside the plan has to support it, because the plan is where it becomes true.
+
+**A claim about the world** is a statement about the existing codebase, the user's constraints, the platform, or a regime. It carries its source in the sentence: a repository-relative path with a symbol name or a verbatim anchor (never a bare line number, which does not survive a reformat), a command with its output, an external reference, or an explicit attribution to what the user said. A claim about the world with no source is a guess wearing a plan's clothes, and brownfield plans are made almost entirely of them.
+
+Two rules follow, and both are violated more often than the ban on vague acceptance criteria:
+
+- **An exhaustive or negative claim needs a command, not a file.** "Every handler validates its input", "no route bypasses the session middleware", "there are no other callers": a path citation resolves one symbol in one file and cannot carry any of those. Run the search and cite the command, narrow the claim to the set actually inspected, or mark it as an assumption with a validation task. This is the one class of claim that reads most confident and is checked least.
+- **No number is invented.** Availability targets, recovery objectives, retention periods, error budgets, review cadences, latency thresholds quoted as existing behavior, and user counts are decisions somebody owns. A number is cited to a source, taken from the user's answer, or it belongs in `## Open Questions` with a recommended default. A threshold invented at plan time is quoted back six months later as though somebody had committed to it. A number the plan *chooses* is different and legitimate: it lands in `## Decisions` as a decision with a falsifier whose failure boundary is that same number.
+
 ## Frontmatter (machine state)
 
 ```yaml
@@ -27,6 +40,8 @@ updated: YYYY-MM-DD
 mode: greenfield
 product_form: web-application
 archetype: saas-dashboard
+archetype_confidence: high
+overlays: [public-ui, regulated-data]
 public_release: true
 source_revision: 0123456789abcdef0123456789abcdef01234567
 input_digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
@@ -46,6 +61,8 @@ Allowed modes are `greenfield`, `brownfield`, and `replan`. Frontmatter is the d
 
 Allowed product forms are `web-application`, `api-or-service`, `cli-or-sdk`, `mobile-or-desktop`, `data-or-ml`, and `infrastructure-or-iac`. `public_release` is `true` only when execution can activate a public site, service, package, store artifact, model, or infrastructure surface. Internal and local-only projects set it to `false`; they do not inherit a public-activation gate.
 
+`archetype_confidence` is `high`, `medium`, or `low`, and it is derived, not asserted: the validator recomputes it from the scores in the `### Archetype confidence` block and fails any disagreement. `overlays` is an inline list from the fixed set in `discovery.md` (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`), or `[]`. Overlays raise and never lower: a domain any listed overlay covers may be `applicable` or `deferred` but never `excluded`, and the validator enforces that against the matrix.
+
 `source_revision` is the full Git commit used for planning, or `none` when no revision exists. `validated_at` is a UTC ISO-8601 timestamp. The `## Plan provenance` values repeat those frontmatter values exactly, with no trailing punctuation. Its machine-readable inventory contains one or more lines shaped ``- `<label>` = `sha256:<64-lowercase-hex>` ``. Prefix a stable file artifact with `[recheck]` when phase-boundary drift checks must recompute it: ``- [recheck] `path/to/artifact` = `sha256:<64-lowercase-hex>` ``. A recheck label is a repository-relative file path, not an alias. Labels use only ASCII letters, digits, `.`, `_`, `/`, and `-`; labels are unique; and exactly one label is `intake`. Hash normalized intake text for `intake`, and hash raw file bytes for file entries. To derive `input_digest`, sort entries lexicographically by label, concatenate each as `<label><TAB><64-lowercase-hex><LF>`, hash the UTF-8 bytes with SHA-256, and prefix the result with `sha256:`. The `[recheck]` marker does not enter the digest. Inventory display order does not affect the aggregate. These values bind the plan to its inputs; they are not claims that later execution leaves the repository unchanged.
 
 The status lifecycle is `planning -> approved -> executing -> done`:
@@ -62,9 +79,45 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
 1. `# <Project> master plan` and a one-paragraph objective ending with an observable definition of done.
 2. `## Scope and non-goals`. Non-goals are named, not implied. State the scale calibration, available capacity, phase and task ceiling, and the sum of task appetites. A weekend plan has at most 3 phases and 8 tasks.
 3. `## Plan provenance`. Record the source revision, stable evidence inventory, digest algorithm and SHA-256 input digest, validation timestamp, and the completed or imported evidence that must be rechecked on resume.
-4. `## Product form`. Name the primary form, its vertical-slice definition, form-specific completion evidence, and any secondary form that passes the independent-deliverable rule.
+4. `## Product form`. Name the primary form, its vertical-slice definition, form-specific completion evidence, and any secondary form that passes the independent-deliverable rule. The section closes with exactly one `### Archetype confidence` block, because the archetype is what licenses the matrix defaults that follow it:
+
+   ```markdown
+   ### Archetype confidence
+
+   - Primary: saas-dashboard (score 0.88)
+   - Runner-up: api-service (score 0.57)
+   - Margin: 31 points
+   - Confidence: high
+   - Vetoes applied: none
+   - Overlays: public-ui, regulated-data
+   - If the runner-up is right: +2 tasks and +0 phases; the ui and seo rows flip to excluded and GP-210 through GP-212 drop
+   ```
+
+   Scores are two decimals from `0.00` to `1.00`. `Primary` repeats the frontmatter `archetype`. `Runner-up` is another archetype with its score, or `none` when nothing else scored above zero. `Margin` is `(primary - runner-up) * 100` rounded to an integer, and the validator recomputes it. `Confidence` is `high` at a margin of 15 or more and a primary score of 0.70 or more, `medium` with exactly one of those, `low` with neither, and the validator recomputes that too, so a confidence that does not follow from the plan's own arithmetic fails. `Overlays` repeats the frontmatter list or reads `none`. `If the runner-up is right:` is priced in tasks and phases on the same bar as a blast radius; adjectives are refused. A `low` confidence archetype additionally appears in `## Open Questions`, and no `assure`-stage documentation-set row may be `not-applicable` while it stands.
 5. `## Compliance gate`. One short section: pass, or the mitigations injected (with task IDs).
-6. `## Applicability matrix`. The full table: every domain marked applicable, deferred, or excluded. Applicable and excluded behave as before (excluded requires a project-specific reason). Deferred is reserved for the deferrable set named in `discovery.md` (seo, launch, observe, ui, deploy): the row names the trigger, an observable event that forces the domain pass, and argues why the decision is reversible until the trigger fires. After the table, add a compact module disposition that lists landed requirement IDs and groups scale-excluded IDs by module with a specific reason.
+6. `## Applicability matrix`. The full table: every domain marked applicable, deferred, or excluded. Deferred is reserved for the deferrable set named in `discovery.md` (seo, launch, observe, ui, deploy): the row names the trigger, an observable event that forces the domain pass, and argues why the decision is reversible until the trigger fires. Excluded rows carry three things in one cell, in this order: an evidence state (`absent:` for something checked, `by-design:` for something the plan settles; `unknown:` and `hint:` are refused because neither licenses an exclusion), a project-specific reason, and a `revisit when:` predicate that is observable on the same bar as a deferral trigger. An exclusion without a tripwire is permanent by accident. After the table, add the compact module disposition described below.
+
+   ```markdown
+   | llm | excluded | by-design: expense splitting is arithmetic, so no model call is planned; revisit when: any task adds a model SDK dependency, an inference endpoint, or a prompt template |
+   ```
+
+   Two constraints ride on the exclusion cell. A domain covered by any declared overlay may not be excluded at all, because overlays raise and never lower. And in `brownfield` or `replan` mode an `absent:` reason carries a backticked command or evidence artifact, since `absent:` is a negative claim about existing code and the claims-and-evidence rule above already refuses those without a search:
+
+   ```markdown
+   | seo | excluded | absent: no HTML template, route table, or static site config under src/ (`rg -l "<html|<!DOCTYPE" src/` returns nothing); revisit when: any task adds a server-rendered route or a static site config |
+   ```
+
+   `by-design:` needs no command in any mode. It records a decision rather than an observation, and there is nothing yet to have looked at.
+
+   The module disposition follows the table, one line per applicable module, naming which layer dropped anything it dropped:
+
+   ```markdown
+   ### Module disposition
+   - security: landed R-SEC-1, R-SEC-4, R-SEC-12; dropped-by scale R-SEC-22 (side-project: no SOC 2 program)
+   - ui: landed R-UI-2, R-UI-9; dropped-by archetype R-UI-14 (stock primitives, no design system to publish)
+   ```
+
+   `dropped-by` takes exactly one of `scale`, `archetype`, or `form`, and carries a parenthetical reason. A requirement listed as dropped may not appear on any task's `Requirements:` line, and the two lists in one module line may not overlap. Naming the dropping layer is what separates a decision from an oversight: without it, a requirement cut to fit a weekend appetite is indistinguishable from one nobody considered.
 7. `## Decisions`. Hard-to-reverse bets first: wire formats, public identifiers, data-model shape, auth and ownership boundaries. Each entry is a decision with rationale, a hypothesis with a validation plan, or a pointer to Open Questions. Where options were weighed, show the comparison in a small table. Every `### D<n>` decision entry carries this structured falsifier:
 
    ```markdown
@@ -74,15 +127,55 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
    - Replan action: return to planning and evaluate schema-per-tenant against the rejected shared-table design
    ```
 
-   `Signal` names observable evidence, `Failure boundary` states the event or numeric threshold that kills the decision, and `Replan action` names what is reconsidered after returning to planning. A falsifier that can never fire is decoration. Hypotheses in the assumptions ledger need no falsifier block; their validation task already is one.
+   `Signal` names observable evidence, `Failure boundary` states the event or numeric threshold that kills the decision, and `Replan action` names what is reconsidered after returning to planning. A falsifier that can never fire is decoration. Hypotheses in the assumptions ledger need no falsifier block; their validation task already is one. Each ledger entry does carry its price:
+
+   ```markdown
+   ### Assumptions ledger
+   - A1: a workspace's data is never visible across workspaces (assumed; no cross-org reporting was described)
+     - Blast radius: wrong costs +6 tasks and +1 phase; per-object ACLs replace workspace-scoped RLS, rewriting GP-201 and every Phase 4 query
+     - Validated by: GP-108
+   ```
+
+   `Blast radius` is counted in tasks and phases the plan would gain or lose, never in adjectives. "Significant rework" is refused. `+0 tasks` is a legitimate and useful answer: it tells the user which assumptions to stop worrying about.
 8. `## Requirements`. Numbered user stories with EARS acceptance criteria: `R-1.1: WHEN <trigger> THE SYSTEM SHALL <observable behavior>`. A compact table is also valid when the requirement ID is the first cell of each row. Task `Requirements:` lines point here and at module IDs (R-SEC-4 style).
 9. `## Architecture`. The mermaid visuals (see Visual layer) plus the prose that the diagrams support.
 10. `## Style genome`. Naming, idioms, structure conventions the first commit must already follow.
 11. `## Agent memory`. The AGENTS.md and pillar files the scaffold phase will emit.
-12. `## Phases`. The task body; see Task grammar.
-13. `## Open Questions`. Exactly one such section, at the bottom, the only enumeration of open decisions. Committed decisions never appear here. A complex plan with zero open questions is acceptable only when every meaningful decision has been explicitly made above; the legal empty form is a body of exactly `None.`. Otherwise every entry is a decision ticket in the grammar below. When every listed option is a variant of one framing, the question also names the option from outside that framing, or states that none survived and which constraint eliminated it; options that only vary a dial are a menu, not a set of alternatives.
-14. `## Rules for executing agents`. Copied verbatim from this module (below).
-15. `## Session log`. Append-only, one line per session.
+12. `## Documentation set`. Exactly one such section. The manifest of documents this project owes, what it does not owe, and what would reverse each of those answers. See Documentation set grammar below and `doc-set.md` for the catalog and the selection rules.
+13. `## Phases`. The task body; see Task grammar.
+14. `## Open Questions`. Exactly one such section, at the bottom, the only enumeration of open decisions. Committed decisions never appear here. A complex plan with zero open questions is acceptable only when every meaningful decision has been explicitly made above; the legal empty form is a body of exactly `None.`. Otherwise every entry is a decision ticket in the grammar below. When every listed option is a variant of one framing, the question also names the option from outside that framing, or states that none survived and which constraint eliminated it; options that only vary a dial are a menu, not a set of alternatives.
+15. `## Rules for executing agents`. Copied verbatim from this module (below).
+16. `## Session log`. Append-only, one line per session.
+
+## Documentation set grammar
+
+One table, one boundary statement, and nothing else. Read `doc-set.md` before authoring it; that file carries the catalog, the ten lifecycle stages, the durability contract, and the selection rules this grammar renders.
+
+```markdown
+## Documentation set
+
+This manifest covers documentation committed to this repository. Documents that live in a wiki, an intranet, or a compliance platform are marked present-elsewhere and are not planned here.
+
+| Document | Stage | Verdict | Owner | Selected by, or reason and revisit when |
+|---|---|---|---|---|
+| decide.adr | decide | required | architecture | always; ADR-001 through ADR-003 land in GP-104 |
+| build.config-reference | build | required | stack | the service reads 11 environment variables; written by GP-207 |
+| assure.threat-model | assure | required | security | session auth plus stored personal data; written by GP-306 |
+| operate.recovery | operate | recommended | deploy | durable user data exists; offered as GP-402 |
+| serve.support-policy | serve | not-applicable | launch | by-design: no paying users at side-project scale; revisit when: the plan adds a billing route or a paid tier |
+| verify.traceability | verify | not-applicable | roadmap | absent: no external authorizer was named in discovery; revisit when: a customer contract or a regulator requires an audit trail |
+```
+
+Grammar rules:
+
+- **Document**: a catalog id from `doc-set.md` section 5. An id outside that catalog is refused; extend the catalog instead of inventing a row, because an id nobody else uses cannot be cross-referenced.
+- **Stage**: one of the ten in `doc-set.md` section 2.
+- **Verdict**: `required`, `recommended`, `optional`, or `not-applicable`.
+- **Owner**: the module that plans the artifact, from the catalog. Exactly one module owns a document, so two passes never both plan the same file. A repo-pass task that writes an architecture-owned document is a boundary violation, not a convenience.
+- **Last cell**: for a selected row, what selected it plus the GP task that writes it, so the manifest is checkable against the phases. For a `not-applicable` row, an evidence state (`absent:` or `by-design:`), a reason, and a `revisit when:` predicate, on the same bar as an excluded applicability row. `unknown:` and `hint:` are refused here for the same reason they are refused there.
+- **Every required row names a task.** A required document with no GP number is a promise the plan does not keep.
+- **Brownfield and replan** additionally record state, so the action is a lookup rather than a judgment: an existing and current document is `adopt` (frontmatter only, no task), a drifted one is a refresh task, and a document the profile does not justify is an `orphan` row with a question, never a deletion task. The full lattice is `doc-set.md` section 6.
+- **No invented numbers.** Review cadence, retention, recovery objectives, availability targets, and support windows are cited or they are open questions. A number invented at plan time becomes a commitment nobody made.
 
 ## Task grammar
 
@@ -214,7 +307,7 @@ The emitted companion is the only machine-check entry point. Copy it byte-for-by
 bash .godplans/validate-plan.sh --allow-planning .godplans/PLAN.mdx
 ```
 
-The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan. Without it, the validator is also an execution gate and accepts only `approved` or `executing`. It checks essential frontmatter, provenance parity and aggregate input digest, product form, conditional public-release gate structure, and lifecycle values; derived task and phase counters; sequential phase numbers and matching wave tags; unique IDs on task definition headers; all required task fields; earlier dependency targets; local and module-catalog requirement references; every applicability-matrix domain exactly once, deferral only for the reversible set, deferred triggers and reversibility reasons, and excluded reasons; parity between the three frontmatter domain lists and the matrix rows they index; disjoint file sets for `[P]` tasks against every other unchecked task in their wave; the three-field `Falsifier:` block on every `### D<n>` decision entry; phase Checkpoint and Checkpoint verify lines; banned Unicode through portable Perl; exactly one Plan provenance section; exactly one Applicability matrix section; exactly one Decisions section; exactly one Open Questions section; and a final Verification phase. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
+The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan. Without it, the validator is also an execution gate and accepts only `approved` or `executing`. It checks essential frontmatter, provenance parity and aggregate input digest, product form, the archetype-confidence arithmetic (margin and confidence recomputed from the plan's own scores, the 0.45 floor, the runner-up counterfactual priced in tasks and phases, and parity with the frontmatter), overlay membership and the rule that an overlay's domains are never excluded, conditional public-release gate structure, and lifecycle values; derived task and phase counters; sequential phase numbers and matching wave tags; unique IDs on task definition headers; all required task fields; earlier dependency targets; local and module-catalog requirement references; every applicability-matrix domain exactly once, deferral only for the reversible set, deferred triggers and reversibility reasons, and excluded rows carrying an accepted evidence state, a reason, and an observable `revisit when` predicate; the module disposition grammar, including the `dropped-by` layer name and the rule that a dropped requirement appears on no task; parity between the three frontmatter domain lists and the matrix rows they index; disjoint file sets for `[P]` tasks against every other unchecked task in their wave; the three-field `Falsifier:` block on every `### D<n>` decision entry; documentation-set rows for catalog ids, known stages and verdicts, a task reference on every required row, and the same tripwire grammar on every not-applicable row; phase Checkpoint and Checkpoint verify lines; banned Unicode through portable Perl; exactly one Plan provenance section; exactly one Applicability matrix section; exactly one Decisions section; exactly one Documentation set section; exactly one Open Questions section; and a final Verification phase. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
 
 ## Machine-readable sidecar
 
@@ -237,3 +330,7 @@ The plan is re-read every session; bloat is a tax on every future turn. Budgets:
 When PLAN.mdx already exists: read it fully, recount progress from checkboxes, read the session log, and recompute the source evidence recorded under `## Plan provenance`. Recheck every artifact recorded as completed or imported. If its content, revision, or existence changed materially, mark the plan stale by returning `status` to `planning` before applying the delta; do not trust the chat or old validation timestamp. Completed work is history and never altered. New work gets fresh IDs continuing the sequence. Superseded unstarted tasks are not deleted. Strike only the heading (`~~- [ ] GP-310 [W3.1] Old work~~`), then retain `  - Superseded: <one-line reason>` and `  - Requirements: <original ids>` so the audit trail and domain metric survive. Refresh the evidence inventory, `input_digest`, and `validated_at`; bump `plan_version`; log the delta in the session log; and re-run the Phase 6 audit on any section that changed.
 
 Measure the outgoing plan before patching it: run `scripts/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json`. The report records active, superseded, and historical tasks, plus cumulative supersession and survival rates overall and per requirement domain. A domain whose tasks are struck repeatedly was over-planned at that scale; shrink its appetite on the next pass instead of reseeding the same tasks.
+
+Re-evaluate every tripwire on the way in, before anything else. An excluded domain whose `revisit when` predicate has become true, and a not-applicable documentation row whose predicate has become true, are the reason to replan at all, so they lead the delta rather than trailing it. A predicate that is true now is reported; one that is merely being watched is not.
+
+Report drift as leads, not as findings. `--drift-check` recomputes digests and reruns sampled commands, which establishes that something changed and never why. A recorded artifact whose hash moved may be a real regression, a reformat, or a rename, and presenting the three as one verdict trains the reader to skip the section. Name what changed, name what it might mean, and leave the judgment where the evidence is.

@@ -23,6 +23,8 @@ updated: 2026-07-13
 mode: greenfield
 product_form: cli-or-sdk
 archetype: cli-tool
+archetype_confidence: high
+overlays: []
 public_release: false
 source_revision: none
 input_digest: sha256:1c7ca1006bb3157ad989c1f1dd1cd1d6e8e2a44d9509821ffa43f3be205a12d5
@@ -57,6 +59,16 @@ Evidence inventory:
 
 Primary: CLI or SDK. A vertical slice runs from command parsing through deterministic output and a consumer fixture.
 
+### Archetype confidence
+
+- Primary: cli-tool (score 0.86)
+- Runner-up: library (score 0.29)
+- Margin: 57 points
+- Confidence: high
+- Vetoes applied: none
+- Overlays: none
+- If the runner-up is right: +1 tasks and +0 phases; the consumer fixture becomes a published API surface check
+
 ## Compliance gate
 
 Result: pass.
@@ -68,21 +80,34 @@ Result: pass.
 | product | applicable | fixture requirement |
 | architecture | applicable | shell and embedded Perl boundary |
 | stack | applicable | stock macOS and Linux toolchain |
-| database | excluded | validator stores no data |
+| database | excluded | by-design: the validator reads a plan and writes a sidecar, holding no state between runs; revisit when: any task introduces a datastore or a persisted cache |
 | security | applicable | execution lifecycle is a safety boundary |
-| llm | excluded | validator makes no model calls |
-| ux | excluded | validator has no interactive journey |
-| ui | excluded | validator renders no pixels |
-| seo | excluded | validator has no crawlable surface |
+| llm | excluded | by-design: every check is deterministic Perl with no model call; revisit when: any task adds a model SDK dependency or a prompt template |
+| ux | excluded | by-design: the only interaction is one command and an exit code; revisit when: the validator gains an interactive or multi-step flow |
+| ui | excluded | by-design: output is stdout text with no rendered surface; revisit when: any task adds a rendered view the project owns |
+| seo | excluded | by-design: nothing the validator produces is crawlable; revisit when: the project publishes a page a search engine can reach |
 | code-quality | applicable | validator coverage |
 | style-genome | applicable | portable shell conventions |
 | agent-memory | applicable | execution rules travel with the plan |
 | repo | applicable | validator ships in the skill package |
 | build | applicable | validator is the emitted application artifact |
 | roadmap | applicable | fixture tasks exercise ordering |
-| deploy | excluded | validator has no deployed service |
-| observe | excluded | validator has no running service |
-| launch | excluded | validator has no public activation |
+| deploy | excluded | by-design: the validator ships inside the skill package and is never deployed; revisit when: any task publishes a hosted or installable service |
+| observe | excluded | by-design: nothing runs long enough to observe; revisit when: any task adds a long-running process or a scheduled job |
+| launch | excluded | by-design: distribution is the skill release, not a public activation; revisit when: public_release flips to true |
+
+### Module disposition
+
+- product: landed R-PRD-1; dropped-by scale R-PRD-9 (fixture scope: no pricing surface to plan)
+- architecture: landed R-ARCH-4; dropped-by scale R-ARCH-10 (one shell entry point, no heavy pattern to justify)
+- stack: landed R-STACK-1
+- security: landed R-SEC-1
+- code-quality: landed R-CODE-21
+- style-genome: landed R-DNA-14
+- agent-memory: landed R-MEM-2
+- repo: landed R-REPO-21
+- build: landed R-BUILD-1
+- roadmap: landed R-ROAD-1
 
 ## Decisions
 
@@ -112,6 +137,20 @@ ASCII text and Bash 3.2 compatible shell.
 
 The plan remains the source of truth.
 
+## Documentation set
+
+This manifest covers documentation committed to this repository. Documents held in a wiki or a compliance platform are marked present-elsewhere.
+
+| Document | Stage | Verdict | Owner | Selected by, or reason and revisit when |
+|---|---|---|---|---|
+| decide.adr | decide | required | architecture | the portable runtime boundary is D1; written by GP-101 |
+| build.readme | build | required | repo | always; written by GP-102 |
+| build.style-genome | build | required | style-genome | always; written by GP-102 |
+| govern.manifest | govern | required | repo | always; written by GP-102 |
+| verify.dod | verify | required | product | always; written by GP-201 |
+| operate.runbook | operate | not-applicable | observe | by-design: the validator is a script with no deployed surface to operate; revisit when: any task adds a hosted service or a scheduled job |
+| serve.user-guide | serve | not-applicable | launch | absent: no external user was named in intake; revisit when: the validator ships to users outside this repository |
+
 ## Phases
 
 ## Phase 1: Validator behavior
@@ -126,7 +165,7 @@ Goal: validate the core plan contract.
   - Reuses: repository shell conventions
   - Acceptance: frontmatter and counters are checked
   - Verify: `bash tests/validate-plan.sh`
-  - Requirements: R-1.1, R-CODE-21
+  - Requirements: R-1.1, R-CODE-21, R-ARCH-4, R-STACK-1
 
 - [ ] GP-102 [W1.1] Check task references
   - Files: tests/validate-plan.sh
@@ -134,7 +173,7 @@ Goal: validate the core plan contract.
   - Reuses: validator fixture
   - Acceptance: dependencies and requirement IDs resolve
   - Verify: `bash tests/validate-plan.sh`
-  - Requirements: R-1.1, R-CODE-21
+  - Requirements: R-1.1, R-CODE-21, R-REPO-21, R-DNA-14
 
 Checkpoint: malformed plans fail with a diagnostic.
 Checkpoint verify: `test -x skills/godplans/scripts/validate-plan.sh`
@@ -156,7 +195,7 @@ Goal: prove the validator contract end to end.
   - Reuses: repository lint entry point
   - Acceptance: all regression cases pass
   - Verify: `bash tests/validate-plan.sh`
-  - Requirements: R-1.1, R-CODE-21
+  - Requirements: R-1.1, R-CODE-21, R-ROAD-1, R-BUILD-1, R-MEM-2, R-PRD-1, R-SEC-1
 
 Checkpoint: the portable suite passes from a fresh checkout.
 Checkpoint verify: `test -x tests/validate-plan.sh`
@@ -347,7 +386,7 @@ perl -0pi -e 's/Depends on: GP-101/Depends on: sometimes GP-101/' "$CASE_FILE"
 expect_fail "malformed dependency" "GP-102 has malformed Depends on value" --allow-planning "$CASE_FILE"
 
 new_case
-perl -0pi -e 's/R-CODE-21/R-NOPE-1/' "$CASE_FILE"
+perl -0pi -e 's/(- \[ \] GP-101.*?  - Requirements: )[^\n]+/$1R-1.1, R-NOPE-1/s' "$CASE_FILE"
 expect_fail "unknown domain requirement" "undefined requirement R-NOPE-1" --allow-planning "$CASE_FILE"
 
 new_case
@@ -500,11 +539,11 @@ PUBLIC_PLAN="$TMP_DIR/valid-public-release.mdx"
 cp "$BASE_PLAN" "$PUBLIC_PLAN"
 perl -0pi -e '
   s/public_release: false/public_release: true/;
-  s/(- \[ \] GP-101.*?  - Requirements: )[^\n]+/$1R-1.1, R-SEC-26/s;
+  s/(- \[ \] GP-101.*?  - Requirements: )[^\n]+/$1R-1.1, R-SEC-26, R-ARCH-4, R-STACK-1/s;
   s/(- \[ \] GP-102.*?  - Acceptance: )[^\n]+/$1fresh prepublication check records checked_at, hardening_revision, finding_counts, policy, verdict, owner, justification, accepted_at, and expires_at after current hardening evidence; any later change invalidates the pass/s;
-  s/(- \[ \] GP-102.*?  - Requirements: )[^\n]+/$1R-1.1, R-ROAD-21/s;
+  s/(- \[ \] GP-102.*?  - Requirements: )[^\n]+/$1R-1.1, R-ROAD-21, R-REPO-21, R-DNA-14/s;
   s/(- \[ \] GP-201.*?  - Depends on: )[^\n]+/$1GP-102/s;
-  s/(- \[ \] GP-201.*?  - Requirements: )[^\n]+/$1R-1.1, R-LAUNCH-22/s
+  s/(- \[ \] GP-201.*?  - Requirements: )[^\n]+/$1R-1.1, R-LAUNCH-22, R-ROAD-1, R-BUILD-1, R-MEM-2, R-PRD-1, R-SEC-1, R-CODE-21/s
 ' "$PUBLIC_PLAN"
 expect_pass "public release with ordered hardening gate activation chain" --allow-planning "$PUBLIC_PLAN"
 
@@ -535,7 +574,7 @@ expect_fail "duplicate public activation markers" "public release requires exact
 
 DEFERRED_PLAN="$TMP_DIR/valid-deferred-domain.mdx"
 cp "$BASE_PLAN" "$DEFERRED_PLAN"
-perl -0pi -e 's/\| seo \| excluded \| validator has no crawlable surface \|/| seo | deferred | trigger: the first public page task enters the roadmap; reversible until pages ship without metadata |/' "$DEFERRED_PLAN"
+perl -0pi -e 's/\| seo \| excluded \|[^\n]*\|/| seo | deferred | trigger: the first public page task enters the roadmap; reversible until pages ship without metadata |/' "$DEFERRED_PLAN"
 perl -0pi -e 's/^domains_deferred: \[\]$/domains_deferred: [seo]/m; s/^(domains_excluded: \[[^\]]*), seo(.*)$/$1$2/m' "$DEFERRED_PLAN"
 expect_pass "deferred domain with trigger" --allow-planning "$DEFERRED_PLAN"
 
@@ -569,23 +608,23 @@ perl -0pi -e 's/- \[ \] GP-101 \[W1\.1\]/- [ ] GP-101 [P] [W1.1]/; s/- \[ \] GP-
 expect_pass "parallel tasks with disjoint files" --allow-planning "$PARALLEL_PLAN"
 
 new_case
-perl -0pi -e 's/\| seo \| excluded \| validator has no crawlable surface \|/| seo | deferred | reversible until pages ship |/' "$CASE_FILE"
+perl -0pi -e 's/\| seo \| excluded \|[^\n]*\|/| seo | deferred | reversible until pages ship |/' "$CASE_FILE"
 expect_fail "deferred domain without trigger" "applicability matrix defers seo without a trigger" --allow-planning "$CASE_FILE"
 
 new_case
-perl -0pi -e 's/\| seo \| excluded \| validator has no crawlable surface \|/| seo | deferred | trigger: first public page ships |/' "$CASE_FILE"
+perl -0pi -e 's/\| seo \| excluded \|[^\n]*\|/| seo | deferred | trigger: first public page ships |/' "$CASE_FILE"
 expect_fail "deferred domain without reversibility" "applicability matrix defers seo without a reversibility argument" --allow-planning "$CASE_FILE"
 
 new_case
-perl -0pi -e 's/\| seo \| excluded \| validator has no crawlable surface \|/| seo | deferred | trigger: later; reversible because no pages exist |/' "$CASE_FILE"
+perl -0pi -e 's/\| seo \| excluded \|[^\n]*\|/| seo | deferred | trigger: later; reversible because no pages exist |/' "$CASE_FILE"
 expect_fail "deferred domain with vague trigger" "applicability matrix defers seo with a vague trigger" --allow-planning "$CASE_FILE"
 
 new_case
-perl -0pi -e 's/\| seo \| excluded \| validator has no crawlable surface \|/| seo | skipped | nothing to index |/' "$CASE_FILE"
+perl -0pi -e 's/\| seo \| excluded \|[^\n]*\|/| seo | skipped | nothing to index |/' "$CASE_FILE"
 expect_fail "invalid matrix status" "applicability matrix row for seo has invalid status 'skipped'" --allow-planning "$CASE_FILE"
 
 new_case
-perl -0pi -e 's/\| seo \| excluded \| validator has no crawlable surface \|/| seo | excluded |  |/' "$CASE_FILE"
+perl -0pi -e 's/\| seo \| excluded \|[^\n]*\|/| seo | excluded |  |/' "$CASE_FILE"
 expect_fail "excluded domain without reason" "applicability matrix excludes seo without a reason" --allow-planning "$CASE_FILE"
 
 new_case
@@ -734,6 +773,244 @@ expect_fail "missing checkpoint verification" "Phase 1 is missing Checkpoint ver
 new_case
 perl -0pi -e 's/## Decisions\n/## Choices\n/' "$CASE_FILE"
 expect_fail "missing Decisions section" "expected exactly one ## Decisions section, found 0" --allow-planning "$CASE_FILE"
+
+# Exclusion tripwires: an exclusion with no evidence state and no expiry reads
+# exactly like a considered decision, which is the row an auditor pulls first.
+
+new_case
+perl -0pi -e 's/\| seo \| excluded \|[^\n]*\|/| seo | excluded | by-design: nothing the validator produces is crawlable |/' "$CASE_FILE"
+expect_fail "excluded domain without tripwire" "applicability matrix excludes seo without a revisit when: tripwire" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/\| seo \| excluded \|[^\n]*\|/| seo | excluded | nothing the validator produces is crawlable; revisit when: the project publishes a reachable page |/' "$CASE_FILE"
+expect_fail "excluded domain without evidence state" "applicability matrix excludes seo without an evidence state" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/\| seo \| excluded \|[^\n]*\|/| seo | excluded | unknown: nobody checked for crawlable routes; revisit when: the project publishes a reachable page |/' "$CASE_FILE"
+expect_fail "excluded domain on an unknown state" "applicability matrix excludes seo on evidence state 'unknown'" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/\| seo \| excluded \|[^\n]*\|/| seo | excluded | by-design: nothing is crawlable; revisit when: later |/' "$CASE_FILE"
+expect_fail "excluded domain with a vague tripwire" "applicability matrix excludes seo with a vague revisit when: predicate" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/\| repo \| applicable \| validator ships in the skill package \|/| repo | excluded | by-design: no repository is planned; revisit when: the project gains a version-controlled home |/; s/^(domains_applicable: \[[^\]]*), repo(.*)$/$1$2/m; s/^(domains_excluded: \[)/$1repo, /m' "$CASE_FILE"
+expect_fail "load-bearing domain cannot be excluded" "applicability matrix cannot exclude load-bearing domain repo" --allow-planning "$CASE_FILE"
+
+# Module disposition: the only place a module requirement may leave the plan.
+
+new_case
+perl -0pi -e 's/### Module disposition\n/### Module notes\n/' "$CASE_FILE"
+expect_fail "missing module disposition" "expected a ### Module disposition block" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- roadmap: landed R-ROAD-1\n//m' "$CASE_FILE"
+expect_fail "module disposition skips an applicable module" "module disposition is missing applicable module roadmap" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- roadmap: landed R-ROAD-1$/- roadmap: landed R-ROAD-1; dropped-by vibes R-ROAD-9 (felt heavy)/m' "$CASE_FILE"
+expect_fail "module disposition names an unknown layer" "drops by unknown layer 'vibes'" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- roadmap: landed R-ROAD-1$/- roadmap: landed R-ROAD-1; dropped-by scale R-ROAD-9/m' "$CASE_FILE"
+expect_fail "module disposition drops without a reason" "dropped-by clause without a parenthesised reason" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- roadmap: landed R-ROAD-1$/- roadmap: landed R-ROAD-1; dropped-by scale R-ROAD-1 (cut for the weekend appetite)/m' "$CASE_FILE"
+expect_fail "module disposition lands and drops one id" "module disposition for roadmap both lands and drops R-ROAD-1" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- build: landed R-BUILD-1$/- build: landed none; dropped-by scale R-BUILD-1 (cut for the weekend appetite)/m' "$CASE_FILE"
+expect_fail "module disposition drops a requirement a task cites" "module disposition drops R-BUILD-1 but GP-201 still traces to it" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-STACK-7/m' "$CASE_FILE"
+expect_fail "module disposition lands an unreferenced requirement" "module disposition lands R-STACK-7 but nothing in the plan references it" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-SEC-1/m' "$CASE_FILE"
+expect_fail "module disposition crosses module prefixes" "module disposition for stack lists R-SEC-1, which is not an R-STACK requirement" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- product: landed R-PRD-1;[^\n]*$/- product: landed R-PRD-1\n- observe: landed R-OBS-1/m' "$CASE_FILE"
+expect_fail "module disposition covers an excluded module" "module disposition covers observe, which the applicability matrix marks excluded" --allow-planning "$CASE_FILE"
+
+# Documentation set: selection, ownership, and defended absences.
+
+new_case
+perl -0pi -e 's/## Documentation set\n/## Docs\n/' "$CASE_FILE"
+expect_fail "missing documentation set" "expected exactly one ## Documentation set section, found 0" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^This manifest covers documentation committed to this repository[^\n]*\n//m' "$CASE_FILE"
+expect_fail "documentation set without a boundary statement" "documentation set must state its boundary" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| build\.readme \| build \| required \| repo \|[^\n]*\|$/| build.manual | build | required | repo | always; written by GP-102 |/m' "$CASE_FILE"
+expect_fail "documentation set invents a catalog id" "documentation set names build.manual, which is not a doc-set.md catalog id" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| build\.readme \| build \| required \| repo \|([^\n]*)\|$/| build.readme | build | required | build |$1|/m' "$CASE_FILE"
+expect_fail "documentation set reassigns ownership" "documentation set row build.readme names owner 'build'; the catalog owner is repo" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| build\.readme \| build \| required \| repo \|[^\n]*\|$/| build.readme | verify | required | repo | always; written by GP-102 |/m' "$CASE_FILE"
+expect_fail "documentation set moves a document between stages" "documentation set row build.readme declares stage 'verify'" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| build\.readme \| build \| required \| repo \|[^\n]*\|$/| build.readme | build | required | repo | always, and somebody will get to it |/m' "$CASE_FILE"
+expect_fail "required document with no writing task" "documentation set row build.readme is required but names no GP task" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| build\.readme \| build \| required \| repo \|[^\n]*\|$/| build.readme | build | required | repo | always; written by GP-909 |/m' "$CASE_FILE"
+expect_fail "required document names a nonexistent task" "documentation set row build.readme names GP-909, which is not a task in this plan" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| serve\.user-guide \| serve \| not-applicable \| launch \|[^\n]*\|$/| serve.user-guide | serve | not-applicable | launch | no external user was named in intake |/m' "$CASE_FILE"
+expect_fail "excluded document without a tripwire" "documentation set excludes serve.user-guide without a revisit when: tripwire" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| serve\.user-guide \| serve \| not-applicable \| launch \|[^\n]*\|$/| serve.user-guide | serve | not-applicable | launch | unknown: nobody asked who reads this; revisit when: the validator ships to users outside this repository |/m' "$CASE_FILE"
+expect_fail "excluded document on an unknown state" "documentation set excludes serve.user-guide on evidence state 'unknown'" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| serve\.user-guide \| serve \| not-applicable \| launch \|[^\n]*\|$/| serve.user-guide | serve | not-applicable | launch | absent: no external user was named in intake; revisit when: post-MVP |/m' "$CASE_FILE"
+expect_fail "excluded document with a vague tripwire" "documentation set excludes serve.user-guide with a vague revisit when: predicate" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| operate\.runbook \| operate \| not-applicable \| observe \|[^\n]*\|$/| operate.runbook | operate | required | observe | always; written by GP-201 |/m' "$CASE_FILE"
+expect_fail "required document owned by an excluded module" "its owner module observe is excluded in the applicability matrix" --allow-planning "$CASE_FILE"
+
+# Archetype confidence: the label is arithmetic over the plan's own scores.
+
+new_case
+perl -0pi -e 's/^- Margin: 57 points$/- Margin: 40 points/m' "$CASE_FILE"
+expect_fail "archetype margin disagrees with the scores" "Margin is 40 but the scores give 57" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Confidence: high$/- Confidence: medium/m; s/^archetype_confidence: high$/archetype_confidence: medium/m' "$CASE_FILE"
+expect_fail "archetype confidence contradicts its own arithmetic" "archetype confidence states medium but a margin of 57" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^archetype_confidence: high$/archetype_confidence: low/m' "$CASE_FILE"
+expect_fail "frontmatter confidence contradicts the block" "frontmatter archetype_confidence is low but the block" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Primary: cli-tool \(score 0\.86\)$/- Primary: library (score 0.86)/m' "$CASE_FILE"
+expect_fail "archetype block disagrees with frontmatter" "Primary is library but frontmatter archetype is cli-tool" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Primary: cli-tool \(score 0\.86\)$/- Primary: cli-tool (score 0.40)/m; s/^- Runner-up: library \(score 0\.29\)$/- Runner-up: none/m; s/^- Margin: 57 points$/- Margin: 40 points/m; s/^- Confidence: high$/- Confidence: low/m; s/^archetype_confidence: high$/archetype_confidence: low/m' "$CASE_FILE"
+expect_fail "archetype below the floor keeps a named archetype" "below the 0.45 floor, so frontmatter archetype must be unknown" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- If the runner-up is right: [^\n]*$/- If the runner-up is right: some rework in the packaging tasks/m' "$CASE_FILE"
+expect_fail "archetype counterfactual priced in adjectives" "counterfactual must be priced in tasks and phases" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Overlays: none$/- Overlays: public-ui/m' "$CASE_FILE"
+expect_fail "archetype overlays disagree with frontmatter" "Overlays says 'public-ui' but frontmatter overlays is []" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^### Archetype confidence\n/### Archetype notes\n/m' "$CASE_FILE"
+expect_fail "missing archetype confidence block" "expected exactly one ### Archetype confidence block, found 0" --allow-planning "$CASE_FILE"
+
+LOW_CONFIDENCE_PLAN="$TMP_DIR/valid-low-confidence.mdx"
+cp "$BASE_PLAN" "$LOW_CONFIDENCE_PLAN"
+perl -0pi -e '
+  s/^archetype: cli-tool$/archetype: unknown/m;
+  s/^archetype_confidence: high$/archetype_confidence: low/m;
+  s/^- Primary: cli-tool \(score 0\.86\)$/- Primary: cli-tool (score 0.40)/m;
+  s/^- Runner-up: library \(score 0\.29\)$/- Runner-up: library (score 0.36)/m;
+  s/^- Margin: 57 points$/- Margin: 4 points/m;
+  s/^- Confidence: high$/- Confidence: low/m;
+  s/^None\.$/### Q1: Is this a cli-tool or a library, given the archetype score of 0.40?\n- Owner: the maintainer (the answer is theirs to give)\n- Blocks: build, from the start of Phase 1\n- Decide by: 2026-08-14, the Phase 1 wave boundary\n- Why it matters: the archetype sets the matrix defaults and the documentation set.\n- Options: (a) cli-tool; (b) library; (c) both, published as a library with a thin command wrapper.\n- Recommended default: (a), which the current entry point already matches./m
+' "$LOW_CONFIDENCE_PLAN"
+expect_pass "low confidence with the archetype asked" --allow-planning "$LOW_CONFIDENCE_PLAN"
+
+CASE_FILE="$TMP_DIR/low-confidence-unasked.mdx"
+cp "$LOW_CONFIDENCE_PLAN" "$CASE_FILE"
+perl -0pi -e 's/^### Q1: Is this a cli-tool or a library[^\n]*$/### Q1: Which package registry receives the release?/m' "$CASE_FILE"
+expect_fail "low confidence without the archetype question" "archetype belongs in ## Open Questions" --allow-planning "$CASE_FILE"
+
+CASE_FILE="$TMP_DIR/low-confidence-assure.mdx"
+cp "$LOW_CONFIDENCE_PLAN" "$CASE_FILE"
+perl -0pi -e 's/^\| serve\.user-guide \| serve \| not-applicable \| launch \|([^\n]*)\|$/| assure.threat-model | assure | not-applicable | security | by-design: no auth boundary and no stored personal data; revisit when: any task adds a session or persists user data |/m' "$CASE_FILE"
+expect_fail "low confidence deletes an assure row" "not-applicable while archetype confidence is low" --allow-planning "$CASE_FILE"
+
+# Overlays raise and never lower.
+
+new_case
+perl -0pi -e 's/^overlays: \[\]$/overlays: [public-ui]/m; s/^- Overlays: none$/- Overlays: public-ui/m' "$CASE_FILE"
+expect_fail "overlay domain excluded anyway" "which the public-ui overlay covers" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^overlays: \[\]$/overlays: [telemetry]/m' "$CASE_FILE"
+expect_fail "unknown overlay" "names unknown overlay telemetry" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^overlays: \[\]$/overlays: ai-system/m' "$CASE_FILE"
+expect_fail "overlays must be an inline list" "overlays must be a single inline list" --allow-planning "$CASE_FILE"
+
+OVERLAY_PLAN="$TMP_DIR/valid-overlay.mdx"
+cp "$BASE_PLAN" "$OVERLAY_PLAN"
+perl -0pi -e '
+  s/^overlays: \[\]$/overlays: [shipped-artifact]/m;
+  s/^- Overlays: none$/- Overlays: shipped-artifact/m;
+  s/^\| deploy \| excluded \|[^\n]*\|$/| deploy | deferred | trigger: the first distribution task enters the roadmap; reversible until an artifact is published |/m;
+  s/^(domains_excluded: \[[^\]]*), deploy(.*)$/$1$2/m;
+  s/^domains_deferred: \[\]$/domains_deferred: [deploy]/m
+' "$OVERLAY_PLAN"
+expect_pass "overlay domain may defer" --allow-planning "$OVERLAY_PLAN"
+
+# Brownfield absent: claims carry the search that came back empty.
+
+BROWNFIELD_PLAN="$TMP_DIR/valid-brownfield-absent.mdx"
+cp "$BASE_PLAN" "$BROWNFIELD_PLAN"
+perl -0pi -e '
+  s/^mode: greenfield$/mode: brownfield/m;
+  s/^\| seo \| excluded \|[^\n]*\|$/| seo | excluded | absent: no HTML template or route table under src (`grep -rl "<html" src` returns nothing); revisit when: the project publishes a page a search engine can reach |/m
+' "$BROWNFIELD_PLAN"
+expect_pass "brownfield absent claim with a citation" --allow-planning "$BROWNFIELD_PLAN"
+
+CASE_FILE="$TMP_DIR/brownfield-absent-uncited.mdx"
+cp "$BROWNFIELD_PLAN" "$CASE_FILE"
+perl -0pi -e 's/^\| seo \| excluded \|[^\n]*\|$/| seo | excluded | absent: no HTML template or route table under src; revisit when: the project publishes a page a search engine can reach |/m' "$CASE_FILE"
+expect_fail "brownfield absent claim with no search" "absent: claim with no backticked command" --allow-planning "$CASE_FILE"
+
+DOC_CATALOG_ACTUAL="$TMP_DIR/doc-catalog-actual"
+DOC_CATALOG_EMBEDDED="$TMP_DIR/doc-catalog-embedded"
+perl -ne 'print "$1 $3 $2\n" if /^\|\s*`([a-z]+\.[a-z0-9-]+)`\s*\|\s*(durable|evidence|transient)\s*\|\s*([a-z-]+)\s*\|/' \
+  "$ROOT_DIR/skills/godplans/references/doc-set.md" | sort > "$DOC_CATALOG_ACTUAL"
+perl -ne "print \"\$1 \$2 \$3\n\" if /^    '([a-z]+\.[a-z0-9-]+)' => '([a-z-]+)\|(durable|evidence|transient)',\$/" \
+  "$VALIDATOR" | sort > "$DOC_CATALOG_EMBEDDED"
+if diff -u "$DOC_CATALOG_ACTUAL" "$DOC_CATALOG_EMBEDDED" >/dev/null 2>&1; then
+  record_pass "embedded document catalog is current"
+else
+  record_fail "embedded document catalog is current" "validator doc catalog differs from doc-set.md"
+fi
+
+SIDECAR_PLAN="$TMP_DIR/sidecar-source.mdx"
+cp "$BASE_PLAN" "$SIDECAR_PLAN"
+SIDECAR_JSON="$TMP_DIR/sidecar.json"
+if "$VALIDATOR" --allow-planning --emit-json "$SIDECAR_JSON" "$SIDECAR_PLAN" >/dev/null 2>&1 \
+    && node -e '
+      const doc = require(process.argv[1]);
+      const seo = doc.applicability.find((row) => row.domain === "seo");
+      const repo = doc.module_disposition.find((row) => row.module === "repo");
+      const readme = doc.documentation.find((row) => row.id === "build.readme");
+      const product = doc.module_disposition.find((row) => row.module === "product");
+      if (doc.archetype_confidence !== "high") throw new Error("archetype confidence missing");
+      if (!Array.isArray(doc.overlays)) throw new Error("overlays missing");
+      if (!seo || seo.evidence_state !== "by-design" || !seo.revisit_when) throw new Error("applicability tripwire missing");
+      if (!repo || !repo.landed.includes("R-REPO-21")) throw new Error("module disposition missing");
+      if (!product || product.dropped[0].layer !== "scale") throw new Error("dropped layer missing");
+      if (!readme || readme.owner !== "repo" || readme.durability !== "durable") throw new Error("documentation row missing");
+    ' "$SIDECAR_JSON"; then
+  record_pass "sidecar carries tripwires, disposition, and documentation"
+else
+  record_fail "sidecar carries tripwires, disposition, and documentation" "sidecar payload incomplete"
+fi
 
 if [ "$FAIL_COUNT" -ne 0 ]; then
   printf '\n%d passed, %d failed\n' "$PASS_COUNT" "$FAIL_COUNT" >&2

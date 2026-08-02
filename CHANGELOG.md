@@ -3,6 +3,102 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [1.11.0] - 2026-08-02
+
+This release ports two disciplines from sibling projects. From hannsxpeter/docdna,
+the selection engine that decides which documents a repository owes and defends
+every absence: plans now carry a documentation set, and every exclusion, of a
+domain or a document, records the evidence state that licensed it and the
+predicate that reverses it. From hannsxpeter/codedna, whose style fingerprinting
+already backed the style-genome module: the AI-tells catalog and the measurement
+script now ship rather than being cited. Both are ported by copy. godplans
+depends on nothing from either repository at runtime, and neither depends on
+godplans; fixes travel as edits, never as references.
+
+Plans emitted by 1.10.0 do not validate under 1.11.0 without the new sections.
+Add `## Documentation set`, add `### Module disposition` under the applicability
+matrix, and give every excluded matrix row an evidence state and a tripwire.
+
+### Added
+
+- `references/doc-set.md`, the documentation-set contract: a 42-row catalog
+  keyed by lifecycle stage, the durability split that keeps evidence artifacts
+  from being edited in place, the verdict-by-state lattice that names `adopt`
+  and `orphan` as real brownfield results, lifecycle frontmatter, the four
+  independent staleness verdicts, and the system-of-record boundary.
+- `## Documentation set` as a required plan section, with R-REPO-21 rewritten
+  and R-REPO-22 through R-REPO-25 added for tripwires on excluded rows, single
+  ownership per document, lifecycle frontmatter on every planned document, and
+  the repository-boundary statement. The validator checks catalog ids, stages,
+  verdicts, owners, task references, and exclusion grammar.
+- Exclusion tripwires on the applicability matrix. An excluded row now carries
+  an evidence state (`absent:` or `by-design:`), a project-specific reason, and
+  a `revisit when:` predicate held to the same observability bar as a deferral
+  trigger. `unknown:` and `hint:` are refused, because neither licenses an
+  exclusion: they make the domain applicable or become an open question.
+- `### Module disposition` as a machine-checked block. Each applicable module
+  reports what it landed and what it dropped, and `dropped-by` names the layer
+  that dropped it (`scale`, `archetype`, or `form`). A dropped requirement may
+  not appear on any task, a landed one must be referenced somewhere, and the
+  two sets may not overlap. Without the layer name, a requirement cut to fit an
+  appetite is indistinguishable from one nobody considered.
+- The blast-radius rule on the assumptions ledger. Every assumption is priced
+  in tasks and phases, so "answer defaults" is an informed choice.
+- `scripts/style-stats.py`, vendored from codedna, plus R-DNA-21 through
+  R-DNA-24: measured naming histograms, comment density, and function-length
+  medians instead of eyeballed numbers; a config map that makes R-DNA-1
+  checkable; the 15-item AI-tells catalog carried in full so the anti-tells
+  appendix selects from it; and an enforcement loop with an executable Verify
+  command rather than an instruction no command can fail.
+- R-OBS-22 and the plan-format claims-and-evidence contract: no invented
+  availability targets, recovery objectives, retention periods, error budgets,
+  or review cadences, and exhaustive or negative claims about existing code
+  need a command rather than a file citation.
+- Scored archetype detection with vetoes, replacing the closest-match table. A
+  plan records primary and runner-up scores, a margin, the vetoes applied, and
+  what changes if the runner-up is right, priced in tasks and phases. Margin and
+  confidence are recomputed by the validator from those scores, so a confident
+  label that does not follow from the plan's own arithmetic fails. Below the
+  0.45 floor the archetype is `unknown`, goes to Open Questions, and withholds
+  every `assure`-stage documentation row from being marked not-applicable,
+  because a misread archetype deletes threat models silently.
+- Overlays (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`,
+  `regulated-data`, `agent-skill-package`) as an additive frontmatter list. An
+  archetype says what a project is; an overlay says what extra obligations it
+  carries. Overlays raise and never lower: a domain an overlay covers may be
+  applicable or deferred, never excluded.
+- A brownfield or replan `absent:` exclusion must carry a backticked command or
+  evidence artifact. It is a negative claim about existing code, and the
+  claims-and-evidence rule already refuses those without a search.
+- Optional reuse of `.godaudits/EVIDENCE.json` when it is fresh for the revision
+  being planned, cited as `[recheck]` provenance. godplans neither requires nor
+  calls godaudits; a stale inventory is refused because it reads like a fresh one.
+- `archetype_confidence`, `overlays`, `evidence_state`, `revisit_when`,
+  `module_disposition`, and `documentation` in the generated PLAN.json sidecar,
+  with matching schema entries.
+
+### Changed
+
+- Load-bearing domains (security, code-quality, style-genome, repo, roadmap)
+  can no longer be excluded by the validator, only scaled down. The rule was
+  already stated in `discovery.md`; now it is gated.
+- ADR ownership is settled. `decide.adr` belongs to the architecture module
+  (R-ARCH-14), which also fixes ADR immutability, and R-REPO-14 defers to it
+  instead of adding a second ADR task at tier 4.
+- Replan leads with tripwires that have become true, and reports drift as leads
+  rather than findings: a moved digest establishes that something changed and
+  never why, and presenting a rename and a regression as one verdict trains the
+  reader to skip the section.
+- The repo rubric adds a documentation-set dimension worth 15, and scores zero
+  on it when any exclusion is unexplained. The style-genome rubric adds a
+  measured-evidence dimension worth 10.
+- The portable-core byte budget moves from 300000 to 330000, once and on the
+  record. This release adds the archetype and overlay contract, the
+  documentation-set grammar, and about 25 KB of machine checks the core inlines
+  whole. The core now measures 320783 bytes, so the new ceiling leaves under
+  9 KB of headroom, less than any single core module: the next addition of this
+  size fires the gate rather than sliding past it.
+
 ## [1.10.0] - 2026-07-31
 
 This release applies one discipline borrowed from mattpocock/skills wayfinder:

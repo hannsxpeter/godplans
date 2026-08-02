@@ -149,7 +149,7 @@ check_modules_complete() {
   for f in "$SKILL_DIR"/references/*.md; do
     base=$(basename "$f")
     case "$base" in
-      plan-format.md|discovery.md|compliance.md|exemplar.md) continue ;;
+      plan-format.md|discovery.md|compliance.md|exemplar.md|doc-set.md) continue ;;
     esac
     for section in "## Lineage" "## Decisions to force" "## Plan requirements" "## Task seeds" "## Self-audit rubric" "## Anti-patterns refused"; do
       if ! grep -q "^$section" "$f"; then

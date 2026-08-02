@@ -15,3 +15,6 @@ contains|R-STACK-21|
 contains|settlement|
 max-count|## Open Questions|1
 frontmatter|domains_deferred|\[[^]]*\]
+contains|## Documentation set|
+contains|### Module disposition|
+contains|revisit when:|

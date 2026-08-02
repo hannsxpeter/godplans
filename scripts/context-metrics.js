@@ -24,6 +24,7 @@ const coreModules = [
   'plan-format',
 ];
 const lazyModules = [
+  'doc-set',
   'llm',
   'ux',
   'ui',

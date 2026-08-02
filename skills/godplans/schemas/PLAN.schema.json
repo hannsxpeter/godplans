@@ -13,12 +13,16 @@
     "mode",
     "product_form",
     "archetype",
+    "archetype_confidence",
+    "overlays",
     "public_release",
     "source_revision",
     "input_digest",
     "validated_at",
     "progress",
     "applicability",
+    "module_disposition",
+    "documentation",
     "decisions",
     "phases",
     "tasks",
@@ -45,6 +49,21 @@
       ]
     },
     "archetype": { "type": "string", "minLength": 1 },
+    "archetype_confidence": { "enum": ["high", "medium", "low"] },
+    "overlays": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "ai-system",
+          "public-ui",
+          "shipped-artifact",
+          "operated-by-others",
+          "regulated-data",
+          "agent-skill-package"
+        ]
+      }
+    },
     "public_release": { "type": "boolean" },
     "source_revision": { "type": "string", "minLength": 1 },
     "input_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
@@ -66,11 +85,63 @@
       "maxItems": 18,
       "items": {
         "type": "object",
-        "required": ["domain", "status", "reason"],
+        "required": ["domain", "status", "reason", "evidence_state", "revisit_when"],
         "properties": {
           "domain": { "type": "string", "minLength": 1 },
           "status": { "enum": ["applicable", "deferred", "excluded"] },
-          "reason": { "type": "string" }
+          "reason": { "type": "string" },
+          "evidence_state": { "type": ["string", "null"], "enum": ["absent", "by-design", null] },
+          "revisit_when": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "module_disposition": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["module", "landed", "dropped"],
+        "properties": {
+          "module": { "type": "string", "minLength": 1 },
+          "landed": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^R-[A-Z][A-Z0-9-]*-[0-9]+$" }
+          },
+          "dropped": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["layer", "reason", "requirements"],
+              "properties": {
+                "layer": { "enum": ["scale", "archetype", "form"] },
+                "reason": { "type": "string", "minLength": 1 },
+                "requirements": {
+                  "type": "array",
+                  "items": { "type": "string", "pattern": "^R-[A-Z][A-Z0-9-]*-[0-9]+$" }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "documentation": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "stage", "verdict", "owner", "durability", "detail"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z]+[.][a-z0-9-]+$" },
+          "stage": {
+            "enum": ["frame", "decide", "design", "build", "verify", "assure", "operate", "serve", "govern", "retire"]
+          },
+          "verdict": { "enum": ["required", "recommended", "optional", "not-applicable"] },
+          "owner": { "type": "string", "minLength": 1 },
+          "durability": { "enum": ["durable", "evidence", "transient"] },
+          "detail": { "type": "string" }
         },
         "additionalProperties": false
       }

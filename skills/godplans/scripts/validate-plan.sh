@@ -161,10 +161,10 @@ if ($frontmatter_end > 0) {
     }
 }
 
-for my $key (qw(name plan_version status created updated mode product_form archetype public_release source_revision input_digest validated_at domains_applicable domains_deferred domains_excluded)) {
+for my $key (qw(name plan_version status created updated mode product_form archetype archetype_confidence overlays public_release source_revision input_digest validated_at domains_applicable domains_deferred domains_excluded)) {
     if (!exists $frontmatter{$key}) {
         fail("missing frontmatter field: $key");
-    } elsif ($frontmatter{$key} eq '' && $key ne 'domains_excluded') {
+    } elsif ($frontmatter{$key} eq '' && $key ne 'domains_excluded' && $key ne 'overlays') {
         fail("frontmatter field is empty: $key");
     }
     fail("duplicate frontmatter field: $key")
@@ -198,6 +198,52 @@ my %allowed_product_form = map { $_ => 1 } qw(web-application api-or-service cli
 if (exists $frontmatter{product_form} && !$allowed_product_form{$frontmatter{product_form}}) {
     fail("invalid product_form '$frontmatter{product_form}'; expected web-application, api-or-service, cli-or-sdk, mobile-or-desktop, data-or-ml, or infrastructure-or-iac");
 }
+
+my %allowed_confidence = map { $_ => 1 } qw(high medium low);
+if (exists $frontmatter{archetype_confidence}
+        && !$allowed_confidence{$frontmatter{archetype_confidence}}) {
+    fail("invalid archetype_confidence '$frontmatter{archetype_confidence}'; expected high, medium, or low");
+}
+
+# An overlay answers what extra obligations a project carries, never what it is.
+# Overlays are additive: each one forbids excluding the domains it covers, so a
+# list written to add obligations can never be read as a licence to trim.
+my %overlay_domains = (
+    'ai-system'           => ['llm'],
+    'public-ui'           => ['ui', 'seo'],
+    'shipped-artifact'    => ['deploy'],
+    'operated-by-others'  => ['observe', 'deploy'],
+    'regulated-data'      => ['database'],
+    'agent-skill-package' => ['agent-memory'],
+);
+my @overlays;
+my %overlay_declared;
+if (exists $frontmatter{overlays}) {
+    my $raw = trim($frontmatter{overlays});
+    if ($raw !~ /^\[(.*)\]$/) {
+        fail('frontmatter overlays must be a single inline list such as [ai-system] or []');
+    } else {
+        for my $overlay (split /\s*,\s*/, $1, -1) {
+            $overlay = trim($overlay);
+            next if $overlay eq '';
+            if (!exists $overlay_domains{$overlay}) {
+                fail("frontmatter overlays names unknown overlay $overlay; expected ai-system, public-ui, shipped-artifact, operated-by-others, regulated-data, or agent-skill-package");
+                next;
+            }
+            fail("frontmatter overlays lists $overlay twice") if $overlay_declared{$overlay}++;
+            push @overlays, $overlay;
+        }
+        @overlays = sort @overlays;
+    }
+}
+# regulated-data reaches llm only when the project actually calls a model;
+# regulated data on its own says nothing about model integration.
+my %overlay_protected;
+for my $overlay (@overlays) {
+    $overlay_protected{$_} = $overlay for @{$overlay_domains{$overlay}};
+}
+$overlay_protected{'llm'} = 'regulated-data'
+    if $overlay_declared{'regulated-data'} && $overlay_declared{'ai-system'};
 
 if (exists $frontmatter{public_release}
         && $frontmatter{public_release} ne 'true'
@@ -262,13 +308,13 @@ my %catalog_max = (
     CODE => 24,
     DB => 23,
     DEPLOY => 18,
-    DNA => 20,
+    DNA => 24,
     LAUNCH => 22,
     LLM => 23,
     MEM => 22,
-    OBS => 21,
+    OBS => 22,
     PRD => 17,
-    REPO => 21,
+    REPO => 25,
     ROAD => 21,
     SEC => 30,
     SEO => 22,
@@ -282,6 +328,53 @@ for my $prefix (keys %catalog_max) {
         $catalog_requirements{"R-$prefix-$number"} = 1;
     }
 }
+
+# Generated from references/doc-set.md by scripts/build-catalog.js. Values are
+# '<owner module>|<durability>'. The id prefix is the lifecycle stage.
+my %doc_catalog = (
+    'assure.accessibility-inputs' => 'ui|evidence',
+    'assure.dependency-inventory' => 'repo|evidence',
+    'assure.privacy-record' => 'security|durable',
+    'assure.scanning-index' => 'repo|evidence',
+    'assure.threat-model' => 'security|durable',
+    'build.agent-memory' => 'agent-memory|durable',
+    'build.api-reference' => 'build|durable',
+    'build.codebase-map' => 'agent-memory|durable',
+    'build.config-reference' => 'stack|durable',
+    'build.contributing' => 'repo|durable',
+    'build.dev-setup' => 'build|durable',
+    'build.feature-flags' => 'build|durable',
+    'build.llms-txt' => 'seo|durable',
+    'build.readme' => 'repo|durable',
+    'build.style-genome' => 'style-genome|durable',
+    'decide.adr' => 'architecture|durable',
+    'decide.design-proposal' => 'architecture|transient',
+    'design.api-contract' => 'architecture|durable',
+    'design.data-model' => 'database|durable',
+    'design.integration-map' => 'architecture|durable',
+    'design.ui-spec' => 'ui|durable',
+    'frame.business-case' => 'product|durable',
+    'frame.glossary' => 'style-genome|durable',
+    'frame.objective' => 'product|durable',
+    'frame.stakeholders' => 'repo|durable',
+    'govern.changelog' => 'repo|durable',
+    'govern.closeout' => 'roadmap|durable',
+    'govern.manifest' => 'repo|durable',
+    'govern.ownership' => 'repo|durable',
+    'govern.security-policy' => 'repo|durable',
+    'operate.oncall' => 'observe|durable',
+    'operate.postmortem' => 'observe|evidence',
+    'operate.readiness-review' => 'deploy|evidence',
+    'operate.recovery' => 'deploy|durable',
+    'operate.runbook' => 'observe|durable',
+    'operate.slo' => 'observe|durable',
+    'retire.archive-manifest' => 'roadmap|evidence',
+    'serve.support-policy' => 'launch|durable',
+    'serve.user-guide' => 'launch|durable',
+    'verify.dod' => 'product|durable',
+    'verify.test-strategy' => 'code-quality|durable',
+    'verify.traceability' => 'roadmap|durable',
+);
 
 my @phases;
 my @tasks;
@@ -614,6 +707,147 @@ my $product_form_count = scalar grep { $_ eq '## Product form' } @lines;
 fail("expected exactly one ## Product form section, found $product_form_count")
     if $product_form_count != 1;
 
+# Archetype confidence is arithmetic, not a feeling. The plan states its own
+# scores; everything downstream of them is recomputed here, so a confident
+# label that does not follow from the plan's own numbers cannot ship.
+my $archetype_low = 0;
+my %archetype_block;
+my $archetype_count = scalar grep { $_ eq '### Archetype confidence' } @lines;
+fail("expected exactly one ### Archetype confidence block, found $archetype_count")
+    if $archetype_count != 1;
+
+if ($archetype_count == 1) {
+    my $inside = 0;
+    for my $line (@lines) {
+        if ($line eq '### Archetype confidence') {
+            $inside = 1;
+            next;
+        }
+        last if $inside && $line =~ /^#{1,3} /;
+        next unless $inside;
+        next unless $line =~ /^-[ \t]+([A-Za-z][A-Za-z -]*?)[ \t]*:[ \t]*(\S.*)$/;
+        my ($field, $value) = ($1, $2);
+        fail("archetype confidence has duplicate field $field")
+            if exists $archetype_block{$field};
+        $archetype_block{$field} = $value;
+    }
+
+    for my $field ('Primary', 'Runner-up', 'Margin', 'Confidence', 'Vetoes applied', 'Overlays') {
+        fail("archetype confidence is missing $field")
+            unless exists $archetype_block{$field};
+    }
+
+    my ($primary_name, $primary_score);
+    if (defined $archetype_block{Primary}) {
+        if ($archetype_block{Primary} =~ /^([a-z0-9-]+)[ \t]*\(score[ \t]+([01]\.[0-9]{2})\)$/) {
+            ($primary_name, $primary_score) = ($1, $2 + 0);
+        } else {
+            fail("archetype confidence Primary must read '<archetype> (score 0.NN)'");
+        }
+    }
+    my ($runner_name, $runner_score);
+    if (defined $archetype_block{'Runner-up'}) {
+        if (lc $archetype_block{'Runner-up'} eq 'none') {
+            $runner_score = 0;
+        } elsif ($archetype_block{'Runner-up'} =~ /^([a-z0-9-]+)[ \t]*\(score[ \t]+([01]\.[0-9]{2})\)$/) {
+            ($runner_name, $runner_score) = ($1, $2 + 0);
+        } else {
+            fail("archetype confidence Runner-up must read '<archetype> (score 0.NN)' or 'none'");
+        }
+    }
+
+    if (defined $primary_score) {
+        fail("archetype confidence Primary score exceeds 1.00") if $primary_score > 1;
+        if (exists $frontmatter{archetype} && defined $primary_name
+                && $frontmatter{archetype} ne 'unknown'
+                && $primary_name ne $frontmatter{archetype}) {
+            fail("archetype confidence Primary is $primary_name but frontmatter archetype is $frontmatter{archetype}");
+        }
+        # Below the floor the archetype is not decided, and a named archetype
+        # would license matrix defaults and a document set nothing supports.
+        if ($primary_score < 0.45) {
+            $archetype_low = 1;
+            fail("archetype confidence Primary score $primary_score is below the 0.45 floor, so frontmatter archetype must be unknown")
+                if exists $frontmatter{archetype} && $frontmatter{archetype} ne 'unknown';
+        }
+    }
+
+    if (defined $primary_score && defined $runner_score) {
+        fail("archetype confidence Runner-up scores at or above Primary")
+            if defined $runner_name && $runner_score >= $primary_score;
+        fail("archetype confidence Runner-up repeats the Primary archetype")
+            if defined $runner_name && defined $primary_name && $runner_name eq $primary_name;
+        my $expected_margin = int(($primary_score - $runner_score) * 100 + 0.5);
+        if (defined $archetype_block{Margin}) {
+            if ($archetype_block{Margin} =~ /^(-?[0-9]+)[ \t]+points?$/) {
+                fail("archetype confidence Margin is $1 but the scores give $expected_margin")
+                    if $1 != $expected_margin;
+            } else {
+                fail("archetype confidence Margin must read '<n> points'");
+            }
+        }
+        my $expected_confidence =
+            ($expected_margin >= 15 && $primary_score >= 0.70) ? 'high'
+            : ($expected_margin >= 15 || $primary_score >= 0.70) ? 'medium'
+            : 'low';
+        $archetype_low = 1 if $expected_confidence eq 'low';
+        if (defined $archetype_block{Confidence}) {
+            my $stated = lc $archetype_block{Confidence};
+            if (!$allowed_confidence{$stated}) {
+                fail("archetype confidence Confidence must be high, medium, or low");
+            } elsif ($stated ne $expected_confidence) {
+                fail("archetype confidence states $stated but a margin of $expected_margin with a primary score of $primary_score gives $expected_confidence");
+            }
+        }
+        if (exists $frontmatter{archetype_confidence}
+                && $allowed_confidence{$frontmatter{archetype_confidence}}
+                && $frontmatter{archetype_confidence} ne $expected_confidence) {
+            fail("frontmatter archetype_confidence is $frontmatter{archetype_confidence} but the block's scores give $expected_confidence");
+        }
+    }
+
+    # A counterfactual priced in adjectives cannot be acted on. Tasks and
+    # phases are the units the rest of the plan already trades in.
+    if (defined $runner_name) {
+        my $counterfactual = $archetype_block{'If the runner-up is right'};
+        if (!defined $counterfactual) {
+            fail("archetype confidence names a runner-up but no 'If the runner-up is right:' counterfactual");
+        } elsif ($counterfactual !~ /[+-]?[0-9]+[ \t]+tasks?\b/
+                || $counterfactual !~ /[+-]?[0-9]+[ \t]+phases?\b/) {
+            fail("archetype confidence counterfactual must be priced in tasks and phases, not adjectives");
+        }
+    }
+
+    if (defined $archetype_block{Overlays}) {
+        my $stated = trim($archetype_block{Overlays});
+        my @stated_overlays = lc($stated) eq 'none'
+            ? ()
+            : sort grep { $_ ne '' } map { trim($_) } split /\s*,\s*/, $stated, -1;
+        my $stated_key = join ',', @stated_overlays;
+        my $frontmatter_key = join ',', @overlays;
+        fail("archetype confidence Overlays says '$stated' but frontmatter overlays is [$frontmatter_key]")
+            if $stated_key ne $frontmatter_key;
+    }
+}
+
+# Low confidence is not a disclaimer. It withholds the archetype as a settled
+# fact until a human confirms it, so the question has to be on the page.
+if ($archetype_low) {
+    my $inside = 0;
+    my $asked = 0;
+    for my $line (@lines) {
+        if ($line eq '## Open Questions') {
+            $inside = 1;
+            next;
+        }
+        last if $inside && $line =~ /^## /;
+        next unless $inside;
+        $asked = 1 if $line =~ /^### Q[1-9][0-9]*:/ && $line =~ /archetype/i;
+    }
+    fail("archetype confidence is low, so the archetype belongs in ## Open Questions as a ### Q<n>: entry naming it")
+        unless $asked;
+}
+
 if ($provenance_count == 1) {
     my $inside = 0;
     my @body;
@@ -712,6 +946,13 @@ my %known_domain = map { $_ => 1 } qw(
 );
 my %allowed_disposition = map { $_ => 1 } qw(applicable deferred excluded);
 my %deferrable_domain = map { $_ => 1 } qw(seo launch observe ui deploy);
+# These five scale down; they never leave the plan. A later layer may raise a
+# domain's disposition and never lower it out of existence, so an exclusion here
+# is a lowering the engine refuses rather than a judgement call.
+my %never_excludable = map { $_ => 1 } qw(security code-quality style-genome repo roadmap);
+my $vague_predicate = qr/^(?:later|eventually|when ready|post-mvp|future|tbd)\b/;
+my %domain_evidence_state;
+my %domain_revisit_when;
 my $matrix_count = scalar grep { $_ eq '## Applicability matrix' } @lines;
 fail("expected exactly one ## Applicability matrix section, found $matrix_count")
     if $matrix_count != 1;
@@ -735,8 +976,45 @@ if ($matrix_count == 1) {
             fail("applicability matrix row for $domain has invalid status '$disposition'; expected applicable, deferred, or excluded");
             next;
         }
-        if ($disposition eq 'excluded' && $reason eq '') {
-            fail("applicability matrix excludes $domain without a reason");
+        # An exclusion with no evidence state and no expiry is a silence with a
+        # reason attached: it reads exactly like a considered decision and
+        # nothing ever reopens it. Demand the state that licensed it and the
+        # predicate that would reverse it.
+        if ($disposition eq 'excluded') {
+            fail("applicability matrix cannot exclude load-bearing domain $domain; it scales down instead")
+                if $never_excludable{$domain};
+            fail("applicability matrix excludes $domain, which the $overlay_protected{$domain} overlay covers; overlays raise and never lower, so this row may be applicable or deferred but not excluded")
+                if $overlay_protected{$domain};
+            my ($state) = $reason =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
+            $state = defined $state ? lc $state : '';
+            my ($predicate) = $reason =~ /revisit when[ \t]*:[ \t]*(.*)$/i;
+            $predicate = defined $predicate ? $predicate : '';
+            $predicate =~ s/[ \t]+$//;
+            if ($reason eq '') {
+                fail("applicability matrix excludes $domain without a reason");
+            } elsif ($state eq 'unknown' || $state eq 'hint') {
+                fail("applicability matrix excludes $domain on evidence state '$state'; only absent or by-design may exclude, so make the domain applicable or open a question");
+            } elsif ($state ne 'absent' && $state ne 'by-design') {
+                fail("applicability matrix excludes $domain without an evidence state; the reason must open with 'absent:' or 'by-design:'");
+            }
+            if ($reason ne '' && $predicate eq '') {
+                fail("applicability matrix excludes $domain without a revisit when: tripwire");
+            } elsif (lc($predicate) =~ $vague_predicate) {
+                fail("applicability matrix excludes $domain with a vague revisit when: predicate");
+            } elsif ($predicate ne '' && length($predicate) < 12) {
+                fail("applicability matrix excludes $domain with a revisit when: predicate too short to observe");
+            }
+            # `absent:` against existing code is a negative claim, and the
+            # claims-and-evidence rule refuses those without a search. Greenfield
+            # has nothing to have looked at, so only `by-design:` applies there.
+            if ($state eq 'absent'
+                    && exists $frontmatter{mode}
+                    && ($frontmatter{mode} eq 'brownfield' || $frontmatter{mode} eq 'replan')
+                    && $reason !~ /`[^`]+`/) {
+                fail("applicability matrix excludes $domain on an absent: claim with no backticked command or evidence artifact; a negative claim about existing code needs the search that came back empty");
+            }
+            $domain_evidence_state{$domain} = $state;
+            $domain_revisit_when{$domain} = $predicate;
         }
         if ($disposition eq 'deferred') {
             fail("applicability matrix cannot defer load-bearing domain $domain")
@@ -754,6 +1032,164 @@ if ($matrix_count == 1) {
     for my $domain (sort keys %known_domain) {
         fail("applicability matrix is missing domain $domain")
             unless $seen_domain{$domain};
+    }
+}
+
+# The module disposition is the only place a module requirement may leave the
+# plan. Precedence alone does not save it: a later layer is not a more correct
+# layer, only a later one, so the line names which layer dropped what. Without
+# that name, a requirement cut to fit a weekend appetite is indistinguishable
+# from one nobody ever considered, and only one of those is a decision.
+my %module_prefix = (
+    'product' => 'PRD', 'architecture' => 'ARCH', 'stack' => 'STACK',
+    'database' => 'DB', 'security' => 'SEC', 'llm' => 'LLM', 'ux' => 'UX',
+    'ui' => 'UI', 'seo' => 'SEO', 'code-quality' => 'CODE',
+    'style-genome' => 'DNA', 'agent-memory' => 'MEM', 'repo' => 'REPO',
+    'build' => 'BUILD', 'roadmap' => 'ROAD', 'deploy' => 'DEPLOY',
+    'observe' => 'OBS', 'launch' => 'LAUNCH',
+);
+my %dropped_layer = map { $_ => 1 } qw(scale archetype form);
+my @json_disposition;
+if (%domain_disposition) {
+    my %task_requirement;
+    for my $task (@tasks) {
+        next unless exists $task->{fields}{Requirements}
+            && @{$task->{fields}{Requirements}} == 1;
+        for my $id (split /\s*,\s*/, $task->{fields}{Requirements}[0], -1) {
+            $task_requirement{$id} = $task->{id};
+        }
+    }
+
+    my $inside = 0;
+    my $found = 0;
+    my %disposition_line;
+    my %referenced;
+    for (my $index = 0; $index <= $#lines; $index++) {
+        my $line = $lines[$index];
+        if ($line eq '### Module disposition') {
+            $inside = 1;
+            $found = 1;
+            next;
+        }
+        if ($inside && $line =~ /^#{1,3} /) {
+            $inside = 0;
+            next;
+        }
+        if (!$inside) {
+            $referenced{$1} = 1 while $line =~ /(R-[A-Z][A-Z0-9-]*-[0-9]+)/g;
+            next;
+        }
+        next if $line =~ /^\s*$/;
+        $disposition_line{$index + 1} = $line;
+    }
+
+    if (!$found) {
+        fail("expected a ### Module disposition block under ## Applicability matrix");
+    }
+
+    my %seen_module;
+    for my $line_number (sort { $a <=> $b } keys %disposition_line) {
+        my $line = $disposition_line{$line_number};
+        my ($module, $body) = $line =~ /^-[ \t]+([a-z0-9-]+)[ \t]*:[ \t]*(\S.*)$/;
+        if (!defined $module) {
+            fail("module disposition line $line_number must read '- <module>: landed <ids>[; dropped-by <layer> <ids> (<reason>)]'");
+            next;
+        }
+        if (!exists $module_prefix{$module}) {
+            fail("module disposition names unknown module $module on line $line_number");
+            next;
+        }
+        fail("module disposition has a duplicate line for $module")
+            if $seen_module{$module}++;
+        my $status = $domain_disposition{$module} || 'absent';
+        if ($status ne 'applicable') {
+            fail("module disposition covers $module, which the applicability matrix marks $status; only applicable modules land or drop requirements");
+            next;
+        }
+        my $prefix = $module_prefix{$module};
+        my %landed;
+        my %dropped;
+        my @dropped_entries;
+        my $malformed = 0;
+        for my $clause (split /\s*;\s*/, $body) {
+            next if $clause eq '';
+            if ($clause =~ /^landed[ \t]+(\S.*)$/i) {
+                my $ids = $1;
+                next if lc($ids) eq 'none';
+                for my $id (split /\s*,\s*/, $ids, -1) {
+                    $id =~ s/^\s+|\s+$//g;
+                    next if $id eq '';
+                    if ($id !~ /^R-\Q$prefix\E-[0-9]+$/) {
+                        fail("module disposition for $module lists $id, which is not an R-$prefix requirement");
+                        $malformed = 1;
+                        next;
+                    }
+                    if (!$catalog_requirements{$id}) {
+                        fail("module disposition for $module lands undefined requirement $id");
+                        $malformed = 1;
+                        next;
+                    }
+                    $landed{$id} = 1;
+                }
+            } elsif ($clause =~ /^dropped-by[ \t]+([a-z]+)[ \t]+(\S.*?)[ \t]*\((\S.*)\)$/i) {
+                my ($layer, $ids, $reason) = (lc $1, $2, $3);
+                if (!$dropped_layer{$layer}) {
+                    fail("module disposition for $module drops by unknown layer '$layer'; use scale, archetype, or form");
+                    $malformed = 1;
+                    next;
+                }
+                fail("module disposition for $module drops by $layer without a reason")
+                    if $reason =~ /^\s*$/;
+                my @ids;
+                for my $id (split /\s*,\s*/, $ids, -1) {
+                    $id =~ s/^\s+|\s+$//g;
+                    next if $id eq '';
+                    if ($id !~ /^R-\Q$prefix\E-[0-9]+$/) {
+                        fail("module disposition for $module drops $id, which is not an R-$prefix requirement");
+                        $malformed = 1;
+                        next;
+                    }
+                    if (!$catalog_requirements{$id}) {
+                        fail("module disposition for $module drops undefined requirement $id");
+                        $malformed = 1;
+                        next;
+                    }
+                    $dropped{$id} = 1;
+                    push @ids, $id;
+                }
+                push @dropped_entries, { layer => $layer, reason => $reason, requirements => \@ids };
+            } elsif ($clause =~ /^dropped-by\b/i) {
+                fail("module disposition for $module has a dropped-by clause without a parenthesised reason");
+                $malformed = 1;
+            } else {
+                fail("module disposition for $module has an unrecognised clause '$clause'");
+                $malformed = 1;
+            }
+        }
+        next if $malformed;
+        for my $id (sort keys %dropped) {
+            fail("module disposition for $module both lands and drops $id")
+                if $landed{$id};
+            fail("module disposition drops $id but $task_requirement{$id} still traces to it")
+                if exists $task_requirement{$id};
+        }
+        for my $id (sort keys %landed) {
+            fail("module disposition lands $id but nothing in the plan references it")
+                unless $referenced{$id};
+        }
+        push @json_disposition, {
+            module => $module,
+            landed => [sort keys %landed],
+            dropped => \@dropped_entries,
+        };
+    }
+
+    if ($found) {
+        for my $domain (sort keys %domain_disposition) {
+            next unless $domain_disposition{$domain} eq 'applicable';
+            fail("module disposition is missing applicable module $domain")
+                unless $seen_module{$domain};
+        }
     }
 }
 
@@ -800,6 +1236,101 @@ if (%domain_disposition) {
             . ($domain_disposition{$_} || 'absent') . " in the matrix")
             for @extra;
     }
+}
+
+# The documentation set is where an absence gets defended. A not-applicable row
+# with no evidence state and no tripwire launders a gap into a decision, which
+# is the one outcome this section exists to make structurally hard.
+my %doc_verdict = map { $_ => 1 } qw(required recommended optional not-applicable);
+my @json_documents;
+my $docset_count = scalar grep { $_ eq '## Documentation set' } @lines;
+fail("expected exactly one ## Documentation set section, found $docset_count")
+    if $docset_count != 1;
+
+if ($docset_count == 1) {
+    my $inside = 0;
+    my $boundary = 0;
+    my %seen_document;
+    my $rows = 0;
+    for my $line (@lines) {
+        if ($line eq '## Documentation set') {
+            $inside = 1;
+            next;
+        }
+        last if $inside && $line =~ /^## /;
+        next unless $inside;
+        $boundary = 1
+            if index(lc($line), 'committed to this repository') >= 0;
+        next unless $line =~ /^\|[ \t]*`?([a-z]+\.[a-z0-9-]+)`?[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*(.*?)[ \t]*\|[ \t]*$/;
+        my ($id, $stage, $verdict, $owner, $detail) = ($1, $2, $3, $4, $5);
+        $rows++;
+        if (!exists $doc_catalog{$id}) {
+            fail("documentation set names $id, which is not a doc-set.md catalog id");
+            next;
+        }
+        fail("documentation set has a duplicate row for $id")
+            if $seen_document{$id}++;
+        my ($catalog_owner, $durability) = split /\|/, $doc_catalog{$id};
+        my ($catalog_stage) = $id =~ /^([a-z]+)\./;
+        fail("documentation set row $id declares stage '$stage'; the catalog stage is $catalog_stage")
+            if $stage ne $catalog_stage;
+        if (!$doc_verdict{$verdict}) {
+            fail("documentation set row $id has invalid verdict '$verdict'; expected required, recommended, optional, or not-applicable");
+            next;
+        }
+        fail("documentation set row $id names owner '$owner'; the catalog owner is $catalog_owner, and exactly one module owns a document")
+            if $owner ne $catalog_owner;
+        if ($verdict eq 'required' || $verdict eq 'recommended') {
+            my @task_refs = $detail =~ /(GP-[0-9]+)/g;
+            if (!@task_refs) {
+                fail("documentation set row $id is $verdict but names no GP task that writes it");
+            } else {
+                for my $ref (@task_refs) {
+                    fail("documentation set row $id names $ref, which is not a task in this plan")
+                        unless exists $all_task_definitions{$ref};
+                }
+            }
+            my $owner_status = $domain_disposition{$owner};
+            fail("documentation set row $id is $verdict but its owner module $owner is excluded in the applicability matrix")
+                if defined $owner_status && $owner_status eq 'excluded';
+        } elsif ($verdict eq 'not-applicable') {
+            # A misread archetype deletes assure-stage rows silently, and those
+            # are the threat models and compliance records. Withhold them until
+            # the archetype is confirmed.
+            fail("documentation set marks the assure-stage row $id not-applicable while archetype confidence is low; confirm the archetype first")
+                if $archetype_low && $stage eq 'assure';
+            my ($state) = $detail =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
+            $state = defined $state ? lc $state : '';
+            my ($predicate) = $detail =~ /revisit when[ \t]*:[ \t]*(.*)$/i;
+            $predicate = defined $predicate ? $predicate : '';
+            $predicate =~ s/[ \t]+$//;
+            if ($state eq 'unknown' || $state eq 'hint') {
+                fail("documentation set excludes $id on evidence state '$state'; only absent or by-design may exclude");
+            } elsif ($state ne 'absent' && $state ne 'by-design') {
+                fail("documentation set excludes $id without an evidence state; the cell must open with 'absent:' or 'by-design:'");
+            }
+            if ($predicate eq '') {
+                fail("documentation set excludes $id without a revisit when: tripwire");
+            } elsif (lc($predicate) =~ $vague_predicate) {
+                fail("documentation set excludes $id with a vague revisit when: predicate");
+            } elsif (length($predicate) < 12) {
+                fail("documentation set excludes $id with a revisit when: predicate too short to observe");
+            }
+        } elsif ($detail eq '') {
+            fail("documentation set row $id is optional but says nothing about why");
+        }
+        push @json_documents, {
+            id => $id,
+            stage => $stage,
+            verdict => $verdict,
+            owner => $owner,
+            durability => $durability,
+            detail => $detail,
+        };
+    }
+    fail("documentation set contains no catalog rows") unless $rows;
+    fail("documentation set must state its boundary: the sentence that the manifest covers documentation committed to this repository")
+        unless $boundary;
 }
 
 my $decisions_count = scalar grep { $_ eq '## Decisions' } @lines;
@@ -1080,6 +1611,10 @@ if ($emit_json ne '') {
             domain => $_,
             status => $domain_disposition{$_},
             reason => $domain_reason{$_},
+            evidence_state => defined $domain_evidence_state{$_}
+                ? $domain_evidence_state{$_} : undef,
+            revisit_when => defined $domain_revisit_when{$_}
+                ? $domain_revisit_when{$_} : undef,
         }
     } sort keys %domain_disposition;
 
@@ -1094,6 +1629,8 @@ if ($emit_json ne '') {
         mode            => $frontmatter{mode},
         product_form    => $frontmatter{product_form},
         archetype       => $frontmatter{archetype},
+        archetype_confidence => $frontmatter{archetype_confidence},
+        overlays        => \@overlays,
         public_release  => $frontmatter{public_release} eq 'true'
             ? JSON::PP::true : JSON::PP::false,
         source_revision => $frontmatter{source_revision},
@@ -1106,6 +1643,8 @@ if ($emit_json ne '') {
             tasks_done   => $counter{tasks_done} + 0,
         },
         applicability   => \@json_applicability,
+        module_disposition => \@json_disposition,
+        documentation   => \@json_documents,
         decisions       => \@json_decisions,
         phases          => \@json_phases,
         tasks           => \@json_tasks,

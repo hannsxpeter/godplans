@@ -1,7 +1,7 @@
 # godplans
 
 [![lint](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml/badge.svg)](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml)
-[![version](https://img.shields.io/badge/version-1.10.0-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.11.0-blue)](CHANGELOG.md)
 [![agent skills](https://img.shields.io/badge/Agent%20Skills-compatible-2f6fed)](skills/godplans/SKILL.md)
 [![planning domains](https://img.shields.io/badge/planning%20domains-18-2f6fed)](#lineage)
 [![plan gate](https://img.shields.io/badge/plan%20gate-machine%20checked-2f6fed)](skills/godplans/scripts/validate-plan.sh)
@@ -41,19 +41,20 @@ One command. godplans screens the idea against the Anthropic Usage Policy, asks 
 One canonical plan document, `.godplans/PLAN.mdx`, containing:
 
 - An objective with an observable definition of done, scope, and named non-goals.
-- The compliance gate result and the applicability matrix (every domain planned now, deferred with an observable trigger and reversibility argument, or excluded with a reason).
+- The compliance gate result and the applicability matrix (every domain planned now, deferred with an observable trigger and reversibility argument, or excluded with the evidence state that licensed the exclusion and the `revisit when` predicate that reverses it), plus the module disposition naming which layer dropped every requirement that did not land.
 - A primary product form selected before archetype, with form-specific vertical slices and completion evidence for web, API or service, CLI or SDK, mobile or desktop, data or ML, and infrastructure or IaC work.
 - Plan provenance bound to source revision, a SHA-256 input digest, and a UTC validation timestamp, with stale completed or imported evidence returning the plan to `planning`.
-- Decisions, hard-to-reverse bets first, each with rationale, rejected alternatives, an observable signal, a failure boundary, and a return-to-planning action; assumptions flagged as hypotheses with validation tasks.
+- Decisions, hard-to-reverse bets first, each with rationale, rejected alternatives, an observable signal, a failure boundary, and a return-to-planning action; assumptions flagged as hypotheses with validation tasks and priced in tasks and phases, so taking the defaults is an informed choice.
 - Numbered requirements with EARS acceptance criteria (WHEN ... THE SYSTEM SHALL ...).
 - Architecture as mermaid diagrams (components with trust boundaries, data model, load-bearing flows) placed next to the claims they support.
-- A style genome so the first commit already matches the intended code DNA, and the agent-memory files (AGENTS.md, pillars) the scaffold will emit.
+- A style genome so the first commit already matches the intended code DNA, measured rather than eyeballed in brownfield mode, and the agent-memory files (AGENTS.md, pillars) the scaffold will emit.
+- A documentation set: which documents this project owes, keyed to lifecycle stage with a single owning module and the task that writes each one, and which it does not owe, each absence carrying the evidence behind it and the predicate that would reverse it. An unexamined absence reads exactly like a considered decision, which is the row an auditor pulls first.
 - Phases and waves of checkbox tasks. Every task: a stable GP-number, exact files, dependencies, what it reuses, grep-verifiable acceptance criteria, one verify command whose exit code proves it, and requirement traceability.
 - Goal-backward must-haves per phase, an executable phase checkpoint, a mandatory final verification phase, embedded rules for executing agents, and a session log.
 - Exactly one Open Questions section, holding only the residual unknowns the plan can execute past. Each carries an owner, what it blocks, when the default fires, and the recommended default. An unknown that dependent work cannot start without is not a question: it is a flagged hypothesis whose validation task is scheduled ahead of everything that assumes it.
-- A generated `.godplans/PLAN.json` sidecar carrying decisions, applicability, phases, active and superseded tasks, dependencies, requirements, parallel-safety, and plan half-life metrics for tools that should not parse MDX.
+- A generated `.godplans/PLAN.json` sidecar carrying decisions, applicability with its tripwires, the module disposition, the documentation set, phases, active and superseded tasks, dependencies, requirements, parallel-safety, and plan half-life metrics for tools that should not parse MDX.
 
-The skill also emits `.godplans/validate-plan.sh`, a self-contained companion that validates lifecycle state, provenance formats, product form, conditional public-release gates, counters, phase and task grammar, ordered dependency and requirement references, deferral constraints, falsifier blocks, executable checkpoints, banned characters, and final-phase structure. It also holds the plan to its own internal promises: the three frontmatter domain lists must say what the applicability matrix says, and a task marked parallel-safe must touch files no other unchecked task in its wave touches. A marker an executor acts on is checked, not trusted. Its explicit drift mode recomputes marked provenance files, reruns a deterministic sample of completed Verify commands, and reproves the phase checkpoint. The plan remains the only source of product and execution truth; PLAN.json is generated atomically from it.
+The skill also emits `.godplans/validate-plan.sh`, a self-contained companion that validates lifecycle state, provenance formats, product form, conditional public-release gates, counters, phase and task grammar, ordered dependency and requirement references, deferral constraints, exclusion evidence states and tripwires, module disposition grammar, documentation-set rows, falsifier blocks, executable checkpoints, banned characters, and final-phase structure. It also holds the plan to its own internal promises: the three frontmatter domain lists must say what the applicability matrix says, a task marked parallel-safe must touch files no other unchecked task in its wave touches, and a requirement the plan says it dropped may not still appear on a task. A marker an executor acts on is checked, not trusted. Its explicit drift mode recomputes marked provenance files, reruns a deterministic sample of completed Verify commands, and reproves the phase checkpoint. The plan remains the only source of product and execution truth; PLAN.json is generated atomically from it.
 
 The plan is the handoff: any coding agent (the same one, or a different tool entirely) executes it checkbox by checkbox. Interrupted work resumes by re-reading the file, not the chat.
 
@@ -149,7 +150,7 @@ An auditor that finds a missing tenant-isolation policy after three weeks of bui
 
 ## Lineage
 
-godplans consolidates and inverts fourteen skills into one command:
+godplans consolidates and inverts fifteen skills into one command:
 
 | Source | What carries over |
 |---|---|
@@ -162,7 +163,8 @@ godplans consolidates and inverts fourteen skills into one command:
 | [uiauditor](https://github.com/hannsxpeter/uiauditor) | Accessibility, semantics, design-system consistency as acceptance criteria |
 | [uxauditor](https://github.com/hannsxpeter/uxauditor) | Journeys, workflows, error states designed before build |
 | [pillars](https://github.com/hannsxpeter/pillars) | Pillars 1.1 agent memory: nested scopes, local absent catalogs, deterministic routing, and context budgets |
-| [codedna](https://github.com/hannsxpeter/codedna) | The style genome: prescribed for greenfield, fingerprinted for brownfield |
+| [codedna](https://github.com/hannsxpeter/codedna) | The style genome: prescribed for greenfield, fingerprinted for brownfield. The AI-tells catalog and the measurement script ship with godplans, vendored by copy |
+| [docdna](https://github.com/hannsxpeter/docdna) | The documentation selection engine, inverted to plan time: which documents this project owes, which it does not and on what evidence, and the tripwire that reverses each absence. Also the three-valued evidence model, the durability split, and the rule that no number is invented |
 | [BuilderIO visual-plan](https://github.com/BuilderIO/skills) | Plan discipline: hard-to-reverse bets first, reuse-first steps, one Open Questions section, the standalone-plan rule, the visual layer |
 | [wayfinder](https://github.com/mattpocock/skills/blob/main/skills/engineering/wayfinder/SKILL.md) (MIT, Matt Pocock) | Two ideas, re-expressed for a single-file plan: a fact lives in exactly one place (the frontmatter domain lists are now checked against the applicability matrix that decides them), and the set of work safe to take next is proved rather than asserted (`[P]` parallel-safety is now enforced, not promised). Also the refer-by-name presentation rule. No text, prompt, or code copied; godplans takes none of its issue-tracker map, ticket types, fog-of-war section, or one-ticket-per-session protocol |
 | [ADHD](https://github.com/UditAkhourii/adhd) (MIT, Udit Akhouri) | Two ideas, re-expressed for planning: the critic must not be the author (Phase 6), and a menu of options is not a set of alternatives (R-STACK-21, the R-ARCH-4 open set, the Open Questions off-framing rule). No text, prompt, or code copied; godplans takes none of its novelty scoring, frame library, or runtime |
@@ -213,10 +215,11 @@ Details in [references/compliance.md](skills/godplans/references/compliance.md).
 | Path | Role |
 |---|---|
 | `skills/godplans/SKILL.md` | The orchestrator: ground rules, the 8-phase method, modes, refusals |
-| `skills/godplans/references/` | 22 modules: 18 domain playbooks plus plan-format, discovery, compliance, exemplar |
+| `skills/godplans/references/` | 23 modules: 18 domain playbooks plus the plan-format, discovery, compliance, exemplar, and doc-set contracts |
 | `skills/godplans/templates/PLAN.template.mdx` | The plan skeleton |
 | `skills/godplans/scripts/validate-plan.sh` | Self-contained PLAN.mdx validator copied beside every plan |
 | `skills/godplans/scripts/plan-halflife.sh` | Cumulative and per-domain task supersession metric generator |
+| `skills/godplans/scripts/style-stats.py` | Measured style baseline for the style-genome pass, vendored by copy from codedna |
 | `skills/godplans/schemas/PLAN.schema.json` | JSON Schema for generated PLAN.json sidecars |
 | `.agents/skills/`, `.claude/skills/` | Symlink projections of the canonical skill |
 | `install.sh` | Ownership-safe installer; `--project`, `--tools`, `--copy`, `--uninstall`, `--force` |
