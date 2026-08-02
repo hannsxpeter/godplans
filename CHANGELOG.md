@@ -3,6 +3,34 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [1.11.1] - 2026-08-02
+
+A documentation patch. 1.11.0 gated scored archetypes, overlays, and cited
+absence claims in the reference modules and the validator, but the README still
+described archetype selection as a closest-match step and named neither of the
+other two. The packaged README is the first thing a reader sees, so it shipped
+describing behavior the release had replaced. No skill content, validator,
+schema, or plan-format changes; a plan valid under 1.11.0 is valid here.
+
+### Changed
+
+- README documents scored archetype detection: weighted signals with vetoes, a
+  recorded primary and runner-up, the margin between them, and what changes if
+  the runner-up is right, priced in tasks and phases. The confidence label is
+  recomputed by the validator from those numbers rather than asserted, and below
+  the 0.45 floor the archetype is `unknown`, goes to Open Questions, and
+  withholds every `assure`-stage document from being marked not-applicable.
+- README documents overlays (`ai-system`, `public-ui`, `shipped-artifact`,
+  `operated-by-others`, `regulated-data`, `agent-skill-package`) and the rule
+  that separates them from archetypes: an archetype says what a project is, an
+  overlay says what extra obligations it carries, and an overlay raises a
+  domain's disposition without ever lowering it.
+- README's brownfield mode names the two evidence rules it was missing: an
+  `absent:` exclusion cites the search that came back empty, and a fresh
+  `.godaudits/EVIDENCE.json` may be reused as `[recheck]` provenance while a
+  stale one is refused, because a stale inventory reads exactly like a fresh
+  one. godplans neither requires nor calls godaudits.
+
 ## [1.11.0] - 2026-08-02
 
 This release ports two disciplines from sibling projects. From hannsxpeter/docdna,
