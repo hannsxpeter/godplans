@@ -5,19 +5,19 @@
     "limitation": "Provider tokenizers differ. Published model runs record actual input and output token usage in RUNNER.txt and METRICS.json."
   },
   "portable_core": {
-    "bytes": 320783,
-    "estimated_tokens": 80196,
-    "sha256": "7fade953dda5f27bebd11227d54b9cfd3e43a6bcece1dd0cd4fc2288ea072d55"
+    "bytes": 329947,
+    "estimated_tokens": 82487,
+    "sha256": "8e69006911414a1d931e666e4be2301c13890a766b4bbf116d7f756511ca9ada"
   },
   "portable_full_generated": {
-    "bytes": 659676,
-    "estimated_tokens": 164919,
-    "sha256": "e5db9d76f3ba3f35ff87c6599bd660d205043f0509b9b805dc36c9e85a053753"
+    "bytes": 668985,
+    "estimated_tokens": 167247,
+    "sha256": "4ad28766aed066073abcee54b5b0bac7411aa62e45e276fa82d7fe53687f18ae"
   },
   "native_skill_entry": {
     "bytes": 22313,
     "estimated_tokens": 5579,
-    "sha256": "f490369adf22c2f27732d4286a7792dacd3bb55b4a26aab5b4a2d7b601e867d1"
+    "sha256": "8d798585fe7bd20239c99401cd7ec7c0ae4b8081a862910b57a49e3c3acb8db2"
   },
   "core_modules": {
     "compliance": {
@@ -36,9 +36,9 @@
       "sha256": "88f057b86dc326c9755f05e867921624ee50f0b14763e0205d932e67b13b380f"
     },
     "architecture": {
-      "bytes": 22778,
-      "estimated_tokens": 5695,
-      "sha256": "180620c7bf86cc4589ef4d29cba166e39dfe7232ab824a44b08f92c845b5e805"
+      "bytes": 31719,
+      "estimated_tokens": 7930,
+      "sha256": "49f2e55de0bfd673a9d6e8ac4000262096825d4b4a7b4906040a5d6f4d3a0b0b"
     },
     "stack": {
       "bytes": 24319,
@@ -46,9 +46,9 @@
       "sha256": "b00459507aa9f21d803f4265e0f3af17b2e8bde639ee9e04f80bc74b0d7cf49c"
     },
     "database": {
-      "bytes": 27158,
-      "estimated_tokens": 6790,
-      "sha256": "79d848b8d534684824cfa982aef3d7605c38af2c61a04433c5c3c3eff779897f"
+      "bytes": 27326,
+      "estimated_tokens": 6832,
+      "sha256": "2afcadcaa1b991d775f42c91f6bd080669b9fbad308a2a31b66e1ae811a06b39"
     },
     "security": {
       "bytes": 33475,
@@ -67,14 +67,14 @@
     }
   },
   "core_modules_total": {
-    "bytes": 213967,
-    "estimated_tokens": 53495
+    "bytes": 223076,
+    "estimated_tokens": 55772
   },
   "lazy_modules": {
     "doc-set": {
-      "bytes": 18878,
-      "estimated_tokens": 4720,
-      "sha256": "4df8f8c45d2c303b268b75a2157bc6a64b36d8d85544777ac042ba38b8423741"
+      "bytes": 19023,
+      "estimated_tokens": 4756,
+      "sha256": "d0a5e70d35ba1c933e40ea5506f61a05c4ee907fbc2a480aa941bd487e4434eb"
     },
     "llm": {
       "bytes": 27852,
@@ -143,7 +143,7 @@
     }
   },
   "lazy_modules_total": {
-    "bytes": 338304,
-    "estimated_tokens": 84581
+    "bytes": 338449,
+    "estimated_tokens": 84617
   }
 }

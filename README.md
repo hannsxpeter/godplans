@@ -1,7 +1,7 @@
 # godplans
 
 [![lint](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml/badge.svg)](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml)
-[![version](https://img.shields.io/badge/version-1.11.1-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.12.0-blue)](CHANGELOG.md)
 [![agent skills](https://img.shields.io/badge/Agent%20Skills-compatible-2f6fed)](skills/godplans/SKILL.md)
 [![planning domains](https://img.shields.io/badge/planning%20domains-18-2f6fed)](#lineage)
 [![plan gate](https://img.shields.io/badge/plan%20gate-machine%20checked-2f6fed)](skills/godplans/scripts/validate-plan.sh)
@@ -48,7 +48,7 @@ One canonical plan document, `.godplans/PLAN.mdx`, containing:
 - Plan provenance bound to source revision, a SHA-256 input digest, and a UTC validation timestamp, with stale completed or imported evidence returning the plan to `planning`.
 - Decisions, hard-to-reverse bets first, each with rationale, rejected alternatives, an observable signal, a failure boundary, and a return-to-planning action; assumptions flagged as hypotheses with validation tasks and priced in tasks and phases, so taking the defaults is an informed choice.
 - Numbered requirements with EARS acceptance criteria (WHEN ... THE SYSTEM SHALL ...).
-- Architecture as mermaid diagrams (components with trust boundaries, data model, load-bearing flows) placed next to the claims they support.
+- Architecture as mermaid diagrams (components with trust boundaries, data model, load-bearing flows) placed next to the claims they support, plus a capacity model that stops the numbers from floating: each availability target gets a redundancy topology and a named health-check rule, each entity group gets a read-consistency stance and single-node ceiling arithmetic that either names a partition key or shows one node holds, each cached read path gets a staleness budget and stampede protection, and each entry surface gets a stated behavior above its throughput ceiling instead of defaulting to unbounded queueing.
 - A style genome so the first commit already matches the intended code DNA, measured rather than eyeballed in brownfield mode, and the agent-memory files (AGENTS.md, pillars) the scaffold will emit.
 - A documentation set: which documents this project owes, keyed to lifecycle stage with a single owning module and the task that writes each one, and which it does not owe, each absence carrying the evidence behind it and the predicate that would reverse it. An unexamined absence reads exactly like a considered decision, which is the row an auditor pulls first.
 - Phases and waves of checkbox tasks. Every task: a stable GP-number, exact files, dependencies, what it reuses, grep-verifiable acceptance criteria, one verify command whose exit code proves it, and requirement traceability.
