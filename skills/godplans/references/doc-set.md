@@ -85,6 +85,7 @@ Never emit a folder named `rfc/`. In any shop with an ITSM process, RFC reads as
 | `design.api-contract` | durable | architecture | a public or cross-team interface exists |
 | `design.ui-spec` | durable | ui | ui is applicable |
 | `design.integration-map` | durable | architecture | a third-party dependency carries a failure mode |
+| `design.capacity-model` | durable | architecture | an availability or throughput target binds, or the plan caches, replicates, or partitions |
 
 ### build
 

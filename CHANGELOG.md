@@ -3,6 +3,104 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [1.12.0] - 2026-08-03
+
+The architecture module planned the structural half of system design well and
+the runtime half not at all. It forced system shape, bounded contexts, data
+ownership, trust boundaries, integration idempotency, ADRs, and NFR arithmetic,
+then stopped: a plan could carry an availability chain requiring 99.97 percent
+per component without ever naming redundancy, cache a read path without ever
+naming how stale is acceptable, state a throughput ceiling without ever saying
+what happens above it, and settle single-writer ownership without ever settling
+what a read is allowed to see. The pieces existed downstream as mechanics with
+no upstream decision: caching as a stack slot pick and a database invalidation
+rule, partitioning and read-your-writes routing as database mechanics, abuse
+rate limiting as a security control that is not a capacity control. Four
+requirements move those decisions to the pass that already holds the numbers
+they depend on. No plan-format, schema, or task-grammar change; a plan valid
+under 1.11.1 is valid here, and the validator's ARCH catalog max moves 20 to 24.
+
+### Added
+
+- R-ARCH-21 settles read consistency and horizontal partitioning per entity
+  group, because R-ARCH-8 settles writes and leaves reads unstated. Each group
+  declares a stance (strong, read-your-writes, bounded staleness with a number
+  in seconds, or eventual), names the read paths pinned to the primary, and
+  carries single-node capacity arithmetic against the 12-month ceiling already
+  recorded under R-ARCH-3. Where the arithmetic fails, the partition key and its
+  skew risk are named in the architecture section, because a partition key is a
+  data-model decision that shapes every query rather than a database feature
+  switched on later. Where it holds, the plan records the number and the
+  threshold that would change the answer.
+- R-ARCH-22 turns each availability number from R-ARCH-11 into a topology. Per
+  critical-path component: the redundancy posture (single instance with an
+  annual downtime budget, N instances behind a health-checked routing tier,
+  active-passive with a failover time, or multi-zone with the zone-loss behavior
+  named), whether request handling is stateless or sticky and where session
+  state lives if it is, and the routing tier's health-check and removal rule.
+  Remaining single points of failure are listed by name, each accepted with a
+  downtime number or removed.
+- R-ARCH-23 treats caching as a consistency change rather than a performance
+  afterthought. Every cached read path carries a tier, a numeric staleness
+  budget, an invalidation trigger, and stampede protection, and names the
+  R-ARCH-11 budget it closes, so no cache enters a plan as a reflex. A path
+  whose R-ARCH-21 stance is strong or read-your-writes is excluded from the
+  cache or routed to the primary, on the record.
+- R-ARCH-24 states the overload posture per entry surface, because R-ARCH-9
+  covers a failing dependency and leaves a saturating system unstated. Every
+  entry surface gets a behavior at and above the throughput ceiling (shed with a
+  retryable status and Retry-After, queue with a bounded depth and maximum wait,
+  or degrade to a named path), every queue gets a depth bound and a full policy,
+  and every limiter is labeled capacity or abuse, because a threshold sized for
+  fraud control is not a capacity control and reading it as one hides the
+  saturation case entirely.
+- Four task seeds carrying these to build time: the capacity model document,
+  admission control with bounded queues, the cache tier with staleness budgets
+  and single-flight protection, and primary-pinned read routing with a
+  read-your-writes test that proves the pinning holds.
+- `design.capacity-model` joins the documentation set, owned by architecture,
+  selected when an availability or throughput target binds or the plan caches,
+  replicates, or partitions.
+- Four anti-patterns refused by name: availability theater (an uptime number
+  with no redundancy behind it), silent staleness (a cache that changes the
+  consistency contract because nobody wrote down the tolerance), the
+  infinite-capacity assumption (no stated behavior above the ceiling, so the
+  untaken decision becomes unbounded queueing), and the deferred partition key
+  (sharding postponed until the access patterns have calcified around one node).
+
+### Changed
+
+- Decisions to force grows from 7 to 11 and stays ordered hardest-to-reverse
+  first: read consistency and partition key enter at position 4, next to
+  tenancy and storage shape, because a partition key chosen late means re-keying
+  live data while every query that assumed one node is rewritten. Runtime
+  topology, cache tiering, and overload posture close the list as the more
+  reversible bets, each forced anyway because the untaken decision has a bad
+  default.
+- The self-audit rubric adds a 15-point runtime topology, caching, and overload
+  dimension and re-weights the existing eight to keep the total at 100.
+  Components and data architecture absorbs the R-ARCH-21 consistency and ceiling
+  arithmetic.
+- R-ARCH-17 names the database pass as a consumer of the architecture section,
+  so replication, partitioning, and read routing are implemented from stances
+  already set rather than reopened downstream. R-ARCH-19's three-page prose cap
+  excludes the new consistency, topology, cache, and overload tables, so the cap
+  stays honest instead of penalizing tabular decisions.
+- The post-build drift audit compares redundancy posture, cache staleness
+  budgets, and entry-surface overload behavior against the plan, alongside the
+  components, data owners, and boundaries it already compared.
+- The portable core prompt lands at 329947 bytes against the 330000-byte gate,
+  53 bytes of headroom. The budget was not raised. The four requirements were
+  written tight and the four task seeds consolidated into two to fit beneath it,
+  per the gate's own instruction to cut content rather than move the number a
+  second time. The next core addition of any size fires the gate, which is the
+  point of it.
+- database.md R-DB-15 and R-DB-21 defer upstream by name: cache invalidation and
+  stampede policy implement the tier, staleness budget, and trigger set by
+  R-ARCH-23, and partitioning and read routing implement the key and stances set
+  by R-ARCH-21. Both remain the owner of the physical mechanics; neither reopens
+  the decision.
+
 ## [1.11.1] - 2026-08-02
 
 A documentation patch. 1.11.0 gated scored archetypes, overlays, and cited

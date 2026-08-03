@@ -303,7 +303,7 @@ for my $line (@lines) {
 }
 
 my %catalog_max = (
-    ARCH => 20,
+    ARCH => 24,
     BUILD => 20,
     CODE => 24,
     DB => 23,
@@ -350,6 +350,7 @@ my %doc_catalog = (
     'decide.adr' => 'architecture|durable',
     'decide.design-proposal' => 'architecture|transient',
     'design.api-contract' => 'architecture|durable',
+    'design.capacity-model' => 'architecture|durable',
     'design.data-model' => 'database|durable',
     'design.integration-map' => 'architecture|durable',
     'design.ui-spec' => 'ui|durable',
