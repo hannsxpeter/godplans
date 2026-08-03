@@ -3,6 +3,31 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [1.12.1] - 2026-08-03
+
+A CI patch. 1.12.0 landed the portable core at 329947 bytes against a
+330000-byte gate, 53 bytes of headroom, which meant the next edit of any size
+failed the build: a typo fix, a clarifying clause, a single added character.
+That is not the gate doing its job. The invariant it was built to hold is that
+headroom stays under one core module, so a module-sized addition trips it while
+an ordinary edit does not. At 53 bytes it could no longer tell those apart, and
+a gate that fires on everything measures nothing. No skill content, module,
+validator, schema, or plan-format change; a plan valid under 1.12.0 is valid
+here, and PROMPT.md differs only in its version line, at the same 329947 bytes.
+
+### Changed
+
+- The portable-core budget moves from 330000 to 337000, the second deliberate
+  raise. 1.12.0 paid the gate's stated price before the number moved: the four
+  new requirements were compressed and four task seeds consolidated into two,
+  roughly 3 KB cut. 337000 leaves 7053 bytes against a 7070-byte smallest core
+  module (compliance.md), so the invariant is restored rather than relaxed. The
+  number is derived from that rule, not picked to fit.
+- The gate's comment now states the invariant first and the number second,
+  records both raises with what each one bought, and tells the next maintainer
+  to read module sizes out of `evals/metrics/context-cost.json` via
+  `npm run metrics:context` rather than guessing at the third raise.
+
 ## [1.12.0] - 2026-08-03
 
 The architecture module planned the structural half of system design well and

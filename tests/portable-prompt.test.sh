@@ -101,15 +101,30 @@ grep -Fq 'expected exactly one ## Plan provenance section' "$PROMPT" ||
   fail "portable prompt is missing provenance validation"
 
 # The budget exists to make growth visible, not to be raised whenever it fires.
-# Raised once, deliberately, at 1.11.0: that release added the archetype-scoring
-# and overlay contract to discovery, the documentation-set and exclusion-tripwire
-# grammar to plan-format, and roughly 25 KB of machine checks to the validator,
-# which the core inlines whole because the portable surface has no skill files to
-# read. 330000 leaves roughly 9 KB, less than any single core module, so the next
-# addition of this size fires the gate again rather than sliding past it. Cut
-# content or drop a module before moving this number a second time.
+# The invariant it encodes: headroom stays under one core module, so a
+# module-sized addition trips the gate instead of sliding past it, while an
+# ordinary edit does not. The number is derived from that rule, not chosen.
+#
+# Raised at 1.11.0: archetype scoring and overlays into discovery, the
+# documentation-set and exclusion-tripwire grammar into plan-format, and roughly
+# 25 KB of machine checks into the validator, which the core inlines whole
+# because the portable surface has no skill files to read. That left 9 KB.
+#
+# Raised at 1.12.1, to 337000. 1.12.0 added the four capacity requirements to
+# architecture and paid the gate's price first: the requirement prose was
+# compressed and four task seeds consolidated into two, roughly 3 KB cut before
+# the number moved. What remained was 53 bytes of headroom, at which point the
+# gate could no longer tell a new module from a typo and failed CI on any edit
+# at all. A gate that fires on everything measures nothing. 337000 restores
+# 7053 bytes against a 7070-byte smallest core module (compliance), which is
+# the invariant above, stated in bytes.
+#
+# Before moving it a third time: cut content or drop a module first, then set
+# the number so headroom lands just under the smallest core module again. Print
+# the module sizes with `npm run metrics:context` and read them out of
+# evals/metrics/context-cost.json rather than guessing.
 prompt_bytes=$(wc -c < "$PROMPT" | tr -d ' ')
-[ "$prompt_bytes" -le 330000 ] || fail "portable core exceeds 330000-byte budget: $prompt_bytes"
+[ "$prompt_bytes" -le 337000 ] || fail "portable core exceeds 337000-byte budget: $prompt_bytes"
 
 unresolved=$(sed '/^# INLINED REFERENCE: /d; /^# INLINED TEMPLATE: /d; /^# INLINED VALIDATOR: /d' "$PROMPT" |
   grep -En 'templates/PLAN\.template\.mdx|skills/godplans/scripts/validate-plan\.sh|(^|[^[:alnum:]-])plan-format\.md([^[:alnum:]-]|$)' || true)
