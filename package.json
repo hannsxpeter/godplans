@@ -1,6 +1,6 @@
 {
   "name": "godplans",
-  "version": "1.12.1",
+  "version": "1.12.2",
   "description": "Plan everything before anything. A single-command AI agent skill that produces an audit-aware, validated, agent-executable master plan before application code is written.",
   "keywords": [
     "agent-skills",

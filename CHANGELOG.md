@@ -3,6 +3,39 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [1.12.2] - 2026-08-04
+
+A correctness patch on 1.12.0. That release moved cache policy and queue policy
+upstream into R-ARCH-23 and R-ARCH-24, and updated database.md to defer to them
+by name. It did not update code-quality.md, which had owned both subjects since
+before the architecture module reached them. Two modules therefore forced the
+same two decisions with different obligations, and the weaker pair won wherever
+a plan satisfied it first: R-CODE-16 asked a cache for an invalidation rule
+alone, which is one of the four fields R-ARCH-23 requires, so a plan could clear
+code quality carrying a cache with no tier, no staleness budget, and no
+stampede protection. Its queue clause was satisfied by a depth alone, where
+R-ARCH-24 requires a depth bound and a named full policy. Its gate, caching
+"only where obviously beneficial", also contradicted R-ARCH-23's arithmetic
+gate, which asks whether the latency budget fails without the cache.
+
+Found by an audit of every module against the 1.12.0 change rather than
+reported from use. No plan-format, schema, validator, or task-grammar change.
+
+### Fixed
+
+- R-CODE-16 now defers to R-ARCH-23 and R-ARCH-24 by name and keeps only what
+  this module owns in code: non-blocking I/O on request and hot paths, and a
+  growth bound on every long-lived in-process structure. Its criterion requires
+  the four R-ARCH-23 fields on a cached read path rather than an invalidation
+  rule alone, and the R-ARCH-24 depth bound and full policy on a queue. This
+  restores the module's own convention, already used by R-CODE-15 for index
+  details and R-CODE-19 for observability depth, where a requirement names the
+  owning module instead of re-deciding.
+- The 1.12.0 entry described four new task seeds. Two shipped: the four were
+  consolidated into two under the prompt-budget gate, which that same entry
+  records twelve bullets later. The Added bullet described the draft rather than
+  the release and contradicted its own Changed section.
+
 ## [1.12.1] - 2026-08-03
 
 A CI patch. 1.12.0 landed the portable core at 329947 bytes against a
@@ -79,10 +112,11 @@ under 1.11.1 is valid here, and the validator's ARCH catalog max moves 20 to 24.
   and every limiter is labeled capacity or abuse, because a threshold sized for
   fraud control is not a capacity control and reading it as one hides the
   saturation case entirely.
-- Four task seeds carrying these to build time: the capacity model document,
-  admission control with bounded queues, the cache tier with staleness budgets
-  and single-flight protection, and primary-pinned read routing with a
-  read-your-writes test that proves the pinning holds.
+- Two task seeds carry these to build time: one publishes the capacity model and
+  enforces it at every entry surface, with admission control and bounded queues
+  (R-ARCH-22, R-ARCH-24); the other pins primary reads and caches only what the
+  staleness budget allows, with single-flight protection and a read-your-writes
+  test that proves the pinning holds (R-ARCH-21, R-ARCH-23).
 - `design.capacity-model` joins the documentation set, owned by architecture,
   selected when an availability or throughput target binds or the plan caches,
   replicates, or partitions.
