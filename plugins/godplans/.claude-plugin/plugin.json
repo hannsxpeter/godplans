@@ -1,7 +1,7 @@
 {
   "name": "godplans",
   "description": "Produce an audit-aware, validated, agent-executable master plan (PLAN.mdx) before application code is written. One command runs discovery, forces hard-to-reverse decisions, plans 18 applicable domains, emits verified checkbox tasks, and enforces explicit approval before execution. Descends from aihxp arc-ready, ready-suite, the seven hannsxpeter auditors (code, sec, db, llm, seo, ui, ux), pillars, codedna, and BuilderIO visual-plan. Refuses plan theater, vague tasks without verification, and policy-violating projects.",
-  "version": "1.12.2",
+  "version": "1.12.3",
   "author": { "name": "aihxp", "url": "https://github.com/hannsxpeter" },
   "homepage": "https://github.com/hannsxpeter/godplans",
   "repository": "https://github.com/hannsxpeter/godplans",

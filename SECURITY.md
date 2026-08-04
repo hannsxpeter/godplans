@@ -20,7 +20,7 @@ evaluation. The skill itself instructs agents to treat planning as read-only.
   created, and refuses to replace or remove an unowned destination unless the
   user supplies `--force`. It never elevates, curls, or evaluates remote content.
 - **Supply chain.** Install from a pinned release tag or commit if your
-  environment requires reproducibility: `git clone --branch v1.1.0`.
+  environment requires reproducibility: `git clone --branch v1.12.2`.
 
 ## Reporting a vulnerability
 

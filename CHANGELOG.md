@@ -3,6 +3,78 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [1.12.3] - 2026-08-04
+
+A documentation release. No skill, prompt, template, schema, validator, or
+plan-format change; PROMPT.md is regenerated only because it carries the version
+string.
+
+The published documentation was written for readers who already accept the
+premise. README.md opened with two paragraphs of positioning before showing the
+command, described the plan format entirely in the abstract, and put the
+applicability-matrix paragraph in the first screen. A founder evaluating whether
+to spend a build on this could not reach the argument, and the argument is the
+product: an audit is a building inspection after the walls are up, and the
+inspector hands back a demolition estimate rather than a fix. That claim needs no
+technical vocabulary, and nothing on the page made it in under a minute.
+
+Nothing was cut to make room. The dense material moved into `<details>` blocks,
+so the maintainer-facing detail is one click away rather than one scroll past the
+pitch.
+
+### Added
+
+- `assets/hero.jpg`, a text-free isometric banner: a structure as a blueprint on
+  the left, the same structure built on the right. It carries the plan-first
+  argument the README opens with instead of decorating it. It lives outside the
+  `files` array in package.json, so it does not enter the npm tarball, and the
+  README references it by absolute raw URL so it renders on npm as well as on
+  GitHub.
+- A "Who this is for" table in README.md with a row for founders and product
+  leads who do not code, and a FAQ entry answering whether a non-engineer can
+  use godplans (they can read, question, and approve the output; running the
+  command still needs a coding agent).
+- A concrete `GP-101` task block in README.md. The plan format was previously
+  described only in prose, so a reader could not tell what a task looks like
+  without installing the skill.
+- A "What godplans deliberately does not do" section in docs/ABOUT.md, naming
+  four limits: it does not build, does not guarantee a clean audit, does not
+  replace judgment, and does not run after the fact.
+- A "Good first contributions" section and a five-minute orientation table in
+  CONTRIBUTING.md, plus a worked example of the substitution test. The rule had
+  been stated without an illustration of a passing and a failing sentence.
+
+### Changed
+
+- README.md restructured for a reader who does not yet accept the premise: the
+  command appears above the fold, the plan-first argument is made through the
+  inspection analogy before any domain vocabulary, and the evidence section
+  leads with the head-to-head Critical and High counts as a table with the token
+  cost stated immediately after. The complete plan contents, the evaluation
+  method, and the repository map moved into `<details>` blocks verbatim.
+- docs/ABOUT.md restructured: a one-paragraph summary at the top, the problem
+  stated as four before-and-after pairs in a table, the eight-phase method drawn
+  as a mermaid diagram rather than listed in a sentence, and every design
+  decision given a plain-language summary line above its existing paragraph so
+  the section can be skimmed and then entered.
+- CONTRIBUTING.md now opens by naming what surprises new contributors: this is a
+  prompt-engineering repository with no application to run and no build step.
+  The scope refusal explains its reason (godplans that builds is a godplans
+  whose plans stop surviving tool switches) rather than only stating the
+  boundary.
+
+### Fixed
+
+- docs/ABOUT.md said godplans combines eleven skills. It is fifteen, as
+  README.md has recorded since the ADHD lineage row landed, and the same
+  paragraph omitted ADHD from the external sources it names.
+- CONTRIBUTING.md instructed contributors to bump every version surface for a
+  behavior change without naming `npm run version:sync`, which is the only
+  supported way to do it; `scripts/version-sync.js` holds the authoritative
+  surface list and a hand-edit misses whatever was added to it last.
+- SECURITY.md offered `git clone --branch v1.1.0` as the reproducible-install
+  example, eleven minor versions stale.
+
 ## [1.12.2] - 2026-08-04
 
 A correctness patch on 1.12.0. That release moved cache policy and queue policy
