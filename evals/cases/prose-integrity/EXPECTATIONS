@@ -1,0 +1,19 @@
+outcome|plan|
+frontmatter|product_form|api-or-service
+frontmatter|archetype|api-service
+domain|ui|excluded
+domain|llm|excluded
+contains|X-Hub-Signature-256|
+contains|throughput_per_minute: 50|
+contains|delivery_attempts: 3|
+contains-ci|terminal failure|
+not-contains|robust, cutting-edge platform|
+not-contains|industry reports suggest|
+not-contains|in order to|
+not-contains|it is important to note|
+not-contains|serves as|
+not-contains|stands as|
+max-count|## Open Questions|1
+contains|## Documentation set|
+contains|### Module disposition|
+contains|revisit when:|

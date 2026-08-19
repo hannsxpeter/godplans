@@ -57,6 +57,7 @@ if printf '%s\n' "$help_output" | grep -q 'set -euo pipefail'; then
 fi
 
 "$ROOT/scripts/eval.sh" --check-cases >/dev/null
+"$ROOT/scripts/eval-matrix.sh" --check >/dev/null
 
 mkdir -p "$TMP/cases/plan-case" "$TMP/cases/refusal-case" "$TMP/bin"
 

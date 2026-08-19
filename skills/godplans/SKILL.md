@@ -1,9 +1,9 @@
 ---
 name: godplans
-description: "Produce an audit-aware, agent-executable master plan (PLAN.mdx) for a software project before application code is written. One command runs discovery, forces hard-to-reverse decisions, and plans product, architecture, roadmap, stack, repo, build, deploy, observability, launch, security, code quality, style genome, database, LLM integration, SEO, UI, UX, and agent memory upfront. After-the-fact audit checks become plan-time acceptance criteria, and a self-contained validator enforces task structure and approval state. Use when the user says: plan this project, godplans, master plan, plan everything upfront, idea to plan, plan before code, audit-aware plan, replan, or starts a greenfield project or major feature. Refuses plan theater (sections filled, decisions absent), vague tasks without verification, unsupported quality guarantees, and projects whose core purpose violates the Anthropic Usage Policy."
+description: "Produce an audit-aware, agent-executable master plan (PLAN.mdx) for a software project before application code is written. One command runs discovery, forces hard-to-reverse decisions, and plans product, architecture, roadmap, stack, repo, build, deploy, observability, launch, security, code quality, style genome, database, LLM integration, SEO, UI, UX, and agent memory upfront. After-the-fact audit checks become plan-time acceptance criteria, a prose-integrity pass removes generic language without changing meaning, and a self-contained validator enforces task structure and approval state. Use when the user says: plan this project, godplans, master plan, plan everything upfront, idea to plan, plan before code, audit-aware plan, replan, or starts a greenfield project or major feature. Refuses plan theater (sections filled, decisions absent), vague tasks without verification, unsupported quality guarantees, and projects whose core purpose violates the Anthropic Usage Policy."
 license: MIT
 metadata:
-  version: "1.12.3"
+  version: "1.13.0"
   author: aihxp
   homepage: https://github.com/hannsxpeter/godplans
 ---
@@ -16,7 +16,7 @@ Plan everything before anything. godplans is a planning superskill: it runs the 
 
 The core move is inversion. Auditors run after the work exists and tell you what is wrong. godplans takes the dimensions those auditors check (code quality, security, database, LLM integration, SEO, UI, UX) and the disciplines the arc tiers enforce (PRD, architecture, roadmap, stack, repo, build, deploy, observability, launch, hardening) and converts applicable checks into plan-time requirements with acceptance criteria on concrete tasks. This is designed to prevent avoidable findings and rewrites; it does not replace runtime verification or an independent final audit.
 
-godplans descends from: hannsxpeter/arc-ready and hannsxpeter/ready-suite (the tier disciplines), hannsxpeter/codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, and uxauditor (the inverted audit dimensions), hannsxpeter/pillars (agent memory), hannsxpeter/codedna (style genome), BuilderIO visual-plan (plan discipline and the visual layer), and mattpocock/skills wayfinder (one fact in one place, and a frontier that is proved rather than asserted).
+godplans descends from: hannsxpeter/arc-ready and hannsxpeter/ready-suite (the tier disciplines), hannsxpeter/codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, and uxauditor (the inverted audit dimensions), hannsxpeter/pillars (agent memory), hannsxpeter/codedna (style genome), BuilderIO visual-plan (plan discipline and the visual layer), mattpocock/skills wayfinder (one fact in one place, and a frontier that is proved rather than asserted), and cursor/pstack unslop (a meaning-preserving prose integrity pass before independent scoring).
 
 ## Ground rules (non-negotiable)
 
@@ -108,6 +108,22 @@ Excluded domains get one line in the applicability matrix and nothing else. Defe
 
 Walk every applicable module's Plan requirements section and give it one of three dispositions: landed somewhere concrete, deferred with a named trigger (deferrable set only, with the reversibility argument), or excluded with a specific archetype or scale reason in the compact module disposition. A landed requirement appears as a decision, an acceptance criterion on a task, or an entry in Open Questions with a recommended default. Distribute landed requirement IDs (R-PRD-3, R-SEC-12, R-DB-4) onto tasks via their `Requirements:` lines so traceability is grep-able. An applicable requirement with none of the three dispositions is a hole; fix it before Phase 6. Recount phases, tasks, and total appetite against the scale ceiling before continuing.
 
+### Phase 5b: Prose integrity pass
+
+Read `references/exemplar.md`, including its prose-integrity gate. Freeze the plan's meaning before editing: IDs, decisions, hypotheses, question owners and defaults, requirement references, numbers, sources, file paths, commands, applicability dispositions, task dependencies, and lifecycle state may not change during this pass. Rewrite human-facing prose only. Code, commands, paths, identifiers, protocol fields, quoted evidence, and wording required by an external contract stay literal.
+
+Scan every plan section for these failure classes:
+
+1. **Vague attribution.** A claim credited to experts, reports, teams, users, or best practice names the source. Without a source it becomes a flagged hypothesis with a validation task or is deleted.
+2. **Mechanism-free claims.** Replace claims about quality, ease, speed, safety, or importance with the mechanism, observable behavior, threshold, file, or command that makes the claim true.
+3. **Inflated or indirect wording.** Prefer the plain verb. Cut filler, promotional adjectives, empty intensifiers, formulaic contrast, generic conclusions, and adverbs that hide a missing measurement.
+4. **False structure.** Do not force a pair, range, or three-part list when the items have no real relationship. Keep schema-mandated field counts and genuinely ordered sets intact.
+5. **Dense or actorless sentences.** Keep one operative claim per sentence when splitting does not lose the relationship. Name the actor for planned actions; passive voice remains valid when the actor is unknown or irrelevant.
+6. **Vocabulary drift.** Use the canonical domain noun repeatedly instead of cycling through synonyms. Preserve terms fixed by the data model, API, UI vocabulary, and style genome.
+7. **Decorative explanation.** Delete sentences that restate a heading, table, task field, prompt, or adjacent sentence without adding a decision, source, consequence, or check.
+
+Run the substitution test and three-label test again after rewriting. Then compare the before and after plan: if a commitment, uncertainty label, source, scope boundary, or verification condition changed, restore the original meaning and rewrite only the sentence. This gate is contextual, not a global word blacklist. A technical term is allowed when it is the exact term the design needs.
+
 ### Phase 6: Independent audit gate
 
 The author does not grade the author. Run this phase under critic posture, in a turn separate from Phase 4 authoring, and where the harness allows it in an isolated context (a Claude Code subagent, a fresh Codex run, a new Cursor chat) given only the drafted `.godplans/PLAN.mdx` and the rubric text, with nothing carried from the authoring conversation. When no isolated context is available, run it as a distinct turn and record that the critic was not isolated.
@@ -124,7 +140,7 @@ Print the scorecard in chat when done, including whether the critic ran isolated
 
 1. Read `references/plan-format.md` and `templates/PLAN.template.mdx`. Assemble `.godplans/PLAN.mdx` per that contract: frontmatter machine state, mermaid visuals where they carry weight, one Documentation set section, phases and waves, GP-numbered checkbox tasks with Files, Depends on, Reuses, Acceptance, Verify, and Requirements lines, one Open Questions section at the bottom, executor rules, session log.
 2. Complete the three-artifact emission gate before any response: re-copy `scripts/validate-plan.sh` from this skill byte-for-byte to the pre-created `.godplans/validate-plan.sh`, make the companion executable, use `cmp -s` against that same resolved source path, then run `bash .godplans/validate-plan.sh --allow-planning --emit-json .godplans/PLAN.json .godplans/PLAN.mdx`. The emission is incomplete if PLAN.mdx, its executable validator, or PLAN.json is missing. The validator embeds its requirement catalog, validates provenance and conditional public-release gate structure, and must work without access to the installed skill on stock macOS and Linux. It is the machine gate; do not recreate its checks with grep. Fix every failure before presenting. PLAN.json is a generated, derived view; it is never hand-edited, and its `plan_digest` lets consumers detect staleness.
-3. Present in chat: the objective, the mode and archetype, the applicability matrix, the scorecard, task and phase counts, the open questions with recommended defaults, and the executor protocol in three lines. Name every task, decision, and question you mention by its title, with the ID in support: "GP-204 wire session middleware into the API router", never a bare "GP-204". IDs are how the machine addresses the plan; a wall of them is how a human loses it. Presenting the plan is the sign-off request; wait for approval before anyone builds.
+3. Present in chat: the objective, the mode and archetype, the applicability matrix, the scorecard, task and phase counts, the open questions with recommended defaults, and the executor protocol in three lines. Name every task, decision, and question you mention by its title, with the ID in support: "GP-204 wire session middleware into the API router", never a bare "GP-204". IDs are how the machine addresses the plan; a wall of them is how a human loses it. Lead with the result. Omit canned greetings, praise, sycophantic agreement, generic disclaimers, and generic closing lines. First-person voice is allowed when it identifies what the planning agent did or carries an attributed user or founder statement; never invent a collective "we". Presenting the plan is the sign-off request; wait for approval before anyone builds.
 4. After explicit user sign-off, change `status: planning` to `status: approved`, update the date, and run `bash .godplans/validate-plan.sh .godplans/PLAN.mdx`. Do not start application work as part of approval.
 
 Final artifact check: `test -f .godplans/PLAN.mdx && test -x .godplans/validate-plan.sh && test -f .godplans/PLAN.json`. Never present a plan until this command and the structural validator both exit zero.
@@ -169,4 +185,4 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 | `scripts/style-stats.py` | Measured style baseline for the style-genome pass (naming histograms, comment density, function length) |
 | `schemas/PLAN.schema.json` | Published JSON Schema for the generated PLAN.json sidecar |
 
-## Skill version: 1.12.3
+## Skill version: 1.13.0

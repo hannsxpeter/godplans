@@ -3,6 +3,44 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [1.13.0] - 2026-08-19
+
+Plans could satisfy every structural contract and still carry unsupported
+attribution, mechanism-free quality claims, indirect verbs, false symmetry,
+actorless sentences, and vocabulary drift. The substitution test caught the
+worst generic paragraphs, but it did not give the author a meaning-preserving
+editorial procedure after traceability was fixed. This release adds that
+procedure before independent scoring.
+
+### Added
+
+- Phase 5b, a prose-integrity pass that freezes IDs, decisions, hypotheses,
+  sources, numbers, scope boundaries, requirement references, commands, task
+  dependencies, and lifecycle state before rewriting human-facing prose. It
+  re-runs the substitution and three-label tests after the rewrite and rejects
+  any wording change that alters a commitment or uncertainty label.
+- A prose-integrity gate in `references/exemplar.md` with failing and passing
+  webhook-relay examples plus ten contextual checks for attribution,
+  mechanisms, causal language, plain verbs, real list structure, canonical
+  vocabulary, named actors, sentence density, honest hedging, and decorative
+  explanation.
+- The `prose-integrity` behavioral evaluation. It supplies unsupported draft
+  marketing copy beside concrete webhook constraints and requires the plan to
+  retain the signature header, throughput, retry count, and terminal-failure
+  behavior without repeating the unsupported claims. The publishable matrix
+  now contains eleven cases, and the harness checks that count.
+
+### Changed
+
+- Plan handoffs now lead with the result and omit canned greetings, praise,
+  sycophantic agreement, generic disclaimers, and generic closing lines.
+- README.md and docs/ABOUT.md document the nine-stage method, the semantics
+  frozen by the prose pass, the eleven-case matrix, and the pstack unslop
+  lineage. The concepts are re-expressed for executable plans; no source text
+  or catalog is copied.
+- Published version surfaces and the generated portable prompt now report
+  1.13.0.
+
 ## [1.12.3] - 2026-08-04
 
 A documentation release. No skill, prompt, template, schema, validator, or
