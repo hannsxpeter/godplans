@@ -1,6 +1,8 @@
 # Exemplar module: the quality bar, worked
 
-Loaded whenever quality is in doubt, and always before Phase 6 scoring. Four plan elements, each shown twice: the version that fails and the version that ships. The difference is always the same difference: the bad version survives substitution into any other project; the good version could only belong to this one.
+Loaded before the Phase 5b prose-integrity pass and again before Phase 6 scoring. Five plan elements are shown twice: the version that fails and the version that ships. The difference is always the same difference: the bad version survives substitution into any other project; the good version could only belong to this one.
+
+The prose-integrity gate in section 6 adapts ideas from [cursor/pstack unslop](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md) (MIT, Lauren Tan): preserve meaning while removing model-like filler, then check the result again. The wording and project-specific gate below are original to godplans; no source text or catalog is copied.
 
 ## 1. A decision entry
 
@@ -152,7 +154,68 @@ Both are true today, unfalsifiable forever, and indistinguishable from nobody ha
 
 Three parts, each doing work the other two cannot. The **evidence state** says whether anybody looked: `by-design` means the plan settles it, `absent` means something checked and the reason names what checked. `unknown` is refused outright, because "we did not look" and "we decided this does not apply" read identically and have opposite consequences a year later. The **reason** is specific enough to become false. The **`revisit when` predicate** is what makes the row a decision with an expiry rather than a silence, and an executor that trips it returns the plan to `planning`.
 
-## The pattern under all five
+## 6. Prose integrity
+
+Structural validity does not rescue empty prose. The Phase 5b pass rewrites language after requirements and traceability are fixed, but before the independent critic scores the result. It may make a sentence clearer or shorter. It may not change a commitment, uncertainty label, source, task edge, or verification condition.
+
+**Never produce this:**
+
+```markdown
+Industry reports suggest webhook reliability is increasingly crucial,
+highlighting the need for a robust retry strategy that ensures seamless
+delivery across a wide range of failure scenarios.
+```
+
+The attribution names no report. "Crucial", "robust", and "seamless" hide the actual behavior. The range has no endpoints, and the trailing clauses never say who retries what.
+
+**This is the bar:**
+
+```markdown
+User constraint: the relay accepts at most 50 GitHub events per minute.
+Decision: the delivery worker makes three attempts to the one configured
+internal endpoint, waiting 1 second and then 5 seconds between retries.
+After the third failure, it stores the event in `failed_deliveries` and
+increments `webhook_delivery_failures_total`.
+```
+
+The source, actor, limit, retry schedule, terminal state, and observable signal are explicit. A reader can disagree with the decision and an executor can prove it.
+
+**Never produce this:**
+
+```markdown
+The relay, platform, and service will be thoughtfully designed in order to
+facilitate reliable processing, with events being validated and efficiently
+handled.
+```
+
+Three nouns refer to one component. The actor disappears into passive voice. The adverbs and indirect verbs replace behavior.
+
+**This is the bar:**
+
+```markdown
+The relay verifies `X-Hub-Signature-256` before enqueueing an event. The
+worker posts the stored body to the configured endpoint and records the
+response code on every attempt.
+```
+
+### Prose-integrity gate
+
+Apply these checks to plan prose, never to literal code, commands, paths, identifiers, protocol fields, quotations needed as evidence, or wording imposed by an external contract.
+
+1. A factual attribution names its source. If the source is missing, classify the statement as a hypothesis with a validation task or delete it.
+2. A quality claim names its mechanism, observable behavior, threshold, file, or command. A feeling about the system does not count as a requirement.
+3. A causal claim states the cause and result. A trailing `-ing` phrase does not stand in for either one.
+4. The sentence uses the plain verb unless a domain term is more exact. Filler, promotional adjectives, empty intensifiers, and generic conclusions are cut.
+5. Lists, contrasts, pairs, and ranges express a real relationship. Do not force symmetry for rhythm. Preserve field counts and ordered sets required by the plan grammar.
+6. One domain concept keeps one canonical noun. Repeat it instead of cycling through near-synonyms.
+7. A planned action names the actor. Passive voice is allowed only when the actor is unknown or does not affect execution.
+8. A dense sentence is split when a reader must backtrack to find the operative claim. Keep tightly coupled conditions together.
+9. Hedging matches uncertainty already recorded by the plan. Do not weaken a decision or make a hypothesis sound decided.
+10. The paragraph adds a decision, source, consequence, or check. If it only restates its heading, neighboring table, prompt, or task field, delete it.
+
+The gate fails when any unquoted sentence could move unchanged into an unrelated plan because it contains no project fact, decision, uncertainty, consequence, or verification condition. Attach the deduction to the domain containing the sentence. Repeated failures across domains block emission even if each domain would otherwise clear 85.
+
+## The pattern under all six
 
 1. Name the thing (real files, real numbers, real commands), never the category of the thing.
 2. Show the rejected alternatives; a decision without a loser is a description.

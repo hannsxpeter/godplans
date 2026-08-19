@@ -12,7 +12,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/eval-matrix.sh [--check] [--output DIRECTORY]
 
-Runs all ten behavioral cases, skill and neutral control arms, for the Codex,
+Runs all eleven behavioral cases, skill and neutral control arms, for the Codex,
 Claude, and Gemini runner families. Raw artifacts and summaries are retained
 under evals/results/ by default.
 USAGE
@@ -33,8 +33,8 @@ while [ "$#" -gt 0 ]; do
 done
 
 case_count=$(find "$ROOT/evals/cases" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
-[ "$case_count" -eq 10 ] || {
-  echo "matrix requires exactly 10 cases, found $case_count" >&2
+[ "$case_count" -eq 11 ] || {
+  echo "matrix requires exactly 11 cases, found $case_count" >&2
   exit 1
 }
 

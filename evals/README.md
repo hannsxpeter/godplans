@@ -18,6 +18,7 @@ produce the right kind of plan for a concrete request?
 | stale-source-evidence | brownfield | api-service | provenance binding and stale resume handling |
 | stale-prepublication | greenfield | saas-dashboard | late Critical invalidates public-release authorization |
 | observability-evidence | greenfield | api-service | installation evidence separated from real-event maturity |
+| prose-integrity | greenfield | api-service | unsupported draft copy removed without losing concrete commitments |
 
 Every case contains:
 
@@ -160,7 +161,7 @@ declares exactly one outcome.
 
 ## Publishing a baseline
 
-Release evidence requires the full ten-case matrix across at least three model
+Release evidence requires the full eleven-case matrix across at least three model
 families, with both arms for every case. This is optional maintainer tooling,
 not part of skill execution:
 

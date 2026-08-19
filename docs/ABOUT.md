@@ -27,13 +27,13 @@ The left column is a rewrite. The right column is a sentence.
 
 Almost everything in an audit report was knowable at plan time. Nobody had collected it there. godplans is that collection, done once, mechanically.
 
-It descends from twelve sibling repositories (arc-ready and ready-suite for the arc tiers; codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, uxauditor for the audit dimensions; pillars for agent memory; codedna for the style genome; docdna for the documentation set) plus the plan discipline of BuilderIO's visual-plan skill, two single-source ideas from Matt Pocock's wayfinder skill, and two from Udit Akhouri's ADHD skill. Every audit check in those skills was read, inverted into a plan-time requirement, and filed into the domain module that now enforces it. The seven auditors alone contributed several hundred concrete checks; those became the acceptance criteria a godplans plan distributes onto tasks.
+It descends from twelve sibling repositories (arc-ready and ready-suite for the arc tiers; codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, uxauditor for the audit dimensions; pillars for agent memory; codedna for the style genome; docdna for the documentation set) plus the plan discipline of BuilderIO's visual-plan skill, two single-source ideas from Matt Pocock's wayfinder skill, two from Udit Akhouri's ADHD skill, and the meaning-preserving editorial pass from Lauren Tan's pstack unslop skill. Every audit check in the sibling skills was read, inverted into a plan-time requirement, and filed into the domain module that now enforces it. The seven auditors alone contributed several hundred concrete checks; those became the acceptance criteria a godplans plan distributes onto tasks. The unslop concepts are re-expressed for executable plans; no source text or catalog is copied.
 
 The result is an audit-aware plan: checks that can be anticipated become acceptance criteria before implementation starts. That prevents avoidable findings. It does not claim that planning can prove runtime behavior or eliminate the need for an independent audit. Nothing can.
 
 ## The shape: one command, one canonical plan
 
-godplans has no sub-commands. One invocation runs an eight-phase method:
+godplans has no sub-commands. One invocation runs a nine-stage method:
 
 ```mermaid
 graph TD
@@ -42,8 +42,9 @@ graph TD
   C --> D[4. Discovery: one batch of 3 to 5 questions]
   D --> E[5. Applicable domain passes]
   E --> F[6. Inversion: audit checks become acceptance criteria]
-  F --> G[7. Independent critic: every domain scores 85+ of 100]
-  G --> H[8. Emit .godplans/PLAN.mdx]
+  F --> G[7. Prose integrity: preserve meaning, repair wording]
+  G --> H[8. Independent critic: every domain scores 85+ of 100]
+  H --> I[9. Emit .godplans/PLAN.mdx]
 ```
 
 The canonical human output is `.godplans/PLAN.mdx`. It is not a directory of competing specs and it is not a wiki. It is the one product and execution document an agent re-reads every session.
@@ -99,6 +100,14 @@ godplans screens every project against the Anthropic Usage Policy before plannin
 *If a rule matters, a script checks it. Otherwise it is a preference.*
 
 The repository checks ASCII style, every published version surface, JSON parsing, shell syntax, module contracts, immutable action pins, prompt determinism, portable-core completeness and cost, installer ownership safety, plan-validator failure modes, behavioral-case integrity, and the pinned official Agent Skills validator. PROMPT.md is generated, and freshness checks do not mutate it. CI fails on violations.
+
+### Meaning is frozen before prose is repaired
+
+*A plan can be structurally complete and still read like nobody decided anything.*
+
+The substitution test already rejected prose that could move unchanged into another project, but it did not name sentence-level failures such as vague attribution, mechanism-free quality claims, synonym cycling, false symmetry, or passive wording that hid the actor. Those failures could survive inside otherwise complete requirements and tasks.
+
+Phase 5b now freezes IDs, decisions, uncertainties, sources, numbers, file paths, commands, requirement references, task edges, and lifecycle state. It then rewrites only human-facing prose and re-runs the substitution and three-label tests. If the wording change alters a commitment or uncertainty label, the edit is rejected. The pass adapts the editorial process from [cursor/pstack unslop](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md) (MIT, Lauren Tan), but keeps godplans deliberately structured: no intentional mess, no global technical-word blacklist, and no change to literal code or external contract wording.
 
 ### One fact in one place, and a frontier that is proved
 
