@@ -3,8 +3,15 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-PROMPT="$REPO_DIR/PROMPT.md"
 BUILD="$REPO_DIR/scripts/build-prompt.sh"
+# Every build goes to a scratch path. The test asserts on a fresh build; lint
+# prompt-fresh owns the comparison with the committed PROMPT.md, so a test run
+# must never rewrite the tracked file or leave files in the repository.
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+PROMPT="$TMP/PROMPT.md"
+FULL_PROMPT="$TMP/PROMPT.full.md"
+STAMP="$TMP/stamp"
 
 fail() {
   echo "FAIL [portable-prompt] $*" >&2
@@ -49,7 +56,10 @@ observe
 launch
 "
 
-bash "$BUILD" >/dev/null
+touch "$STAMP"
+# A one-second gap lets a filesystem with whole-second mtimes see a later write.
+sleep 1
+GODPLANS_PROMPT_OUT="$PROMPT" bash "$BUILD" >/dev/null
 
 previous_line=0
 for ref in $expected_refs; do
@@ -126,21 +136,48 @@ grep -Fq 'expected exactly one ## Plan provenance section' "$PROMPT" ||
 prompt_bytes=$(wc -c < "$PROMPT" | tr -d ' ')
 [ "$prompt_bytes" -le 337000 ] || fail "portable core exceeds 337000-byte budget: $prompt_bytes"
 
-unresolved=$(sed '/^# INLINED REFERENCE: /d; /^# INLINED TEMPLATE: /d; /^# INLINED VALIDATOR: /d' "$PROMPT" |
-  grep -En 'templates/PLAN\.template\.mdx|skills/godplans/scripts/validate-plan\.sh|(^|[^[:alnum:]-])plan-format\.md([^[:alnum:]-]|$)' || true)
+unresolved_paths() {
+  sed '/^# INLINED REFERENCE: /d; /^# INLINED TEMPLATE: /d; /^# INLINED VALIDATOR: /d; /^# INLINED SCRIPT: /d' "$1" |
+    grep -En 'templates/PLAN\.template\.mdx|skills/godplans/scripts/validate-plan\.sh|scripts/plan-halflife\.sh|(^|[^[:alnum:]-])plan-format\.md([^[:alnum:]-]|$)' || true
+}
+
+# A portable reader has no skill checkout, so it can run the half-life script
+# only from where the prompt tells it to save the inlined copy: beside the
+# validator companion that the script calls as its sibling.
+assert_halflife_portable() {
+  label=$1
+  file=$2
+  tr '\n' ' ' < "$file" | grep -Fq 'save the inlined plan half-life script as `.godplans/plan-halflife.sh`' ||
+    fail "$label prompt does not say where to save the plan half-life script"
+  grep -Fq '`bash .godplans/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json`' "$file" ||
+    fail "$label prompt does not run the saved plan half-life script"
+}
+
+unresolved=$(unresolved_paths "$PROMPT")
 [ -z "$unresolved" ] || fail "unresolved required local reference remains:\n$unresolved"
+assert_halflife_portable core "$PROMPT"
 
-first_hash=$(shasum -a 256 "$PROMPT" | awk '{print $1}')
-bash "$BUILD" >/dev/null
-second_hash=$(shasum -a 256 "$PROMPT" | awk '{print $1}')
-[ "$first_hash" = "$second_hash" ] || fail "regeneration is not deterministic"
+# The header lists what the core inlines, and compliance comes first.
+sed -n '1,/^---$/p' "$PROMPT" | tr '\n' ' ' | grep -Fq 'This slim core includes compliance,' ||
+  fail "core header does not list the inlined compliance module"
 
-FULL_PROMPT="$REPO_DIR/PROMPT.full.test.md"
-trap 'rm -f "$FULL_PROMPT"' EXIT
+bash "$BUILD" --output "$TMP/PROMPT.second.md" >/dev/null
+cmp -s "$PROMPT" "$TMP/PROMPT.second.md" || fail "regeneration is not deterministic"
+
 bash "$BUILD" --full --output "$FULL_PROMPT" >/dev/null
 for ref in $expected_refs $lazy_refs; do
   grep -Fqx "# INLINED REFERENCE: references/$ref.md" "$FULL_PROMPT" ||
     fail "full prompt is missing module: $ref"
 done
+unresolved=$(unresolved_paths "$FULL_PROMPT")
+[ -z "$unresolved" ] || fail "unresolved required local reference remains in the full prompt:\n$unresolved"
+assert_halflife_portable full "$FULL_PROMPT"
+
+for written in "$REPO_DIR/PROMPT.md" "$REPO_DIR/PROMPT.full.md"; do
+  if [ -e "$written" ] && [ -n "$(find "$written" -newer "$STAMP")" ]; then
+    fail "test run rewrote ${written#"$REPO_DIR"/}"
+  fi
+done
+[ ! -e "$REPO_DIR/PROMPT.full.test.md" ] || fail "test run left PROMPT.full.test.md in the repository"
 
 echo "ok   [portable-prompt]"

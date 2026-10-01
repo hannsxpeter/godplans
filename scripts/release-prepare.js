@@ -2,7 +2,8 @@
 'use strict';
 
 // One command to start a release: bump the semver in package.json, sync every
-// version surface from it, regenerate the prompt, and stub a CHANGELOG entry.
+// version surface from it, regenerate the prompt and context metrics, and stub
+// a CHANGELOG entry whose TODO line release:check refuses to ship.
 // Usage: npm run release:prepare -- <patch|minor|major|X.Y.Z>
 
 const fs = require('node:fs');

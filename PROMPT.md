@@ -1,9 +1,11 @@
 # godplans (portable core)
 
-You are operating under the godplans skill. This slim core includes discovery,
-the plan contract, the five load-bearing modules (product, architecture, stack,
-database, and security), the quality exemplar, the PLAN template, and the
-portable scripts. It does not preload reversible or specialized domains.
+You are operating under the godplans skill. This slim core includes compliance,
+discovery, the plan contract, the five load-bearing modules (product,
+architecture, stack, database, and security), the quality exemplar, the PLAN
+template, and the portable scripts. It does not preload reversible or
+specialized domains. Before a replan, save the inlined plan half-life script as
+`.godplans/plan-halflife.sh`, beside the validator companion it runs.
 
 Before each non-core domain pass, load that module from
 `skills/godplans/references/` only when the applicability matrix marks it
@@ -162,7 +164,7 @@ Final artifact check: `test -f .godplans/PLAN.mdx && test -x .godplans/validate-
 
 - **Greenfield**: the full method above.
 - **Brownfield**: Phase 0 fingerprints the existing codebase first. The style genome is extracted, not invented; the stack section records what is and plans only deliberate changes; tasks reference real existing files. The plan extends the codebase, never restarts it.
-- **Replan**: `.godplans/PLAN.mdx` exists. Re-derive state from disk: count checked and unchecked tasks, read the session log, and recompute the recorded source and completed-or-imported evidence. If material evidence drifted, treat the plan as stale and return it to `planning` before reconciliation. Completed tasks are never renumbered, reworded, or unchecked. New and changed work gets new task IDs. Superseded unstarted tasks are struck through with a one-line reason, not deleted. Before patching, run `scripts/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json` on the outgoing plan. The report measures cumulative task survival and per-domain supersession rate; a domain struck repeatedly was over-planned at that scale, so shrink its appetite instead of reseeding the same tasks. Refresh provenance, bump the plan version, record the delta in the session log, regenerate PLAN.json, and require fresh approval before execution resumes.
+- **Replan**: `.godplans/PLAN.mdx` exists. Re-derive state from disk: count checked and unchecked tasks, read the session log, and recompute the recorded source and completed-or-imported evidence. If material evidence drifted, treat the plan as stale and return it to `planning` before reconciliation. Completed tasks are never renumbered, reworded, or unchecked. New and changed work gets new task IDs. Superseded unstarted tasks are struck through with a one-line reason, not deleted. Before patching, run `bash .godplans/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json` on the outgoing plan. The report measures cumulative task survival and per-domain supersession rate; a domain struck repeatedly was over-planned at that scale, so shrink its appetite instead of reseeding the same tasks. Refresh provenance, bump the plan version, record the delta in the session log, regenerate PLAN.json, and require fresh approval before execution resumes.
 
 ## After the plan: execution
 
@@ -1911,7 +1913,7 @@ The plan is re-read every session; bloat is a tax on every future turn. Budgets:
 
 When PLAN.mdx already exists: read it fully, recount progress from checkboxes, read the session log, and recompute the source evidence recorded under `## Plan provenance`. Recheck every artifact recorded as completed or imported. If its content, revision, or existence changed materially, mark the plan stale by returning `status` to `planning` before applying the delta; do not trust the chat or old validation timestamp. Completed work is history and never altered. New work gets fresh IDs continuing the sequence. Superseded unstarted tasks are not deleted. Strike only the heading (`~~- [ ] GP-310 [W3.1] Old work~~`), then retain `  - Superseded: <one-line reason>` and `  - Requirements: <original ids>` so the audit trail and domain metric survive. Refresh the evidence inventory, `input_digest`, and `validated_at`; bump `plan_version`; log the delta in the session log; and re-run the Phase 6 audit on any section that changed.
 
-Measure the outgoing plan first, in Phase 0, before the compliance gate re-copies the companion: run `scripts/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json`. It uses `GODPLANS_VALIDATOR` when set, else the plan's own `.godplans/validate-plan.sh`; a newer validator may reject the outgoing plan. The report records active, superseded, and historical tasks, plus cumulative supersession and survival rates overall and per requirement domain. A domain whose tasks are struck repeatedly was over-planned at that scale; shrink its appetite on the next pass instead of reseeding the same tasks.
+Measure the outgoing plan first, in Phase 0, before the compliance gate re-copies the companion: run `bash .godplans/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json`. It uses `GODPLANS_VALIDATOR` when set, else the plan's own `.godplans/validate-plan.sh`; a newer validator may reject the outgoing plan. The report records active, superseded, and historical tasks, plus cumulative supersession and survival rates overall and per requirement domain. A domain whose tasks are struck repeatedly was over-planned at that scale; shrink its appetite on the next pass instead of reseeding the same tasks.
 
 Re-evaluate every tripwire on the way in, before anything else. An excluded domain whose `revisit when` predicate has become true, and a not-applicable documentation row whose predicate has become true, are the reason to replan at all, so they lead the delta rather than trailing it. A predicate that is true now is reported; one that is merely being watched is not.
 

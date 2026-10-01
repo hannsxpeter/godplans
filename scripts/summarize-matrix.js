@@ -7,9 +7,13 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const output = path.resolve(process.argv[2]);
 const profiles = process.argv.slice(3);
-const expectedCases = fs.readdirSync(path.join(root, 'evals', 'cases'), { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => entry.name)
+// The committed roster, not the directory listing, defines the expected cases,
+// so a case missing from disk fails here rather than shrinking case_count.
+// eval-matrix.sh has already checked that the two agree.
+const expectedCases = [...new Set(fs.readFileSync(path.join(root, 'evals', 'cases-roster.txt'), 'utf8')
+  .split('\n')
+  .map((line) => line.replace(/#.*/, '').trim())
+  .filter(Boolean))]
   .sort();
 
 function parseEval(file) {
@@ -34,18 +38,23 @@ function parseEval(file) {
   return { cases, aggregate };
 }
 
+function die(message) {
+  process.stderr.write(`summarize-matrix: ${message}\n`);
+  process.exit(1);
+}
+
 const results = {};
 for (const profile of profiles) {
   const directory = path.join(output, profile);
   const evalFile = path.join(directory, 'EVAL.tsv');
   const metricsFile = path.join(directory, 'METRICS.json');
   if (!fs.existsSync(evalFile) || !fs.existsSync(metricsFile)) {
-    throw new Error(`profile ${profile} is missing EVAL.tsv or METRICS.json`);
+    die(`profile ${profile} is missing EVAL.tsv or METRICS.json`);
   }
   const parsed = parseEval(evalFile);
   for (const caseName of expectedCases) {
     if (!parsed.cases[caseName]?.skill || !parsed.cases[caseName]?.control) {
-      throw new Error(`profile ${profile} is missing both arms for ${caseName}`);
+      die(`profile ${profile} is missing both arms for ${caseName}`);
     }
   }
   results[profile] = {

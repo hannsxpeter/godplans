@@ -5,14 +5,14 @@
     "limitation": "Provider tokenizers differ. Published model runs record actual input and output token usage in RUNNER.txt and METRICS.json."
   },
   "portable_core": {
-    "bytes": 340886,
-    "estimated_tokens": 85222,
-    "sha256": "f4108f803c61bbb2c9e2284e71dbb7d8d66e9f8c1305737b1d9877d144f526ea"
+    "bytes": 341041,
+    "estimated_tokens": 85261,
+    "sha256": "34a8285308ebbb04f949db5dd3f8b1ca5a16f95ff3540f1d3b1e01ea0b99ec8b"
   },
   "portable_full_generated": {
-    "bytes": 680439,
-    "estimated_tokens": 170110,
-    "sha256": "591461775c9342522c52e21f8d3a932de31d10d0d9f70d78e96585d47979e91f"
+    "bytes": 680609,
+    "estimated_tokens": 170153,
+    "sha256": "e69ac8db45be54a172011d69c4587b215885a91c6bb669c33ebc9bfe530f6c49"
   },
   "native_skill_entry": {
     "bytes": 25101,

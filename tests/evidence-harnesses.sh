@@ -114,4 +114,82 @@ node -e '
   if (!summary.treatment.verify_passed || !summary.control.verify_passed) throw new Error("verification");
 ' "$TMP/outcome/SUMMARY.json" || fail "build-outcome summary is wrong"
 
+for verify_script in "$ROOT"/evals/outcomes/cases/*/VERIFY.sh; do
+  bash -n "$verify_script" || fail "invalid shell syntax: ${verify_script#"$ROOT"/}"
+  [ -x "$verify_script" ] || fail "outcome verifier is not executable: ${verify_script#"$ROOT"/}"
+done
+
+# A verifier that cannot run is a harness error, not a build that failed
+# verification; any exit status the verifier itself returns is the verdict.
+# The probe case lives in a scratch repository so the real outcome cases never
+# change mode or content.
+OUTCOME_ROOT="$TMP/outcome-repo"
+PROBE="$OUTCOME_ROOT/evals/outcomes/cases/probe"
+mkdir -p "$OUTCOME_ROOT/scripts" "$PROBE"
+cp "$ROOT/scripts/eval-outcome.js" "$ROOT/scripts/outcome-summary.js" "$OUTCOME_ROOT/scripts/"
+printf '%s\n' '# probe request' > "$PROBE/REQUEST.md"
+
+run_probe() {
+  node "$OUTCOME_ROOT/scripts/eval-outcome.js" \
+    --case probe \
+    --plan-runner "$TMP/bin/plan-treatment" \
+    --control-plan-runner "$TMP/bin/plan-control" \
+    --build-runner "$TMP/bin/build" \
+    --audit-runner "$TMP/bin/audit" \
+    --output "$1"
+}
+
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' > "$PROBE/VERIFY.sh"
+chmod 644 "$PROBE/VERIFY.sh"
+if run_probe "$TMP/probe-mode" >/dev/null 2>"$TMP/probe-mode.err"; then
+  fail "a non-executable VERIFY.sh was scored as a verification result"
+fi
+[ ! -e "$TMP/probe-mode/SUMMARY.json" ] || fail "a non-executable VERIFY.sh still produced a summary"
+grep -q 'VERIFY.sh is not executable' "$TMP/probe-mode.err" ||
+  fail "a non-executable VERIFY.sh was not named: $(cat "$TMP/probe-mode.err")"
+
+# An interpreter the verifier names but the host lacks. Through env it would
+# exit 127 like a failing command, so it must be caught before any arm runs.
+for shebang in '#!/usr/bin/env godplans-missing-interpreter' '#!/nonexistent/godplans-missing-interpreter'; do
+  printf '%s\n' "$shebang" 'exit 0' > "$PROBE/VERIFY.sh"
+  chmod 755 "$PROBE/VERIFY.sh"
+  rm -rf "$TMP/probe-interpreter"
+  if run_probe "$TMP/probe-interpreter" >/dev/null 2>"$TMP/probe-interpreter.err"; then
+    fail "a verifier whose interpreter is missing was scored ($shebang)"
+  fi
+  [ ! -e "$TMP/probe-interpreter/treatment" ] || fail "arms ran before the missing interpreter was caught ($shebang)"
+  grep -q 'harness error: VERIFY.sh interpreter' "$TMP/probe-interpreter.err" ||
+    fail "a missing verifier interpreter was not a harness error: $(cat "$TMP/probe-interpreter.err")"
+done
+
+# A command inside the verifier that the build never installed exits 127.
+# That is the build failing verification, not a harness fault.
+printf '%s\n' '#!/usr/bin/env bash' 'set -eu' 'godplans-missing-verifier-command' > "$PROBE/VERIFY.sh"
+run_probe "$TMP/probe-missing" >/dev/null 2>"$TMP/probe-missing.err" ||
+  fail "an exit 127 inside the verifier stopped the harness: $(cat "$TMP/probe-missing.err")"
+node -e '
+  const summary = require(process.argv[1]);
+  if (summary.treatment.verify_passed || summary.control.verify_passed) throw new Error("verification");
+' "$TMP/probe-missing/SUMMARY.json" || fail "an exit 127 inside the verifier was not recorded as a failed verification"
+
+printf '%s\n' '#!/usr/bin/env bash' 'exit 1' > "$PROBE/VERIFY.sh"
+run_probe "$TMP/probe-fail" >/dev/null 2>&1 || fail "an ordinary verification failure stopped the harness"
+node -e '
+  const summary = require(process.argv[1]);
+  if (summary.treatment.verify_passed || summary.control.verify_passed) throw new Error("verification");
+' "$TMP/probe-fail/SUMMARY.json" || fail "an ordinary verification failure was not recorded"
+
+# A verifier stopped by a signal is a harness error. Rerunning into a directory
+# that already holds a summary must not leave that stale summary behind.
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' > "$PROBE/VERIFY.sh"
+run_probe "$TMP/probe-rerun" >/dev/null 2>&1 || fail "a passing probe run failed"
+[ -f "$TMP/probe-rerun/SUMMARY.json" ] || fail "a passing probe run wrote no summary"
+printf '%s\n' '#!/usr/bin/env bash' 'kill -TERM $$' > "$PROBE/VERIFY.sh"
+if run_probe "$TMP/probe-rerun" >/dev/null 2>"$TMP/probe-rerun.err"; then
+  fail "a verifier stopped by a signal was scored as a verification result"
+fi
+grep -q 'harness error: VERIFY.sh was stopped by SIGTERM' "$TMP/probe-rerun.err" ||
+  fail "a signalled verifier was not a harness error: $(cat "$TMP/probe-rerun.err")"
+[ ! -e "$TMP/probe-rerun/SUMMARY.json" ] || fail "a failed rerun left the earlier SUMMARY.json in place"
+
 echo "ok   [evidence-harnesses]"

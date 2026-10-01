@@ -5,12 +5,13 @@
 // file. That block is DERIVED from the reference modules, not hand-maintained:
 // this regenerates it (or verifies it with --check) using the same extraction
 // the regression suite uses. Adding a requirement never desyncs the validator.
-// Run: node skills/godplans/scripts/build-catalog.js  (npm run catalog)
+// Maintainer tooling: it lives outside the shipped skill, which never runs it.
+// Run: node scripts/build-catalog.js  (npm run catalog)
 
 const fs = require('node:fs');
 const path = require('node:path');
 
-const skillRoot = path.resolve(__dirname, '..');
+const skillRoot = path.resolve(__dirname, '..', 'skills', 'godplans');
 const referencesDir = path.join(skillRoot, 'references');
 const validatorPath = path.join(skillRoot, 'scripts/validate-plan.sh');
 const check = process.argv.includes('--check');
@@ -58,10 +59,19 @@ for (const line of fs.readFileSync(docSetPath, 'utf8').split(/\r?\n/)) {
   documents[id] = `${owner}|${durability}`;
 }
 if (!Object.keys(documents).length) docErrors.push('doc-set.md: no catalog rows matched');
-for (const [id, value] of Object.entries(documents)) {
-  const stage = id.split('.')[0];
-  if (!stage) docErrors.push(`${id}: no stage prefix`);
-  if (!value.split('|')[0]) docErrors.push(`${id}: no owner module`);
+// The row regex already guarantees a stage and an owner. What it cannot know is
+// whether the owner is a domain the validator plans, so read that list from the
+// validator itself instead of keeping a second copy here.
+const validator = fs.readFileSync(validatorPath, 'utf8');
+const domainTable = validator.match(/^my %known_domain\s*=\s*map\s*\{\s*\$_\s*=>\s*1\s*\}\s*qw\(([^)]*)\)\s*;/m);
+if (!domainTable) {
+  docErrors.push('validate-plan.sh: could not read the %known_domain table');
+} else {
+  const knownDomains = new Set(domainTable[1].split(/\s+/).filter(Boolean));
+  for (const [id, value] of Object.entries(documents)) {
+    const owner = value.split('|')[0];
+    if (!knownDomains.has(owner)) docErrors.push(`${id}: owner '${owner}' is not a validator domain`);
+  }
 }
 if (docErrors.length) {
   process.stderr.write(`Document catalog problems:\n  ${docErrors.join('\n  ')}\n`);
@@ -70,7 +80,6 @@ if (docErrors.length) {
 
 const block = `my %catalog_max = (\n${Object.keys(maxima).sort().map((p) => `    ${p} => ${maxima[p]},`).join('\n')}\n);`;
 const docBlock = `my %doc_catalog = (\n${Object.keys(documents).sort().map((id) => `    '${id}' => '${documents[id]}',`).join('\n')}\n);`;
-const validator = fs.readFileSync(validatorPath, 'utf8');
 const rebuilt = validator
   .replace(/my %catalog_max = \([^)]*\);/, block)
   .replace(/my %doc_catalog = \([^)]*\);/, docBlock);

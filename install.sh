@@ -224,6 +224,10 @@ preflight_place() {
 copy_skill() {
   copy_dest=$1
   cp -R "$SKILL_SRC" "$copy_dest"
+  # Running the skill's Python helper from a checkout can leave bytecode beside
+  # it. That is local build output, never part of the installed skill.
+  find "$copy_dest" -name __pycache__ -type d -prune -exec rm -rf {} +
+  find "$copy_dest" -name '*.pyc' -type f -exec rm -f {} +
   if ! printf '%s\n' "$COPY_MARKER_VALUE" > "$copy_dest/$COPY_MARKER_NAME"; then
     rm -rf "$copy_dest"
     echo "Could not record ownership for copied destination: $copy_dest" >&2
@@ -297,10 +301,6 @@ run_targets() {
 
 run_targets preflight_place
 run_targets place
-
-if [ "$ACTION" = "install" ] && [ -x "$SRC_DIR/scripts/build-prompt.sh" ]; then
-  "$SRC_DIR/scripts/build-prompt.sh" >/dev/null 2>&1 || true
-fi
 
 if [ "$ACTION" = "install" ]; then
   cat <<EOF

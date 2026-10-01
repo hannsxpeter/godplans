@@ -1,0 +1,18 @@
+# Behavioral case roster for the release matrix (scripts/eval-matrix.sh).
+#
+# One case directory name under evals/cases/ per line; blank lines and text
+# after # are ignored. The matrix refuses to run when this list and the case
+# directories on disk differ in either direction, so a deleted, renamed, or
+# sparse-checkout-missing case fails loudly instead of shrinking the published
+# case count. Adding a case means adding its directory and one line here.
+brownfield-cli
+compliance-refusal
+greenfield-saas
+nested-pillars
+observability-evidence
+product-form-routing
+prose-integrity
+replan-preserves-history
+stale-prepublication
+stale-source-evidence
+weekend-library
