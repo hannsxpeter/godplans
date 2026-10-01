@@ -5,14 +5,14 @@
     "limitation": "Provider tokenizers differ. Published model runs record actual input and output token usage in RUNNER.txt and METRICS.json."
   },
   "portable_core": {
-    "bytes": 336783,
-    "estimated_tokens": 84196,
-    "sha256": "ffd48e09f057d2231084f4b262dc348dc0316717c24145e10de2995daa8deadc"
+    "bytes": 340886,
+    "estimated_tokens": 85222,
+    "sha256": "f4108f803c61bbb2c9e2284e71dbb7d8d66e9f8c1305737b1d9877d144f526ea"
   },
   "portable_full_generated": {
-    "bytes": 676336,
-    "estimated_tokens": 169084,
-    "sha256": "3023c4b9d70d9bacdf681dad066bf9d6448a6ed0b4a8989d0c7b392d3a9e245a"
+    "bytes": 680439,
+    "estimated_tokens": 170110,
+    "sha256": "591461775c9342522c52e21f8d3a932de31d10d0d9f70d78e96585d47979e91f"
   },
   "native_skill_entry": {
     "bytes": 25101,
@@ -56,19 +56,19 @@
       "sha256": "716f58ebdc726ca06125f8f30a6ae380459cc3edfd49d983bd5e8f4269bcb68c"
     },
     "exemplar": {
-      "bytes": 12213,
-      "estimated_tokens": 3054,
-      "sha256": "42458c49c11f6636725abdd752cd9a2a7604f5f9327b753cd851ea608759b4da"
+      "bytes": 12207,
+      "estimated_tokens": 3052,
+      "sha256": "1e4e643836612ae66c57d95f847273de90862d3b73b020b810b1bb1a0f045c5a"
     },
     "plan-format": {
-      "bytes": 37760,
-      "estimated_tokens": 9440,
-      "sha256": "fe9301797068da9e4b6546e28f85f46562b24450bb0ea3cf7bee73c64dbb063e"
+      "bytes": 38464,
+      "estimated_tokens": 9616,
+      "sha256": "469b148edb4c6b838a09d4923dc56ac07097336ae38d5976d45022148ceb7145"
     }
   },
   "core_modules_total": {
-    "bytes": 227192,
-    "estimated_tokens": 56801
+    "bytes": 227890,
+    "estimated_tokens": 56975
   },
   "lazy_modules": {
     "doc-set": {

@@ -81,7 +81,9 @@ exec perl -CSD - "$PLAN_FILE" "$ALLOW_PLANNING" "$EMIT_JSON" "$DRIFT_PHASE" <<'P
 use strict;
 use warnings;
 use Digest::SHA qw(sha256_hex);
+use Encode ();
 use JSON::PP ();
+use Time::Local qw(timegm);
 
 my ($plan_file, $allow_planning, $emit_json, $drift_phase) = @ARGV;
 my @errors;
@@ -103,6 +105,18 @@ sub trim {
     return $value;
 }
 
+# YAML allows one layer of quotes or a trailing comment; neither is the value.
+sub yaml_value {
+    my $value = trim($_[0]);
+    $value =~ s/(?:^|\s+)#.*$// unless $value =~ s/^(["'])(.*)\1(?:\s+#.*)?$/$2/;
+    return $value;
+}
+
+# One command in backticks with something to run; a manual step cannot be rerun.
+sub not_command {
+    return $_[0] !~ /^`[^`]*\S[^`]*`$/ || $_[0] =~ /^`\s*manual:/i;
+}
+
 sub task_has_requirement {
     my ($task, $requirement_id) = @_;
     return 0 unless exists $task->{fields}{Requirements};
@@ -111,21 +125,34 @@ sub task_has_requirement {
     return scalar grep { $_ eq $requirement_id } @requirement_ids;
 }
 
-sub task_depends_on {
-    my ($task, $task_id) = @_;
-    return 0 unless exists $task->{fields}{'Depends on'};
-    return 0 unless @{$task->{fields}{'Depends on'}} == 1;
-    my @dependencies = split /\s*,\s*/, $task->{fields}{'Depends on'}[0], -1;
-    return scalar grep { $_ eq $task_id } @dependencies;
+sub dependency_ids {
+    my $depends = $_[0]{fields}{'Depends on'};
+    return () unless $depends && @$depends == 1 && $depends->[0] ne 'none';
+    return split /\s*,\s*/, $depends->[0], -1;
 }
 
-open my $plan_fh, '<:encoding(UTF-8)', $plan_file
+sub task_depends_on {
+    return scalar grep { $_ eq $_[1] } dependency_ids($_[0]);
+}
+
+open my $plan_fh, '<:raw', $plan_file
     or die "FAIL $plan_file: cannot read: $!\n";
-my @lines = <$plan_fh>;
+my $plan_bytes = do { local $/; <$plan_fh> };
 close $plan_fh;
-chomp @lines;
-for (@lines) {
-    s/\r$//;
+# Decode strictly: a lenient read carries substituted text into the sidecar.
+my $plan_text = eval { Encode::decode('UTF-8', $plan_bytes, Encode::FB_CROAK() | Encode::LEAVE_SRC()) };
+if (!defined $plan_text) {
+    fail('plan is not valid UTF-8');
+    $plan_text = Encode::decode('UTF-8', $plan_bytes);
+}
+fail('plan starts with a UTF-8 byte order mark; save it without one')
+    if $plan_text =~ s/^\x{FEFF}//;
+my @lines = split /\n/, $plan_text;
+s/\r$// for @lines;
+
+for my $index (0 .. $#lines) {
+    fail('banned Unicode on line ' . ($index + 1))
+        if $lines[$index] =~ /[\x{200D}\x{2013}\x{2014}\x{2018}-\x{201F}\x{2026}\x{20E3}\x{2190}-\x{21FF}\x{231A}-\x{231B}\x{2328}\x{23CF}\x{23E9}-\x{23F3}\x{23F8}-\x{23FA}\x{2500}-\x{259F}\x{2600}-\x{27BF}\x{27F0}-\x{27FF}\x{2900}-\x{297F}\x{2B00}-\x{2BFF}\x{FE0F}\x{1F000}-\x{1FBFF}\x{E0020}-\x{E007F}]/;
 }
 
 my $frontmatter_end = -1;
@@ -141,6 +168,39 @@ if (!@lines || $lines[0] ne '---') {
     fail('frontmatter is missing its closing ---') if $frontmatter_end < 0;
 }
 
+# Fenced examples are quoted text: blank them for structural scans only.
+my @raw_lines = @lines;
+my ($fence, $fence_line) = ('', 0);
+for my $index ($frontmatter_end + 1 .. $#lines) {
+    my ($run) = $lines[$index] =~ /^\s*(`{3,}|~{3,})/;
+    if ($fence eq '') {
+        next unless defined $run;
+        ($fence, $fence_line) = ($run, $index + 1);
+    } elsif (defined $run && index($run, $fence) == 0 && $lines[$index] =~ /^\s*[`~]+\s*$/) {
+        $fence = '';
+    }
+    $lines[$index] = '';
+}
+if ($fence ne '') {
+    fail("code fence opened on line $fence_line is never closed");
+    @lines[$fence_line .. $#lines] = @raw_lines[$fence_line .. $#lines];
+}
+
+# Line indexes under every $heading, up to the next heading of its level or above.
+sub section {
+    my ($heading) = @_;
+    my $level = length(($heading =~ /^(#+)/)[0]);
+    my ($inside, @body);
+    for my $index (0 .. $#lines) {
+        if ($lines[$index] =~ /^#{1,$level} /) {
+            $inside = $lines[$index] eq $heading;
+            next;
+        }
+        push @body, $index if $inside;
+    }
+    return @body;
+}
+
 my %frontmatter;
 my %counter;
 my %top_key_count;
@@ -149,12 +209,12 @@ if ($frontmatter_end > 0) {
     for my $index (1 .. $frontmatter_end - 1) {
         my $line = $lines[$index];
         if ($line =~ /^([a-z_]+):(?:[ \t]*(.*))?$/) {
-            my ($key, $value) = ($1, trim($2));
+            my ($key, $value) = ($1, yaml_value($2));
             $top_key_count{$key}++;
             $frontmatter{$key} = $value;
             $has_progress = 1 if $key eq 'progress';
         } elsif ($line =~ /^  (phases_total|phases_done|tasks_total|tasks_done):[ \t]*(.*)$/) {
-            my ($key, $value) = ($1, trim($2));
+            my ($key, $value) = ($1, yaml_value($2));
             fail("duplicate progress counter: $key") if exists $counter{$key};
             $counter{$key} = $value;
         }
@@ -164,7 +224,7 @@ if ($frontmatter_end > 0) {
 for my $key (qw(name plan_version status created updated mode product_form archetype archetype_confidence overlays public_release source_revision input_digest validated_at domains_applicable domains_deferred domains_excluded)) {
     if (!exists $frontmatter{$key}) {
         fail("missing frontmatter field: $key");
-    } elsif ($frontmatter{$key} eq '' && $key ne 'domains_excluded' && $key ne 'overlays') {
+    } elsif ($frontmatter{$key} eq '') {
         fail("frontmatter field is empty: $key");
     }
     fail("duplicate frontmatter field: $key")
@@ -236,14 +296,10 @@ if (exists $frontmatter{overlays}) {
         @overlays = sort @overlays;
     }
 }
-# regulated-data reaches llm only when the project actually calls a model;
-# regulated data on its own says nothing about model integration.
 my %overlay_protected;
 for my $overlay (@overlays) {
     $overlay_protected{$_} = $overlay for @{$overlay_domains{$overlay}};
 }
-$overlay_protected{'llm'} = 'regulated-data'
-    if $overlay_declared{'regulated-data'} && $overlay_declared{'ai-system'};
 
 if (exists $frontmatter{public_release}
         && $frontmatter{public_release} ne 'true'
@@ -277,6 +333,14 @@ for my $key (qw(created updated)) {
     }
 }
 
+# Well-formed is not enough: the sidecar promises a date on the calendar.
+for my $key (qw(created updated validated_at)) {
+    my ($y, $m, $d, $h, $min, $s) = ($frontmatter{$key} || '')
+        =~ /^([0-9]{4})-([0-9]{2})-([0-9]{2})(?:T([0-9]{2}):([0-9]{2}):([0-9]{2})Z)?$/;
+    fail("$key $frontmatter{$key} is not a real calendar date and time")
+        if defined $y && !eval { timegm($s || 0, $min || 0, $h || 0, $d, $m - 1, $y); 1 };
+}
+
 for my $key (qw(phases_total phases_done tasks_total tasks_done)) {
     if (!exists $counter{$key}) {
         fail("missing progress counter: $key");
@@ -285,21 +349,10 @@ for my $key (qw(phases_total phases_done tasks_total tasks_done)) {
     }
 }
 
-my $in_requirements = 0;
 my %local_requirements;
-for my $line (@lines) {
-    if ($line eq '## Requirements') {
-        $in_requirements = 1;
-        next;
-    }
-    if ($in_requirements && $line =~ /^## /) {
-        $in_requirements = 0;
-    }
-    if ($in_requirements && $line =~ /^(R-[0-9]+\.[0-9]+):/) {
-        $local_requirements{$1} = 1;
-    } elsif ($in_requirements && $line =~ /^\|\s*(R-[0-9]+\.[0-9]+)\s*\|/) {
-        $local_requirements{$1} = 1;
-    }
+for my $index (section('## Requirements')) {
+    $local_requirements{$1} = 1
+        if $lines[$index] =~ /^(R-[0-9]+\.[0-9]+):/ || $lines[$index] =~ /^\|\s*(R-[0-9]+\.[0-9]+)\s*\|/;
 }
 
 my %catalog_max = (
@@ -377,6 +430,25 @@ my %doc_catalog = (
     'verify.traceability' => 'roadmap|durable',
 );
 
+# Field lines; a 4-space line that is not a list item continues the field above.
+sub task_fields {
+    my ($start, $names) = @_;
+    my (%fields, $last);
+    for my $index ($start .. $#lines) {
+        my $line = $lines[$index];
+        last if $line =~ /^(?:~~\s*-?|-)\s*\[[^]]*\]\s*GP-/ || $line =~ /^## Phase [1-9][0-9]*:/;
+        if ($line =~ /^  - ($names):[ \t]*(.*)$/) {
+            push @{$fields{$1}}, trim($2);
+            $last = $1;
+        } elsif (defined $last && $line =~ /^ {4,}(?![-*+] )\S/) {
+            $fields{$last}[-1] = trim($fields{$last}[-1] . ' ' . trim($line));
+        } else {
+            undef $last;
+        }
+    }
+    return \%fields;
+}
+
 my @phases;
 my @tasks;
 my @superseded_tasks;
@@ -391,8 +463,7 @@ for (my $index = 0; $index <= $#lines; $index++) {
             name => $2,
             tasks => [],
             line => $index + 1,
-            checkpoint => undef,
-            checkpoint_verify => undef,
+            wave => 0,
         };
         $current_phase = $#phases;
         next;
@@ -400,10 +471,9 @@ for (my $index = 0; $index <= $#lines; $index++) {
 
     if ($line =~ /^- \[([ x])\] (GP-[1-9][0-9]{2,})\b/) {
         my ($box, $id) = ($1, $2);
-        my ($wave_phase, $wave_tag, $parallel);
+        my ($wave_phase, $wave, $wave_tag, $parallel);
         if ($line =~ /^- \[[ x]\] \Q$id\E (\[P\] )?\[W([1-9][0-9]*)\.([1-9][0-9]*)\] \S/) {
-            $parallel = defined $1 ? 1 : 0;
-            $wave_phase = $2;
+            ($parallel, $wave_phase, $wave) = (defined $1 ? 1 : 0, $2, $3);
             $wave_tag = "W$2.$3";
         } else {
             fail("$id has malformed task heading");
@@ -411,7 +481,7 @@ for (my $index = 0; $index <= $#lines; $index++) {
         my $task = {
             id => $id,
             done => $box eq 'x' ? 1 : 0,
-            fields => {},
+            fields => task_fields($index + 1, 'Files|Depends on|Reuses|Acceptance|Verify|Requirements'),
             line => $index + 1,
             phase => $current_phase,
             wave => $wave_tag,
@@ -420,9 +490,14 @@ for (my $index = 0; $index <= $#lines; $index++) {
         push @tasks, $task;
         push @{$phases[$current_phase]{tasks}}, $#tasks if $current_phase >= 0;
         fail("$id is not inside a numbered phase") if $current_phase < 0;
-        if (defined $wave_phase && $current_phase >= 0
-                && $wave_phase != $phases[$current_phase]{number}) {
-            fail("$id wave phase $wave_phase does not match Phase $phases[$current_phase]{number}");
+        if (defined $wave_phase && $current_phase >= 0) {
+            my $phase = $phases[$current_phase];
+            fail("$id wave phase $wave_phase does not match Phase $phase->{number}")
+                if $wave_phase != $phase->{number};
+            # Executors take waves in order, so a lower wave written later runs late.
+            fail("$id [$wave_tag] follows a W$phase->{number}.$phase->{wave} task; waves within a phase must not go backwards")
+                if $wave < $phase->{wave};
+            $phase->{wave} = $wave if $wave > $phase->{wave};
         }
         if (exists $task_definitions{$id}) {
             fail("duplicate task definition ID $id on lines $task_definitions{$id} and " . ($index + 1));
@@ -434,37 +509,20 @@ for (my $index = 0; $index <= $#lines; $index++) {
         } else {
             $all_task_definitions{$id} = $index + 1;
         }
-
-        for (my $field_index = $index + 1; $field_index <= $#lines; $field_index++) {
-            my $field_line = $lines[$field_index];
-            last if $field_line =~ /^(?:~~)?- \[[ x]\] GP-/;
-            last if $field_line =~ /^## Phase [1-9][0-9]*:/;
-            if ($field_line =~ /^  - (Files|Depends on|Reuses|Acceptance|Verify|Requirements):[ \t]*(.*)$/) {
-                push @{$task->{fields}{$1}}, trim($2);
-            }
-        }
     } elsif ($line =~ /^~~- \[([ x])\] (GP-[1-9][0-9]{2,})\b.*~~$/) {
         my ($box, $id) = ($1, $2);
         my $task = {
             id => $id,
-            done => $box eq 'x' ? 1 : 0,
-            fields => {},
+            fields => task_fields($index + 1, 'Superseded|Requirements'),
             line => $index + 1,
             phase => $current_phase,
         };
+        $phases[$current_phase]{superseded}++ if $current_phase >= 0;
         fail("superseded task $id must remain unchecked") if $box eq 'x';
         if (exists $all_task_definitions{$id}) {
             fail("duplicate historical task ID $id on lines $all_task_definitions{$id} and " . ($index + 1));
         } else {
             $all_task_definitions{$id} = $index + 1;
-        }
-        for (my $field_index = $index + 1; $field_index <= $#lines; $field_index++) {
-            my $field_line = $lines[$field_index];
-            last if $field_line =~ /^(?:~~)?- \[[ x]\] GP-/;
-            last if $field_line =~ /^## Phase [1-9][0-9]*:/;
-            if ($field_line =~ /^  - (Superseded|Requirements):[ \t]*(.*)$/) {
-                push @{$task->{fields}{$1}}, trim($2);
-            }
         }
         for my $field ('Superseded', 'Requirements') {
             my $count = exists $task->{fields}{$field}
@@ -477,16 +535,21 @@ for (my $index = 0; $index <= $#lines; $index++) {
                 if $count == 1 && $task->{fields}{$field}[0] eq '';
         }
         push @superseded_tasks, $task;
-    } elsif ($line =~ /^- \[[^]]*\] GP-/) {
+    } elsif ($line =~ /^~~\s*-?\s*\[[^]]*\]\s*GP-/) {
+        fail('malformed superseded task on line ' . ($index + 1));
+    } elsif ($line =~ /^-\s*\[[^]]*\]\s*GP-/) {
         fail('malformed task definition on line ' . ($index + 1));
     } elsif ($current_phase >= 0 && $line =~ /^Checkpoint:[ \t]*(\S.*)$/) {
         fail("Phase $phases[$current_phase]{number} has duplicate Checkpoint")
             if defined $phases[$current_phase]{checkpoint};
         $phases[$current_phase]{checkpoint} = $1;
-    } elsif ($current_phase >= 0 && $line =~ /^Checkpoint verify:[ \t]*`([^`]+)`[ \t]*$/) {
-        fail("Phase $phases[$current_phase]{number} has duplicate Checkpoint verify")
-            if defined $phases[$current_phase]{checkpoint_verify};
-        $phases[$current_phase]{checkpoint_verify} = $1;
+    } elsif ($current_phase >= 0 && $line =~ /^Checkpoint verify:[ \t]*(.*?)[ \t]*$/) {
+        my ($phase, $command) = ($phases[$current_phase], $1);
+        fail("Phase $phase->{number} has duplicate Checkpoint verify")
+            if defined $phase->{checkpoint_verify};
+        fail("Phase $phase->{number} Checkpoint verify must be one executable command in backticks")
+            if not_command($command);
+        ($phase->{checkpoint_verify} = $command) =~ s/^`(.*)`$/$1/;
     }
 }
 
@@ -531,9 +594,8 @@ for my $task (@tasks) {
     }
 
     if (exists $task->{fields}{Verify} && @{$task->{fields}{Verify}} == 1) {
-        my $verify = $task->{fields}{Verify}[0];
         fail("$task->{id} Verify must be one executable command in backticks")
-            if $verify !~ /^`[^`]+`$/ || $verify =~ /^`[Mm]anual:/;
+            if not_command($task->{fields}{Verify}[0]);
     }
 
     if (exists $task->{fields}{Requirements} && @{$task->{fields}{Requirements}} == 1) {
@@ -563,18 +625,32 @@ for my $task_index (0 .. $#tasks) {
     push @{$wave_members{$task->{wave}}}, $task_index;
 }
 
+# Compare paths, not spellings; a trailing slash names a directory.
 my %task_files;
 for my $task_index (0 .. $#tasks) {
-    my $task = $tasks[$task_index];
-    next unless exists $task->{fields}{Files} && @{$task->{fields}{Files}} == 1;
+    my $files = $tasks[$task_index]{fields}{Files};
+    next unless $files && @$files == 1;
     my %paths;
-    for my $path (split /\s*,\s*/, $task->{fields}{Files}[0], -1) {
-        $path = trim($path);
-        next if $path eq '' || $path =~ /^none\b/i;
-        $path =~ s{^\./}{};
-        $paths{$path} = 1;
+    for my $entry (split /\s*,\s*(?![^()]*\))/, $files->[0]) {
+        my ($path) = $entry =~ /`([^`]+)`/ ? ($1) : ($entry =~ /^\s*(\S+)/);
+        next if !defined $path || lc $path eq 'none';
+        $path =~ s{/+}{/}g;
+        $path =~ s{^(?:\./)+}{};
+        $paths{$path} = 1 if $path ne '';
     }
     $task_files{$task_index} = \%paths;
+}
+
+sub paths_overlap {
+    my ($x, $y) = @_;
+    return $x eq $y || ($x =~ m{/$} && index($y, $x) == 0) || ($y =~ m{/$} && index($x, $y) == 0);
+}
+
+my %ancestors;
+for my $task (@tasks) {
+    my %set;
+    %set = (%set, $_ => 1, %{$ancestors{$_} || {}}) for dependency_ids($task);
+    $ancestors{$task->{id}} = \%set;
 }
 
 for my $wave (sort keys %wave_members) {
@@ -583,13 +659,14 @@ for my $wave (sort keys %wave_members) {
         for my $right ($left + 1 .. $#members) {
             my ($first, $second) = ($members[$left], $members[$right]);
             next unless $tasks[$first]{parallel} || $tasks[$second]{parallel};
+            my ($one, $two) = ($tasks[$first]{id}, $tasks[$second]{id});
+            fail("$one and $two are both in $wave and one is marked [P], but one depends on the other")
+                if $ancestors{$two}{$one} || $ancestors{$one}{$two};
             next unless exists $task_files{$first} && exists $task_files{$second};
-            my @shared = sort grep { exists $task_files{$second}{$_} }
+            my @shared = sort grep { my $path = $_; grep { paths_overlap($path, $_) } keys %{$task_files{$second}} }
                 keys %{$task_files{$first}};
-            next unless @shared;
-            fail("$tasks[$first]{id} and $tasks[$second]{id} are both in $wave"
-                . " and one is marked [P], but they share "
-                . join(', ', @shared));
+            fail("$one and $two are both in $wave and one is marked [P], but they share "
+                . join(', ', @shared)) if @shared;
         }
     }
 }
@@ -669,8 +746,13 @@ my $tasks_done = scalar grep { $_->{done} } @tasks;
 my $phases_total = scalar @phases;
 my $phases_done = 0;
 for my $phase (@phases) {
+    # A phase of only superseded tasks stays as history; removing it renumbers later phases.
     if (!@{$phase->{tasks}}) {
-        fail("Phase $phase->{number} has no task definitions");
+        if ($phase->{superseded}) {
+            $phases_done++;
+        } else {
+            fail("Phase $phase->{number} has no task definitions");
+        }
         next;
     }
     fail("Phase $phase->{number} is missing Checkpoint")
@@ -695,10 +777,14 @@ for my $key (qw(phases_total phases_done tasks_total tasks_done)) {
     fail("$key is $counter{$key}, derived value is $derived_counter{$key}")
         if $counter{$key} != $derived_counter{$key};
 }
+fail("status done requires every task checked, found $tasks_done of $tasks_total")
+    if ($frontmatter{status} || '') eq 'done' && $tasks_done != $tasks_total;
 
 my $open_questions_count = scalar grep { $_ eq '## Open Questions' } @lines;
 fail("expected exactly one ## Open Questions section, found $open_questions_count")
     if $open_questions_count != 1;
+my %open_question = map { $lines[$_] =~ /^### (Q[1-9][0-9]*):/ ? ($1 => $lines[$_]) : () }
+    section('## Open Questions');
 
 my $provenance_count = scalar grep { $_ eq '## Plan provenance' } @lines;
 fail("expected exactly one ## Plan provenance section, found $provenance_count")
@@ -718,15 +804,8 @@ fail("expected exactly one ### Archetype confidence block, found $archetype_coun
     if $archetype_count != 1;
 
 if ($archetype_count == 1) {
-    my $inside = 0;
-    for my $line (@lines) {
-        if ($line eq '### Archetype confidence') {
-            $inside = 1;
-            next;
-        }
-        last if $inside && $line =~ /^#{1,3} /;
-        next unless $inside;
-        next unless $line =~ /^-[ \t]+([A-Za-z][A-Za-z -]*?)[ \t]*:[ \t]*(\S.*)$/;
+    for my $index (section('### Archetype confidence')) {
+        next unless $lines[$index] =~ /^-[ \t]+([A-Za-z][A-Za-z -]*?)[ \t]*:[ \t]*(\S.*)$/;
         my ($field, $value) = ($1, $2);
         fail("archetype confidence has duplicate field $field")
             if exists $archetype_block{$field};
@@ -760,7 +839,7 @@ if ($archetype_count == 1) {
     if (defined $primary_score) {
         fail("archetype confidence Primary score exceeds 1.00") if $primary_score > 1;
         if (exists $frontmatter{archetype} && defined $primary_name
-                && $frontmatter{archetype} ne 'unknown'
+                && ($frontmatter{archetype} ne 'unknown' || $primary_score >= 0.45)
                 && $primary_name ne $frontmatter{archetype}) {
             fail("archetype confidence Primary is $primary_name but frontmatter archetype is $frontmatter{archetype}");
         }
@@ -833,33 +912,11 @@ if ($archetype_count == 1) {
 
 # Low confidence is not a disclaimer. It withholds the archetype as a settled
 # fact until a human confirms it, so the question has to be on the page.
-if ($archetype_low) {
-    my $inside = 0;
-    my $asked = 0;
-    for my $line (@lines) {
-        if ($line eq '## Open Questions') {
-            $inside = 1;
-            next;
-        }
-        last if $inside && $line =~ /^## /;
-        next unless $inside;
-        $asked = 1 if $line =~ /^### Q[1-9][0-9]*:/ && $line =~ /archetype/i;
-    }
-    fail("archetype confidence is low, so the archetype belongs in ## Open Questions as a ### Q<n>: entry naming it")
-        unless $asked;
-}
+fail("archetype confidence is low, so the archetype belongs in ## Open Questions as a ### Q<n>: entry naming it")
+    if $archetype_low && !grep { /archetype/i } values %open_question;
 
 if ($provenance_count == 1) {
-    my $inside = 0;
-    my @body;
-    for my $line (@lines) {
-        if ($line eq '## Plan provenance') {
-            $inside = 1;
-            next;
-        }
-        last if $inside && $line =~ /^## /;
-        push @body, $line if $inside;
-    }
+    my @body = map { $lines[$_] } section('## Plan provenance');
 
     my %label_key = (
         'Source revision' => 'source_revision',
@@ -959,15 +1016,8 @@ fail("expected exactly one ## Applicability matrix section, found $matrix_count"
     if $matrix_count != 1;
 
 if ($matrix_count == 1) {
-    my $inside = 0;
     my %seen_domain;
-    for my $line (@lines) {
-        if ($line eq '## Applicability matrix') {
-            $inside = 1;
-            next;
-        }
-        last if $inside && $line =~ /^## /;
-        next unless $inside;
+    for my $line (map { $lines[$_] } section('## Applicability matrix')) {
         next unless $line =~ /^\|[ \t]*([a-z0-9-]+)[ \t]*\|[ \t]*([a-z0-9-]+)[ \t]*\|[ \t]*(.*?)[ \t]*\|[ \t]*$/;
         my ($domain, $disposition, $reason) = ($1, $2, $3);
         next unless $known_domain{$domain};
@@ -1049,6 +1099,7 @@ my %module_prefix = (
     'build' => 'BUILD', 'roadmap' => 'ROAD', 'deploy' => 'DEPLOY',
     'observe' => 'OBS', 'launch' => 'LAUNCH',
 );
+my %prefix_module = reverse %module_prefix;
 my %dropped_layer = map { $_ => 1 } qw(scale archetype form);
 my @json_disposition;
 if (%domain_disposition) {
@@ -1060,28 +1111,25 @@ if (%domain_disposition) {
             $task_requirement{$id} = $task->{id};
         }
     }
+    # A task may not trace to a module the matrix keeps out of this plan.
+    for my $id (sort keys %task_requirement) {
+        my ($module) = map { $prefix_module{$_} } $id =~ /^R-([A-Z][A-Z0-9-]*)-[0-9]+$/;
+        my $status = $module ? $domain_disposition{$module} || '' : '';
+        fail("$task_requirement{$id} cites $id, but the applicability matrix marks $module $status")
+            if $status eq 'excluded' || $status eq 'deferred';
+    }
 
-    my $inside = 0;
-    my $found = 0;
-    my %disposition_line;
-    my %referenced;
-    for (my $index = 0; $index <= $#lines; $index++) {
-        my $line = $lines[$index];
-        if ($line eq '### Module disposition') {
-            $inside = 1;
-            $found = 1;
-            next;
-        }
-        if ($inside && $line =~ /^#{1,3} /) {
-            $inside = 0;
-            next;
-        }
-        if (!$inside) {
-            $referenced{$1} = 1 while $line =~ /(R-[A-Z][A-Z0-9-]*-[0-9]+)/g;
-            next;
-        }
-        next if $line =~ /^\s*$/;
-        $disposition_line{$index + 1} = $line;
+    my $found = grep { $_ eq '### Module disposition' } @lines;
+    my %disposition_line = map { ($_ + 1 => $lines[$_]) }
+        grep { $lines[$_] =~ /\S/ } section('### Module disposition');
+
+    # Landed means used: a mention outside the frontmatter, session log, and disposition block.
+    my (%reference_lines, $in_log);
+    for my $index ($frontmatter_end + 1 .. $#lines) {
+        $in_log = $lines[$index] eq '## Session log' if $lines[$index] =~ /^## /;
+        next if $in_log || exists $disposition_line{$index + 1};
+        my %seen = map { $_ => 1 } $raw_lines[$index] =~ /(R-[A-Z][A-Z0-9-]*-[0-9]+)/g;
+        $reference_lines{$_}++ for keys %seen;
     }
 
     if (!$found) {
@@ -1112,7 +1160,7 @@ if (%domain_disposition) {
         my %dropped;
         my @dropped_entries;
         my $malformed = 0;
-        for my $clause (split /\s*;\s*/, $body) {
+        for my $clause (split /\s*;\s*(?![^()]*\))/, $body) {
             next if $clause eq '';
             if ($clause =~ /^landed[ \t]+(\S.*)$/i) {
                 my $ids = $1;
@@ -1139,8 +1187,6 @@ if (%domain_disposition) {
                     $malformed = 1;
                     next;
                 }
-                fail("module disposition for $module drops by $layer without a reason")
-                    if $reason =~ /^\s*$/;
                 my @ids;
                 for my $id (split /\s*,\s*/, $ids, -1) {
                     $id =~ s/^\s+|\s+$//g;
@@ -1176,7 +1222,7 @@ if (%domain_disposition) {
         }
         for my $id (sort keys %landed) {
             fail("module disposition lands $id but nothing in the plan references it")
-                unless $referenced{$id};
+                unless $reference_lines{$id};
         }
         push @json_disposition, {
             module => $module,
@@ -1249,21 +1295,22 @@ fail("expected exactly one ## Documentation set section, found $docset_count")
     if $docset_count != 1;
 
 if ($docset_count == 1) {
-    my $inside = 0;
     my $boundary = 0;
     my %seen_document;
     my $rows = 0;
-    for my $line (@lines) {
-        if ($line eq '## Documentation set') {
-            $inside = 1;
-            next;
-        }
-        last if $inside && $line =~ /^## /;
-        next unless $inside;
+    for my $index (section('## Documentation set')) {
+        my $line = $lines[$index];
         $boundary = 1
             if index(lc($line), 'committed to this repository') >= 0;
-        next unless $line =~ /^\|[ \t]*`?([a-z]+\.[a-z0-9-]+)`?[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*(.*?)[ \t]*\|[ \t]*$/;
+        # Every row but the header and separator is read, so an unparsable row fails.
+        next if $line !~ /^\|/ || $line =~ /^\|[ \t]*:?-/ || ($lines[$index + 1] || '') =~ /^\|[ \t]*:?-/;
+        if ($line !~ /^\|[ \t]*`?([a-z]+\.[a-z0-9-]+)`?[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*([a-z-]+)[ \t]*\|[ \t]*(.*?)[ \t]*\|[ \t]*$/) {
+            fail("malformed documentation set row: $line");
+            next;
+        }
         my ($id, $stage, $verdict, $owner, $detail) = ($1, $2, $3, $4, $5);
+        my ($state) = $detail =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
+        $state = defined $state ? lc $state : '';
         $rows++;
         if (!exists $doc_catalog{$id}) {
             fail("documentation set names $id, which is not a doc-set.md catalog id");
@@ -1275,6 +1322,8 @@ if ($docset_count == 1) {
         my ($catalog_stage) = $id =~ /^([a-z]+)\./;
         fail("documentation set row $id declares stage '$stage'; the catalog stage is $catalog_stage")
             if $stage ne $catalog_stage;
+        fail("documentation set row $id records $state in a greenfield plan; only brownfield and replan find documents present")
+            if ($frontmatter{mode} || '') eq 'greenfield' && $state =~ /^present-(?:current|drifted|stub)$/;
         if (!$doc_verdict{$verdict}) {
             fail("documentation set row $id has invalid verdict '$verdict'; expected required, recommended, optional, or not-applicable");
             next;
@@ -1283,13 +1332,13 @@ if ($docset_count == 1) {
             if $owner ne $catalog_owner;
         if ($verdict eq 'required' || $verdict eq 'recommended') {
             my @task_refs = $detail =~ /(GP-[0-9]+)/g;
-            if (!@task_refs) {
-                fail("documentation set row $id is $verdict but names no GP task that writes it");
-            } else {
-                for my $ref (@task_refs) {
-                    fail("documentation set row $id names $ref, which is not a task in this plan")
-                        unless exists $all_task_definitions{$ref};
-                }
+            # adopt and confirm (doc-set.md section 6) cost frontmatter, not a task.
+            fail("documentation set row $id is $verdict but names no GP task that writes it")
+                unless @task_refs || $state eq 'present-current' || $state eq 'present-elsewhere';
+            for my $ref (@task_refs) {
+                fail("documentation set row $id names "
+                    . (exists $all_task_definitions{$ref} ? "superseded task $ref" : "$ref, which is not a task in this plan"))
+                    unless exists $task_definitions{$ref};
             }
             my $owner_status = $domain_disposition{$owner};
             fail("documentation set row $id is $verdict but its owner module $owner is excluded in the applicability matrix")
@@ -1300,22 +1349,26 @@ if ($docset_count == 1) {
             # the archetype is confirmed.
             fail("documentation set marks the assure-stage row $id not-applicable while archetype confidence is low; confirm the archetype first")
                 if $archetype_low && $stage eq 'assure';
-            my ($state) = $detail =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
-            $state = defined $state ? lc $state : '';
             my ($predicate) = $detail =~ /revisit when[ \t]*:[ \t]*(.*)$/i;
             $predicate = defined $predicate ? $predicate : '';
             $predicate =~ s/[ \t]+$//;
-            if ($state eq 'unknown' || $state eq 'hint') {
-                fail("documentation set excludes $id on evidence state '$state'; only absent or by-design may exclude");
-            } elsif ($state ne 'absent' && $state ne 'by-design') {
-                fail("documentation set excludes $id without an evidence state; the cell must open with 'absent:' or 'by-design:'");
-            }
-            if ($predicate eq '') {
-                fail("documentation set excludes $id without a revisit when: tripwire");
-            } elsif (lc($predicate) =~ $vague_predicate) {
-                fail("documentation set excludes $id with a vague revisit when: predicate");
-            } elsif (length($predicate) < 12) {
-                fail("documentation set excludes $id with a revisit when: predicate too short to observe");
+            # An orphan exists but nothing justifies it: it gets a question, never a deletion task.
+            if ($state =~ /^present-(?:current|drifted|stub)$/) {
+                fail("documentation set row $id is an orphan but cites no ### Q<n> from ## Open Questions")
+                    unless grep { $open_question{$_} } $detail =~ /\b(Q[1-9][0-9]*)\b/g;
+            } else {
+                if ($state eq 'unknown' || $state eq 'hint') {
+                    fail("documentation set excludes $id on evidence state '$state'; only absent or by-design may exclude");
+                } elsif ($state !~ /^(?:absent|by-design|present-elsewhere)$/) {
+                    fail("documentation set excludes $id without an evidence state; the cell must open with 'absent:', 'by-design:', or 'present-elsewhere:'");
+                }
+                if ($predicate eq '') {
+                    fail("documentation set excludes $id without a revisit when: tripwire");
+                } elsif (lc($predicate) =~ $vague_predicate) {
+                    fail("documentation set excludes $id with a vague revisit when: predicate");
+                } elsif (length($predicate) < 12) {
+                    fail("documentation set excludes $id with a revisit when: predicate too short to observe");
+                }
             }
         } elsif ($detail eq '') {
             fail("documentation set row $id is optional but says nothing about why");
@@ -1339,20 +1392,13 @@ fail("expected exactly one ## Decisions section, found $decisions_count")
     if $decisions_count != 1;
 
 if ($decisions_count == 1) {
-    my $inside = 0;
     my $current_decision;
     my %decision_line;
     my %decision_title;
     my %decision_falsifier;
     my %falsifier_field;
-    for (my $index = 0; $index <= $#lines; $index++) {
+    for my $index (section('## Decisions')) {
         my $line = $lines[$index];
-        if ($line eq '## Decisions') {
-            $inside = 1;
-            next;
-        }
-        last if $inside && $line =~ /^## /;
-        next unless $inside;
         if ($line =~ /^### (D[1-9][0-9]*):[ \t]*(\S.*)$/) {
             $current_decision = $1;
             fail("duplicate decision heading $current_decision")
@@ -1361,12 +1407,10 @@ if ($decisions_count == 1) {
             $decision_title{$current_decision} = $2;
             next;
         }
-        if ($line =~ /^### D[1-9][0-9]*/) {
-            fail("malformed decision heading on line " . ($index + 1));
-            $current_decision = undef;
-            next;
-        }
+        # Any other heading would carry a decision past the falsifier check.
         if ($line =~ /^### /) {
+            fail('malformed decision heading on line ' . ($index + 1) . '; use ### D<n>: <title> or ### Assumptions ledger')
+                unless $line =~ /^### Assumptions ledger$/i;
             $current_decision = undef;
             next;
         }
@@ -1384,7 +1428,7 @@ if ($decisions_count == 1) {
     }
     fail("Decisions must contain at least one ### D<n>: entry")
         unless keys %decision_line;
-    for my $decision (sort keys %decision_line) {
+    for my $decision (sort { substr($a, 1) <=> substr($b, 1) } keys %decision_line) {
         my $falsifier_count = $decision_falsifier{$decision} || 0;
         fail("decision $decision (line $decision_line{$decision}) is missing a Falsifier: block")
             if $falsifier_count == 0;
@@ -1433,12 +1477,6 @@ if (!@phases || $phases[-1]{name} ne 'Verification') {
     fail("final phase must be Verification, found '$found'");
 }
 
-for my $index (0 .. $#lines) {
-    if ($lines[$index] =~ /[\x{2013}\x{2014}\x{2018}-\x{201F}\x{2026}\x{2190}-\x{21FF}\x{2500}-\x{257F}\x{FE0F}\x{1F000}-\x{1FAFF}]/) {
-        fail('banned Unicode on line ' . ($index + 1));
-    }
-}
-
 if (@errors) {
     for my $error (@errors) {
         print STDERR "FAIL $plan_file: $error\n";
@@ -1482,35 +1520,22 @@ if ($drift_phase ne '') {
     for my $position (@sample_positions) {
         my $task = $tasks[$completed[$position]];
         next if $sample_seen{$task->{id}}++;
-        my $verify = $task->{fields}{Verify}[0];
-        if ($verify !~ /^`([^`]+)`$/) {
-            die "FAIL $plan_file: drift sample $task->{id} Verify must be one executable command in backticks\n";
-        }
-        my $command = $1;
+        my ($command) = $task->{fields}{Verify}[0] =~ /^`(.*)`$/;
         print "drift sample $task->{id}: $command\n";
         system('sh', '-c', $command);
-        if ($? != 0) {
-            my $status = $? >> 8;
-            die "FAIL $plan_file: drift sample $task->{id} exited $status\n";
-        }
+        die "FAIL $plan_file: drift sample $task->{id} exited " . ($? >> 8) . "\n" if $?;
     }
 
-    my $checkpoint = $phase->{checkpoint_verify};
-    print "checkpoint Phase $drift_phase: $checkpoint\n";
-    system('sh', '-c', $checkpoint);
-    if ($? != 0) {
-        my $status = $? >> 8;
-        die "FAIL $plan_file: Phase $drift_phase checkpoint exited $status\n";
+    # A phase of superseded tasks did no work, so it has no outcome to reprove.
+    if (@completed) {
+        my $checkpoint = $phase->{checkpoint_verify};
+        print "checkpoint Phase $drift_phase: $checkpoint\n";
+        system('sh', '-c', $checkpoint);
+        die "FAIL $plan_file: Phase $drift_phase checkpoint exited " . ($? >> 8) . "\n" if $?;
     }
 }
 
 if ($emit_json ne '') {
-    open my $raw_fh, '<:raw', $plan_file
-        or die "FAIL $plan_file: cannot read for digest: $!\n";
-    local $/;
-    my $raw_bytes = <$raw_fh>;
-    close $raw_fh;
-
     my @json_phases = map {
         {
             number => $_->{number} + 0,
@@ -1521,8 +1546,7 @@ if ($emit_json ne '') {
 
     my @json_tasks = map {
         my $task = $_;
-        my $depends = $task->{fields}{'Depends on'}[0];
-        my @depends_on = $depends eq 'none' ? () : split /\s*,\s*/, $depends, -1;
+        my @depends_on = dependency_ids($task);
         my @requirements = split /\s*,\s*/, $task->{fields}{Requirements}[0], -1;
         {
             id           => $task->{id},
@@ -1539,26 +1563,6 @@ if ($emit_json ne '') {
         }
     } @tasks;
 
-    my %requirement_domain = (
-        PRD => 'product',
-        ARCH => 'architecture',
-        STACK => 'stack',
-        DB => 'database',
-        SEC => 'security',
-        LLM => 'llm',
-        UX => 'ux',
-        UI => 'ui',
-        SEO => 'seo',
-        CODE => 'code-quality',
-        DNA => 'style-genome',
-        MEM => 'agent-memory',
-        REPO => 'repo',
-        BUILD => 'build',
-        ROAD => 'roadmap',
-        DEPLOY => 'deploy',
-        OBS => 'observe',
-        LAUNCH => 'launch',
-    );
     my %domain_history;
     my $record_domains = sub {
         my ($task, $status) = @_;
@@ -1566,7 +1570,7 @@ if ($emit_json ne '') {
         my %seen;
         for my $requirement (split /\s*,\s*/, $task->{fields}{Requirements}[0], -1) {
             next unless $requirement =~ /^R-([A-Z][A-Z0-9-]*)-[0-9]+$/;
-            my $domain = $requirement_domain{$1};
+            my $domain = $prefix_module{$1};
             next unless defined $domain;
             next if $seen{$domain}++;
             $domain_history{$domain}{$status}++;
@@ -1621,7 +1625,7 @@ if ($emit_json ne '') {
 
     my %document = (
         format          => 'godplans/plan-json@1',
-        plan_digest     => 'sha256:' . sha256_hex($raw_bytes),
+        plan_digest     => 'sha256:' . sha256_hex($plan_bytes),
         name            => $frontmatter{name},
         plan_version    => $frontmatter{plan_version} + 0,
         status          => $frontmatter{status},
@@ -1662,7 +1666,7 @@ if ($emit_json ne '') {
         },
     );
 
-    my $json = JSON::PP->new->canonical(1)->pretty->encode(\%document);
+    my $json = JSON::PP->new->utf8->canonical(1)->pretty->encode(\%document);
     my $json_tmp = "$emit_json.tmp.$$";
     open my $json_fh, '>:raw', $json_tmp
         or die "FAIL $json_tmp: cannot write: $!\n";

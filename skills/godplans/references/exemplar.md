@@ -21,7 +21,7 @@ Every clause substitutes cleanly ("We will use MySQL because it is a robust, bat
 **This is the bar:**
 
 ```markdown
-### Database: Postgres 16 via Neon, one schema per tenant deferred
+### D1: Postgres 16 via Neon, one schema per tenant deferred
 
 Decision: single Postgres database, shared tables with `workspace_id` on
 every tenant-owned row, enforced by row-level security policies.

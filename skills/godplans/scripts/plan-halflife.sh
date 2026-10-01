@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 
 # Emit cumulative task-survival metrics from a validated PLAN.mdx.
-# Bash 3.2, Perl, and the sibling validator are sufficient.
+# Bash 3.2, Perl, and a copy of validate-plan.sh are sufficient.
 
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-VALIDATOR="$SCRIPT_DIR/validate-plan.sh"
 PLAN_FILE="${1:-.godplans/PLAN.mdx}"
 OUTPUT_FILE="${2:-${PLAN_FILE%.mdx}.metrics.json}"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/godplans-halflife.XXXXXX")"
@@ -14,12 +13,22 @@ SIDE_CAR="$TMP_DIR/PLAN.json"
 
 trap 'rm -rf "$TMP_DIR"' EXIT HUP INT TERM
 
-[ -x "$VALIDATOR" ] || {
-  echo "FAIL $PLAN_FILE: sibling validate-plan.sh is missing or not executable" >&2
+# Measure with the plan's own validator: override, then companion, then sibling.
+VALIDATOR="${GODPLANS_VALIDATOR:-}"
+if [ -z "$VALIDATOR" ]; then
+  VALIDATOR="$(dirname "$PLAN_FILE")/validate-plan.sh"
+  [ -f "$VALIDATOR" ] || VALIDATOR="$SCRIPT_DIR/validate-plan.sh"
+fi
+
+[ -f "$VALIDATOR" ] || {
+  echo "FAIL $PLAN_FILE: validator $VALIDATOR is missing" >&2
   exit 1
 }
 
-"$VALIDATOR" --allow-planning --emit-json "$SIDE_CAR" "$PLAN_FILE" >/dev/null
+bash "$VALIDATOR" --allow-planning --emit-json "$SIDE_CAR" "$PLAN_FILE" >/dev/null || {
+  echo "FAIL $PLAN_FILE: $VALIDATOR rejects it; set GODPLANS_VALIDATOR to the validator it was written against" >&2
+  exit 1
+}
 
 perl -MJSON::PP - "$SIDE_CAR" "$OUTPUT_FILE" <<'PERL'
 use strict;

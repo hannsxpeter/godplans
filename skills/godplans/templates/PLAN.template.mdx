@@ -43,8 +43,6 @@ Evidence inventory:
 - `intake` = `sha256:INTAKE-DIGEST`
 - [recheck] `path/to/stable-artifact` = `sha256:EVIDENCE-DIGEST`
 
-Inventory labels are unique, exactly one is `intake`, and every digest covers the named normalized intake text or raw file bytes. Mark completed or imported evidence that must be rechecked on resume in its label or an adjacent plan section without changing the machine-readable inventory line.
-
 ## Product form
 
 Primary: web application | API or service | CLI or SDK | mobile or desktop | data or ML | infrastructure or IaC.
@@ -249,7 +247,7 @@ with an R-ROAD-7 validation task scheduled ahead of it, not a question. Write
 > 2. Find the first unchecked task in wave order. Re-derive state from checkboxes; trust nothing remembered.
 > 3. One task at a time. Respect Depends on. Tasks marked [P] may run concurrently; the validator has already proved their Files lists are disjoint from every other unchecked task in the wave, so treat [P] as the schedulable set and never widen it by hand.
 > 4. Run the task's Verify command. Only after it passes, flip [ ] to [x] and update the frontmatter counters and `updated:` date in the same edit. Never batch check-offs. Regenerate the sidecar in the same batch: `bash .godplans/validate-plan.sh --allow-planning --emit-json .godplans/PLAN.json .godplans/PLAN.mdx`.
-> 5. If Verify fails: the box stays unchecked. Append an indented `- Note (YYYY-MM-DD):` line under the task saying what happened.
+> 5. If Verify fails: the box stays unchecked. Append a `- Note (YYYY-MM-DD):` line under the task, indented two spaces like its fields, saying what happened.
 > 6. Phase-boundary gate: before the first task of a new phase, run `bash .godplans/validate-plan.sh --drift-check N .godplans/PLAN.mdx`, replacing N with the completed phase. The command recomputes `[recheck]` provenance files, reruns a deterministic sample of up to three completed task Verify commands, and reruns the phase's Checkpoint verify command. Any failure returns status to `planning` and stops execution for replan.
 > 7. If a deferred domain's trigger fires mid-execution (its named event occurs), return status to `planning` and run that domain's pass before continuing.
 > 8. Scope changes are not improvised. Return status to `planning`, patch the plan (new task IDs, struck-through superseded tasks with a reason), increment `plan_version`, and obtain fresh approval before more execution.

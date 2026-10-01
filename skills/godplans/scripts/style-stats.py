@@ -84,9 +84,9 @@ PATS = {
     },
     "py": {
         "function": [r"^\s*(?:async\s+)?def\s+([A-Za-z_]\w*)"],
-        "variable": [r"^\s*([A-Za-z_]\w*)\s*="],
+        "variable": [r"^\s*([A-Za-z_]\w*)\s*=(?!=)"],
         "class": [r"^\s*class\s+([A-Za-z_]\w*)"],
-        "constant": [r"^([A-Z_][A-Z0-9_]{2,})\s*="],
+        "constant": [r"^([A-Z_][A-Z0-9_]{2,})\s*=(?!=)"],
     },
     "go": {
         "function": [r"\bfunc\s+(?:\([^)]*\)\s*)?([A-Za-z_]\w*)"],
@@ -98,6 +98,10 @@ PATS = {
     },
 }
 PATS["ts"] = PATS["js"]
+
+# One identifier can match several kinds (`const isReady = () =>` is both a
+# function and a variable). The first kind in this order claims it.
+KIND_ORDER = ("function", "class", "type", "constant", "variable")
 
 
 def case(name):
@@ -251,14 +255,19 @@ def add_file_case(naming, path):
 
 
 def add_identifier_cases(lang, text, naming, lengths, boolean_names):
-    for kind, patterns in PATS.get(lang, {}).items():
-        for pattern in patterns:
+    seen = set()
+    pats = PATS.get(lang, {})
+    for kind in KIND_ORDER:
+        for pattern in pats.get(kind, []):
             for match in re.finditer(pattern, text, re.M):
                 name = match.group(1)
+                if (match.start(1), name) in seen:
+                    continue
+                seen.add((match.start(1), name))
                 naming[kind][case(name)] += 1
                 lengths[kind].append(len(name.strip("_")))
                 if name and name[0].islower():
-                    boolean_names.append(name)
+                    boolean_names.add(name)
 
 
 def leading_indent(line):
@@ -303,13 +312,20 @@ def brace_function_lengths(text):
         saw_brace = False
         end = index
         for cursor in range(index, len(lines)):
+            # A signature that ends in `;` before any brace is a bodyless
+            # declaration (TS overload, `declare`, Rust trait item); measuring
+            # it would run into whatever block follows.
+            if not saw_brace and "{" not in lines[cursor] and lines[cursor].rstrip().endswith(";"):
+                end = None
+                break
             balance += lines[cursor].count("{")
             balance -= lines[cursor].count("}")
             saw_brace = saw_brace or "{" in lines[cursor]
             end = cursor
             if saw_brace and balance <= 0:
                 break
-        lengths.append(max(1, end - index + 1))
+        if end is not None:
+            lengths.append(max(1, end - index + 1))
     return lengths
 
 
@@ -391,7 +407,7 @@ def analyze_language(lang, paths):
     lengths = defaultdict(list)
     quotes = Counter()
     fn_lengths = []
-    boolean_names = []
+    boolean_names = set()
     documented_functions = 0
     total_functions = 0
 
@@ -419,7 +435,9 @@ def analyze_language(lang, paths):
         quotes.update(count_quotes(lang, text))
         add_file_case(naming, path)
         add_identifier_cases(lang, text, naming, lengths, boolean_names)
-        fn_lengths.extend(function_lengths(lang, text))
+        # Type declaration files hold signatures only; they have no function bodies to measure.
+        if not path.endswith(".d.ts"):
+            fn_lengths.extend(function_lengths(lang, text))
         documented, total = doc_coverage(lang, text)
         documented_functions += documented
         total_functions += total
