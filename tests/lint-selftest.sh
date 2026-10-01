@@ -287,7 +287,6 @@ expect "a new module unknown to every list fails domain-parity" 1 \
   "FAIL [domain-parity] skills/godplans/SKILL.md Phase 4 table lacks domain module product-ops" \
   "FAIL [domain-parity] skills/godplans/scripts/validate-plan.sh %known_domain lacks domain module product-ops" \
   "FAIL [domain-parity] skills/godplans/scripts/validate-plan.sh %module_prefix keys lacks domain module product-ops" \
-  "FAIL [domain-parity] skills/godplans/scripts/validate-plan.sh %requirement_domain values lacks domain module product-ops" \
   "FAIL [domain-parity] scripts/build-prompt.sh full REFERENCE_ORDER lacks domain module product-ops" \
   "FAIL [domain-parity] scripts/context-metrics.js coreModules + lazyModules lacks domain module product-ops" \
   "FAIL [domain-parity] tests/portable-prompt.test.sh expected_refs + lazy_refs lacks domain module product-ops"
@@ -319,21 +318,20 @@ expect "build-prompt prose and the core and lazy split are compared" 1 \
   "FAIL [domain-parity] tests/portable-prompt.test.sh lazy_refs lacks ux, which scripts/context-metrics.js lazyModules names"
 lacks "a complete union list is not reported" "expected_refs + lazy_refs lacks"
 
-# Requirement prefixes: one per module, the inverse map agrees, and each
-# module defines its requirements under its own prefix.
+# Requirement prefixes: one per module, and each module defines its
+# requirements under its own prefix.
 fresh
 perl -pi -e "s/'seo' => 'SEO'/'seo' => 'SEOX'/; s/'ux' => 'UX'/'ux' => 'UI'/" "$CASE/skills/godplans/scripts/validate-plan.sh"
 run domain-parity
-expect "requirement prefixes are compared with the modules and the inverse map" 1 \
+expect "requirement prefixes are compared with the modules" 1 \
   "FAIL [domain-parity] skills/godplans/scripts/validate-plan.sh %module_prefix gives the prefix UI to ux and ui" \
-  "FAIL [domain-parity] skills/godplans/scripts/validate-plan.sh %requirement_domain maps SEO to seo, but %module_prefix gives seo the prefix SEOX" \
   "FAIL [domain-parity] skills/godplans/references/seo.md defines no R-SEOX-N requirement" \
   "FAIL [domain-parity] skills/godplans/references/seo.md defines R-SEO-N requirements, but %module_prefix gives seo the prefix SEOX"
 
-# A validator that derives the inverse map with reverse needs no
-# %requirement_domain table; one with neither form fails.
+# The validator derives the prefix-to-module map with reverse; a validator
+# with neither that line nor a %requirement_domain table fails.
 fresh
-perl -0pi -e 's/my %requirement_domain = \(.*?\);\n//s' "$CASE/skills/godplans/scripts/validate-plan.sh"
+perl -0pi -e 's/^my %prefix_module = reverse %module_prefix;\n//m' "$CASE/skills/godplans/scripts/validate-plan.sh"
 run domain-parity
 expect "a validator with no prefix-to-module map fails" 1 "FAIL [domain-parity] skills/godplans/scripts/validate-plan.sh prefix-to-module map: cannot find %prefix_module = reverse %module_prefix or a %requirement_domain table"
 perl -0pi -e 's/^(my %module_prefix = \(.*?\);\n)/$1my %prefix_module = reverse %module_prefix;\n/ms' "$CASE/skills/godplans/scripts/validate-plan.sh"
