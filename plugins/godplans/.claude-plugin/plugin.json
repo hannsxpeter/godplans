@@ -1,10 +1,10 @@
 {
   "name": "godplans",
   "description": "Produce an audit-aware, agent-executable master plan (PLAN.mdx) before application code is written. One command runs discovery, forces hard-to-reverse decisions, and plans product, business (pricing, entitlements, billing, metrics, feedback), architecture, roadmap, stack, repo, build, deploy, observability, launch, security, code quality, style genome, database, LLM integration, SEO, UI, UX, and agent memory upfront. After-the-fact audit checks become plan-time acceptance criteria, a prose-integrity pass removes generic language without changing meaning, and a self-contained validator enforces task structure and approval state. Use when the user says: plan this project, godplans, master plan, product plan, plan everything upfront, plan before code, audit-aware plan, replan, or starts a greenfield project or major feature. Refuses plan theater, vague tasks without verification, unsupported quality guarantees, and projects whose core purpose violates the Anthropic Usage Policy.",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "author": { "name": "aihxp", "url": "https://github.com/hannsxpeter" },
   "homepage": "https://github.com/hannsxpeter/godplans",
   "repository": "https://github.com/hannsxpeter/godplans",
   "license": "MIT",
-  "keywords": ["godplans", "planning", "master-plan", "agent-skills", "plan-first", "spec-driven-development", "prd", "architecture", "roadmap", "security", "audit-inversion", "mdx", "checkbox-plan"]
+  "keywords": ["godplans", "planning", "master-plan", "agent-skills", "plan-first", "spec-driven-development", "prd", "architecture", "roadmap", "security", "product-management", "audit-inversion", "mdx", "checkbox-plan"]
 }

@@ -177,7 +177,7 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 - **Invented numbers**: an availability target, recovery objective, retention period, or review cadence the plan made up so a section would be complete. Cite it, decide it with a falsifier, or ask it.
 - **Ungated promises**: a marker an executor acts on that nothing verifies. `[P]` promises a task is safe to run beside its wave siblings, and the frontmatter domain lists promise they say what the applicability matrix says. Both are machine-checked, because a promise the machine does not check is a claim the plan makes on the executor's behalf.
 
-## Skill version: 1.13.0
+## Skill version: 1.14.0
 
 
 ---
@@ -463,7 +463,7 @@ Never deferrable: product, business, architecture, stack, database, security, ll
 | launch | excluded | by-design: internal tool, adoption is an email; revisit when: the plan adds a sign-up route reachable without an invite, or `public_release` flips to true |
 ```
 
-Hard rules: security, code-quality, style-genome, repo, roadmap are never excluded and never deferred (they scale down instead). business requires external users or a charge. seo requires a public crawlable surface. llm requires actual model integration; "we might add AI later" is a roadmap entry, not an llm pass and not a deferral. ui requires rendered pixels the project owns.
+Hard rules: security, code-quality, style-genome, repo, roadmap are never excluded and never deferred (they scale down instead). business requires a charge or a displayed price, outside sign-ups, telemetry about outsiders, or a customer-signal surface. seo requires a public crawlable surface. llm requires actual model integration; "we might add AI later" is a roadmap entry, not an llm pass and not a deferral. ui requires rendered pixels the project owns.
 
 ### Module disposition and monotonic escalation
 
@@ -2182,7 +2182,7 @@ with an R-ROAD-7 validation task scheduled ahead of it, not a question. Write
 
 ## Session log
 
-- YYYY-MM-DD plan created (godplans v1.13.0)
+- YYYY-MM-DD plan created (godplans v1.14.0)
 
 
 ---

@@ -3,6 +3,176 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [1.14.0] - 2026-10-01
+
+godplans inverted seven auditors into plan-time requirements. The eighth,
+auditor-suite's productauditor, audits a product through a product manager's
+and head of product's lens, and none of its 58 cards had a plan-time owner.
+Pricing, entitlements, the billing lifecycle, customer account operations,
+product analytics, business metric definitions, release flags and sunset,
+experiments, and customer feedback were each either unplanned or pushed out of
+the module nearest to them (R-OBS-20 explicitly excluded product analytics
+from observability and named no destination). A plan for a priced SaaS product
+could score 85 or more in every domain and still ship every one of
+productauditor's five Critical classes. This release adds that lens as a
+domain, and closes the drift and tooling gaps a full repository review found
+on the way.
+
+### Added
+
+- `references/business.md`, the nineteenth planning domain (key `business`,
+  prefix R-BIZ, Phase 4 order 2, right after Product). It inverts
+  productauditor's nine dimensions into 26 requirements and adds the layer an
+  audit cannot judge: the bet as a `### D<n>` decision whose falsifier
+  carries a kill criterion (metric, minimum exposure, a threshold fixed before
+  the first measurement, a milestone-anchored decide-by point, one decider, and
+  continue, pivot, and stop actions), recorded as `Verdict: pending` so no
+  executing agent fabricates a verdict; the business model, segment, sales
+  motion, and free offer; one metric register whose north star is an R-PRD-5
+  success metric; principles that name a trade-off a decision paid for; and
+  commercial decider rows in the roadmap authority map. Eleven forced
+  decisions put the paying unit, revenue model, free offer, billing system of
+  record, lifecycle end states, and analytics identity ahead of architecture.
+  The module stays lazy, so the portable core did not grow by a module.
+- The requirements design out productauditor's five Critical classes at plan
+  time: a server-resolved price with a sold-combination test and a tampered
+  request test; one entitlement map over every price id and provider status
+  with a free default; access only on confirmed payment and a live-mode
+  startup check; a provider-named lifecycle event table with replay,
+  out-of-order, refund-revocation, and reconciliation; one subscription-change
+  function; enforced trial end and grace; seats and usage recorded once on the
+  server; data and members kept read-only through a downgrade or lapse; and a
+  traced promise inventory with no mock client on a production path.
+- Scale calibration: weekend plans drop the measurement and strategy
+  ceremony, while a rubric floor caps the module at 69 when a plan that
+  charges drops billing safety through the scale layer.
+- The `monetized` overlay. It fires when the request, an interview answer, or
+  the revenue-model decision charges money, and forbids excluding `business`.
+- Documentation catalog rows `design.metrics-register`, `serve.release-notes`,
+  and `retire.deprecation-notice`, owned by business.
+- The `product-business` behavioral case (a funded B2B scheduling product with
+  seat billing, a trial, a free tier, a contact-sales tier, and a retiring
+  plan). `greenfield-saas` now expects business applicable and
+  `weekend-library` expects it excluded. The case list lives in
+  `evals/cases-roster.txt`, and the matrix refuses to run when the roster and
+  the case directories differ.
+- Lint checks `domain-parity` (the domain list agrees across the Phase 4
+  table, the modules, the validator tables, the prompt build, the context
+  metrics, the portable-prompt test, the template matrix, discovery's worked
+  matrix, and the schema's row count, with one requirement prefix per
+  module), `description-parity` (both plugin manifests carry the SKILL.md
+  description verbatim), `js-syntax`, and `python-syntax`; `shell-syntax` now
+  rejects bash 4 constructs that stock macOS cannot run.
+- `tests/lint-selftest.sh` (86 assertions, one injected violation per check),
+  `tests/lib/plan-schema-check.js` (every emitted PLAN.json is checked against
+  `PLAN.schema.json`), `tests/style-stats.sh`, `tests/build-catalog.sh`, and
+  `tests/release-tooling.sh`. The validator suite grows from 148 to 278
+  checks.
+- A stock macOS CI job (bash 3.2 and BSD tools first on PATH), Dependabot for
+  the pinned actions, `.gitattributes`, `.editorconfig`, a commented
+  `CODEOWNERS`, a plan-failure issue form with security reports routed to
+  private advisories, and a pull request template.
+- `MAINTAINING.md`, `docs/ARCHITECTURE.md` (the pieces and the
+  source -> generator -> artifact -> check graph), and `docs/DRIFT.md` (a drift
+  log seeded with this review), modeled on auditor-suite.
+- `npm run generate` runs the catalog, prompt, and metrics generators in
+  dependency order.
+
+### Changed
+
+- Sibling modules now agree with business on every boundary: observe routes
+  product analytics to the R-BIZ-3 register; roadmap themes and phase
+  Must-haves name register metrics and the authority map carries the
+  commercial rows; launch renders pricing from the plan catalog and names the
+  segment; deploy defers release-flag semantics to R-BIZ-23; security bans
+  client-set plan and price fields and separates abuse quotas from sold
+  quotas; llm points sold model quotas to R-BIZ-10.
+- `frame.business-case` is owned by business instead of product, which had no
+  requirement that produced it.
+- The PLAN.json sidecar format becomes `godplans/plan-json@2`, because the
+  schema now requires 19 applicability rows. `schemas/PLAN.v1.schema.json`
+  keeps the 1.13.0 schema for `@1` sidecars that plans still executing on an
+  older companion keep emitting; consumers pick the schema by the `format`
+  tag.
+- Sibling references to the business module key to whether the cited
+  requirement lands, not to whether the domain is applicable, so a dropped
+  requirement never leaves another module pointing at nothing.
+- Replan treats "applicability matrix is missing domain business" as a delta
+  to add, not a failure to escalate. The half-life measurement moves to Phase
+  0, and `plan-halflife.sh` validates with `GODPLANS_VALIDATOR`, else the
+  plan's own `.godplans/validate-plan.sh`, else its sibling, so an older plan
+  is measured by the validator it was written against.
+- The README and ABOUT lineage now point at hannsxpeter/auditor-suite; the
+  seven standalone auditor repositories they linked return 404.
+- `build-catalog.js` moved out of the shipped skill to `scripts/`.
+- `package.json` is private: the package was never published to npm, and the
+  tarball is only built for the release dry run.
+- `lint --all` runs every check and reports every failure, reads its file
+  list from git so ignored local files such as `.godplans/` no longer fail it,
+  and prints a visible skip instead of `ok` when an optional tool is missing.
+- The portable-core budget moves to 347923 bytes after a 2.2 KB cut: the
+  Phase 5b failure-class list became a pointer to the exemplar gate it
+  duplicated, and the plan-format machine-checks summary was regrouped.
+
+### Fixed
+
+- PLAN.json was written as Latin-1 when a plan's only non-ASCII characters
+  fell in U+0080 to U+00FF; it is now always UTF-8.
+- The validator accepted `status: done` with open tasks, `[P]` tasks that
+  depend on a wave sibling or share a path written differently, dependencies
+  in a later wave, malformed documentation-set rows, a required document
+  written by a superseded task, blank Verify commands, emoji and arrow blocks
+  plan-format bans, invalid UTF-8, impossible calendar dates, and tasks citing
+  requirements of an excluded module. It rejected the template's own
+  provenance paragraph, discovery's own dropped-by example, brownfield adopt
+  and confirm rows, a phase whose tasks were all superseded, and wrapped field
+  lines; and it read fenced code as structure.
+- The official-validator check reported an unrunnable skills-ref as a rejected
+  skill, and tag-release-parity passed over an empty loop in a tagless
+  checkout. `action-pins` missed the `- uses:` form, `description-length` read
+  only the first line of a folded description, `symlinks-valid` accepted a
+  copied directory, and `tests/portable-prompt.test.sh` and `install.sh`
+  rewrote the tracked PROMPT.md.
+- `eval-matrix.sh` discarded the remaining model families after one failing
+  profile; `eval.sh` dropped a final expectation line without a trailing
+  newline and printed a loss as `+-N`; `eval-outcome.js` published a verifier
+  that could not run as "neither arm verifies".
+- `release:prepare` left the context metrics stale, and `release:check`
+  accepted the TODO changelog stub.
+- `style-stats.py` counted bodyless declarations as functions and some
+  identifiers twice, inflating the measured function-length norms plans quote.
+- `ux.md` cited the FTC click-to-cancel rule as law; it was vacated on 8 July
+  2025.
+- SECURITY.md pinned a stale tag and omitted that the Claude and Gemini eval
+  runners skip permission prompts and that `--drift-check` runs Verify
+  commands taken from the plan.
+
+### Upgrade notes
+
+Plans already executing keep their own copied validator and are unaffected
+until a replan re-copies the 1.14.0 validator. At that replan, expect these
+messages and fixes:
+
+- `applicability matrix is missing domain business`: add the business row,
+  its frontmatter entry, and a disposition line when applicable.
+- A `frame.business-case` documentation row owned by `product`: change the
+  owner to `business`.
+- `### ` headings under `## Decisions` other than `### D<n>:` and
+  `### Assumptions ledger`: retitle them.
+- `status: done` with open tasks, a landed requirement that appears only in
+  the frontmatter or the session log, or a task citing a requirement of an
+  excluded module: fix the plan, not the validator.
+- Executor Note lines indented four spaces under a task: indent them two
+  spaces.
+- A task tagged with an earlier wave placed after a later one: move the task
+  block, completed or not, to restore wave order; moving a block is not a
+  rewording.
+- A greenfield documentation row claiming `present-current`,
+  `present-drifted`, or `present-stub`: those states are for brownfield and
+  replan plans only.
+- Tools that read PLAN.json: accept `godplans/plan-json@2`, and validate
+  older `@1` sidecars against `PLAN.v1.schema.json`.
+
 ## [1.13.0] - 2026-08-19
 
 Plans could satisfy every structural contract and still carry unsupported

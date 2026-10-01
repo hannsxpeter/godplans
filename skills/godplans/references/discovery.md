@@ -212,7 +212,7 @@ Never deferrable: product, business, architecture, stack, database, security, ll
 | launch | excluded | by-design: internal tool, adoption is an email; revisit when: the plan adds a sign-up route reachable without an invite, or `public_release` flips to true |
 ```
 
-Hard rules: security, code-quality, style-genome, repo, roadmap are never excluded and never deferred (they scale down instead). business requires external users or a charge. seo requires a public crawlable surface. llm requires actual model integration; "we might add AI later" is a roadmap entry, not an llm pass and not a deferral. ui requires rendered pixels the project owns.
+Hard rules: security, code-quality, style-genome, repo, roadmap are never excluded and never deferred (they scale down instead). business requires a charge or a displayed price, outside sign-ups, telemetry about outsiders, or a customer-signal surface. seo requires a public crawlable surface. llm requires actual model integration; "we might add AI later" is a roadmap entry, not an llm pass and not a deferral. ui requires rendered pixels the project owns.
 
 ### Module disposition and monotonic escalation
 
