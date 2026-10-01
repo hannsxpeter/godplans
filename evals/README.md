@@ -19,6 +19,11 @@ produce the right kind of plan for a concrete request?
 | stale-prepublication | greenfield | saas-dashboard | late Critical invalidates public-release authorization |
 | observability-evidence | greenfield | api-service | installation evidence separated from real-event maturity |
 | prose-integrity | greenfield | api-service | unsupported draft copy removed without losing concrete commitments |
+| product-business | greenfield | saas-dashboard | pricing, entitlements, billing lifecycle, metric register, and the bet's kill criterion |
+
+`evals/cases-roster.txt` lists every case. Adding a case means adding its
+directory and one line in the roster; `scripts/eval-matrix.sh` refuses to run
+when the two disagree, and `tests/eval-harness.sh` runs that check offline.
 
 Every case contains:
 
@@ -38,15 +43,20 @@ Set `GODPLANS_EVAL_RUNNER` to an executable and run:
 GODPLANS_EVAL_RUNNER=/absolute/path/to/runner bash scripts/eval.sh
 ```
 
-An authenticated Codex CLI runner is included:
+Runners for the Codex CLI (`codex.sh`), Claude Code (`claude.sh`), and the
+Gemini CLI (`gemini.sh`) are included, each with a `-baseline.sh` control
+twin. Each reuses the authentication its host CLI already has; no provider API
+keys are required. For example:
 
 ```bash
 GODPLANS_EVAL_RUNNER="$PWD/evals/runners/codex.sh" bash scripts/eval.sh
 ```
 
 Set `GODPLANS_EVAL_MODEL` or `GODPLANS_EVAL_REASONING_EFFORT` to override
-the local Codex defaults. The runner records both values, CLI version, and
-actual input, cached-input, output, and total tokens in `RUNNER.txt`.
+the local Codex defaults (`GODPLANS_CLAUDE_MODEL`, `GODPLANS_CLAUDE_EFFORT`, and
+`GODPLANS_GEMINI_MODEL` do the same for the other runners). Each runner
+records the model, reasoning effort, CLI version, and the input, cached-input,
+output, and total tokens its CLI reports in `RUNNER.txt`.
 
 The runner receives two arguments:
 
@@ -72,9 +82,22 @@ throwaway `HOME` and a throwaway `CODEX_HOME` that carries only the copied
 `auth.json` and `config.toml`, never a `skills/` directory. The skill arm then
 links the project-local skill into its workspace; the control arm never does.
 That single link is the only intended difference between the two arms, and the
-`tests/eval-harness.sh` regression asserts it. Claude and Gemini runners use
-the same isolation rule and require provider API keys so authentication can be
-carried without copying a user home or its installed skills.
+`tests/eval-harness.sh` regression asserts it.
+
+The Claude and Gemini runners isolate differently and keep the host CLI's
+existing authentication. The Claude runner uses `--safe-mode` (its skill arm
+loads godplans through `--plugin-dir plugins/godplans`). The Gemini runner uses
+workspace-scoped skill and hook settings: its skill arm copies the skill into
+the workspace's `.agents/skills`, and its control arm writes a workspace
+`.gemini/settings.json` that disables skills and hooks. Every planning runner
+records its isolation mode in `RUNNER.txt` (`global_skills=isolated` for Codex,
+`customization_mode` for Claude and Gemini).
+
+The Claude and Gemini runners also skip permission prompts
+(`--dangerously-skip-permissions` and `--approval-mode yolo`) and are not
+confined to the temporary workspace, which is only their starting directory.
+Run them on a disposable machine or account. The Codex runners run with
+`--sandbox workspace-write`.
 
 `scripts/eval.sh` validates plan structure with the shipped plan validator,
 then applies every semantic expectation. Outputs are retained under
@@ -161,9 +184,10 @@ declares exactly one outcome.
 
 ## Publishing a baseline
 
-Release evidence requires the full eleven-case matrix across at least three model
-families, with both arms for every case. This is optional maintainer tooling,
-not part of skill execution:
+Release evidence requires the full matrix, every case in
+`evals/cases-roster.txt`, across at least three model families, with both arms
+for every case. This is optional maintainer tooling, not part of skill
+execution:
 
 ```bash
 bash scripts/eval-matrix.sh --output "$PWD/evals/results/RUN-ID"
@@ -173,10 +197,14 @@ The default profiles are Codex, Claude, and Gemini. Each adapter uses the
 normal authentication already managed by its host CLI. Neither godplans nor
 the coordinator requires, reads, or prescribes provider credentials. A host that
 does not have all three CLIs can supply three alternative runner profiles
-through the same runner contract. The command rejects fewer than ten cases or
-three profiles. Commit `MATRIX.md`, `MATRIX.json`, every family's `EVAL.tsv`
-and `METRICS.json`, all generated plans and sidecars, all control plans, runner
-metadata, and CLI event logs together. A summary without raw artifacts is not
+through the same runner contract (set `GODPLANS_MATRIX_PROFILES`; each profile
+needs `evals/runners/<profile>.sh` and `evals/runners/<profile>-baseline.sh`).
+The command refuses to run when the case directories under `evals/cases/` and
+`evals/cases-roster.txt` differ in either direction, or when fewer than three
+profiles are given; `bash scripts/eval-matrix.sh --check` runs those checks
+without calling a model. Commit `MATRIX.md`, `MATRIX.json`, every family's
+`EVAL.tsv` and `METRICS.json`, all generated plans and sidecars, all control
+plans, runner metadata, and CLI event logs together. A summary without raw artifacts is not
 publishable evidence.
 
 Never publish a skill score without the control score beside it. Each case is

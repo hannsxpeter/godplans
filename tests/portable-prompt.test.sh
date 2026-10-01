@@ -136,7 +136,7 @@ grep -Fq 'expected exactly one ## Plan provenance section' "$PROMPT" ||
 # (about 1.5 KB; the business module itself stays lazy). It paid first: the
 # Phase 5b failure-class list became a pointer to the exemplar gate it
 # duplicated, and the plan-format machine-checks summary was regrouped, about
-# 2.2 KB cut. 347923 leaves 7053 bytes against compliance at 7070 again.
+# 2.2 KB cut. At the raise, 347923 left 7053 bytes against compliance at 7070.
 #
 # Before moving it a fourth time: cut content or drop a module first, then set
 # the number so headroom lands just under the smallest core module again. Print

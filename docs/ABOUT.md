@@ -6,13 +6,13 @@ New here? The [README](../README.md) is the short version. This page is for peop
 
 ## The one-paragraph version
 
-godplans turns an idea into a single, complete, machine-checkable build plan before any code is written. It does this by taking the checks that seven different code auditors run *after* a project is finished, and rewriting each one as a requirement the plan has to satisfy *before* the project starts. The output is one markdown file with checkboxes that any AI coding agent can execute, and a validator script that proves the plan keeps its own promises.
+godplans turns an idea into a single, complete, machine-checkable build plan before any code is written. It does this by taking the checks that eight different auditors run *after* a project is finished, and rewriting each one that can be anticipated as a requirement the plan has to satisfy *before* the project starts. The output is one markdown file with checkboxes that any AI coding agent can execute, and a validator script that proves the plan keeps its own promises.
 
 ## The problem: remediation is the most expensive way to learn requirements
 
 The AI coding ecosystem grew two families of tooling that rarely talk to each other.
 
-**Arc tools** (PRD writers, architecture designers, roadmap sequencers, scaffolders) decide things before and during the build. **Auditors** (code quality, security, database, AI integration, search visibility, UI, UX) score things after the build and hand back a prioritized list of what is wrong.
+**Arc tools** (PRD writers, architecture designers, roadmap sequencers, scaffolders) decide things before and during the build. **Auditors** (code quality, security, database, AI integration, search visibility, UI, UX, product and billing) score things after the build and hand back a prioritized list of what is wrong.
 
 Here is the uncomfortable thing about that second report: it is always partly a bill for decisions nobody made.
 
@@ -27,7 +27,7 @@ The left column is a rewrite. The right column is a sentence.
 
 Almost everything in an audit report was knowable at plan time. Nobody had collected it there. godplans is that collection, done once, mechanically.
 
-It descends from twelve sibling repositories (arc-ready and ready-suite for the arc tiers; codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, uxauditor for the audit dimensions; pillars for agent memory; codedna for the style genome; docdna for the documentation set) plus the plan discipline of BuilderIO's visual-plan skill, two single-source ideas from Matt Pocock's wayfinder skill, two from Udit Akhouri's ADHD skill, and the meaning-preserving editorial pass from Lauren Tan's pstack unslop skill. Every audit check in the sibling skills was read, inverted into a plan-time requirement, and filed into the domain module that now enforces it. The seven auditors alone contributed several hundred concrete checks; those became the acceptance criteria a godplans plan distributes onto tasks. The unslop concepts are re-expressed for executable plans; no source text or catalog is copied.
+It descends from seventeen skills. Thirteen are sibling skills: arc-ready and ready-suite for the arc tiers; the eight auditors now collected in [auditor-suite](https://github.com/hannsxpeter/auditor-suite) (codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, uxauditor, productauditor) for the audit dimensions; pillars for agent memory; codedna for the style genome; docdna for the documentation set. The other four are the plan discipline of BuilderIO's visual-plan skill, two single-source ideas from Matt Pocock's wayfinder skill, two from Udit Akhouri's ADHD skill, and the meaning-preserving editorial pass from Lauren Tan's pstack unslop skill. Every audit check in the sibling skills was read, inverted into a plan-time requirement, and filed into the domain module that now enforces it. The eight auditors alone contributed several hundred concrete checks; those became the acceptance criteria a godplans plan distributes onto tasks. The unslop concepts are re-expressed for executable plans; no source text or catalog is copied.
 
 The result is an audit-aware plan: checks that can be anticipated become acceptance criteria before implementation starts. That prevents avoidable findings. It does not claim that planning can prove runtime behavior or eliminate the need for an independent audit. Nothing can.
 
@@ -47,6 +47,8 @@ graph TD
   H --> I[9. Emit .godplans/PLAN.mdx]
 ```
 
+The stages are numbered for reading; SKILL.md numbers the same nine as Phase 0 through Phase 7 plus Phase 5b. Stage 1 is Phase 0, stages 2 to 6 are Phases 1 to 5, stage 7 is the Phase 5b prose pass, stage 8 is Phase 6, and stage 9 is Phase 7. Stage 5 walks the nineteen planning domains in a fixed order, starting with Product and then Business, and runs a pass for each one the applicability matrix marks applicable.
+
 The canonical human output is `.godplans/PLAN.mdx`. It is not a directory of competing specs and it is not a wiki. It is the one product and execution document an agent re-reads every session.
 
 Its body is GFM-safe MDX (plain GitHub-flavored markdown that also parses as MDX), so it works in documentation pipelines and renders on GitHub after a rename to `.md`, with checkbox tasks, mermaid diagrams, and YAML frontmatter carrying machine state. The skill also generates `.godplans/PLAN.json` from the MDX, so executing tools can consume typed decisions, requirements, dependencies, active tasks, superseded tasks, and plan half-life metrics without parsing checkboxes. A self-contained `.godplans/validate-plan.sh` companion carries no decisions of its own; it proves the plan contract and lifecycle state.
@@ -61,9 +63,9 @@ Each of these started as a real failure. The italic line is the short version; t
 
 ### Inversion over orchestration
 
-*Running fifteen skills in a row would have kept all of them stuck at the end.*
+*Running seventeen skills in a row would have kept all of them stuck at the end.*
 
-The obvious way to combine fifteen skills is a pipeline that runs them in order. That preserves their after-the-fact character; the auditors would still be grading finished work. godplans instead moved every check to the earliest moment it could bind: plan time. The auditors remain useful as end-of-project verification that the inversion held.
+The obvious way to combine seventeen skills is a pipeline that runs them in order. That preserves their after-the-fact character; the auditors would still be grading finished work. godplans instead moved every check to the earliest moment it could bind: plan time. The auditors remain useful as end-of-project verification that the inversion held.
 
 ### One question batch
 
@@ -99,7 +101,7 @@ godplans screens every project against the Anthropic Usage Policy before plannin
 
 *If a rule matters, a script checks it. Otherwise it is a preference.*
 
-The repository checks ASCII style, every published version surface, JSON parsing, shell syntax, module contracts, immutable action pins, prompt determinism, portable-core completeness and cost, installer ownership safety, plan-validator failure modes, behavioral-case integrity, and the pinned official Agent Skills validator. PROMPT.md is generated, and freshness checks do not mutate it. CI fails on violations.
+The repository checks ASCII style, every published version surface, JSON parsing, shell, JavaScript, and Python syntax, module contracts, that the planning-domain lists in the skill, the validator, and the build tooling name exactly the domain modules on disk, that the plugin and marketplace manifests repeat the skill's description word for word, immutable action pins, prompt determinism, portable-core completeness and cost, installer ownership safety, plan-validator failure modes, behavioral-case integrity, and the pinned official Agent Skills validator. PROMPT.md is generated, and freshness checks do not mutate it. CI fails on violations.
 
 ### Meaning is frozen before prose is repaired
 
@@ -147,15 +149,25 @@ The style-genome module always asked for a numeric function-size norm and measur
 
 The same release stopped the opposite failure. Availability targets, recovery objectives, retention periods, and review cadences are commitments somebody owns, and a number invented so a section would look complete gets quoted back six months later as though somebody had committed to it. Those are now cited, decided with a falsifier boundary, or asked.
 
+### The business of the product is its own domain, right after Product
+
+*Who pays, for what, and when to stop are decisions. An audit can only report afterward that nobody made them.*
+
+productauditor, the eighth auditor in auditor-suite, reads a shipped product through a product manager's and head of product's lens in nine dimensions: claims against delivery, plans and entitlements, the billing lifecycle, customer accounts, instrumentation, metric definitions, release and sunset, experiments, and customer feedback. Until 1.14.0 those dimensions had no plan-time owner. A few touched existing requirements, such as Product's success metrics and UX's rule that cancelling is as easy as signing up, but no module decided what happens when a trial ends, a payment fails, or a customer downgrades with more data than the lower plan allows.
+
+The Business module runs second, between Product and Architecture, because its first decisions shape the data model: whether a workspace or an individual user holds the subscription, the entitlements, and the data (the paying unit), and which system is the source of truth for subscription state (the billing system of record). Architecture draws entity ownership from those answers, so the domain can be excluded with a reason but never deferred. It also decides what an audit cannot judge. An auditor reading code can report a trial nothing ends; it cannot judge the bet behind the product. A plan can decide it: above weekend scale it states the bet as a decision whose falsifier carries a kill criterion, and a task records that bet with `Verdict: pending`, because only the named decider records the verdict, at the review the plan schedules.
+
+The module stays lazy. It is not inlined in the slim portable core (PROMPT.md), so the core did not grow by a module, and a planner loads it only when the applicability matrix marks business applicable. A project that shows no price, takes no sign-ups from outsiders, sends no telemetry about them, and collects no customer signals excludes the domain and never loads the module.
+
 ### Behavioral evidence is separate from package lint
 
 *Passing your own tests proves you did what you promised. It does not prove the promise was worth anything.*
 
-The evaluation matrix exercises greenfield, brownfield, replan, scale-calibration, and compliance-refusal behavior through a runner contract that can target real agents. Deterministic CI validates the harness and case expectations without spending model tokens. A published model baseline must include its raw plans, runner and model identifiers, validator version, source commit, date, and actual token usage. The build-outcome harness tests the stronger thesis by giving matched plans to the same no-skill builder, hiding the arm from a fresh godaudits pass, and comparing open Critical plus High findings.
+The evaluation matrix exercises the three modes (greenfield, brownfield, and a replan that must preserve completed work), scale calibration and domain exclusion, compliance refusal, product-form routing, nested Pillars scopes, stale source and prepublication evidence, observability evidence labels, prose integrity, and business planning for a seat-billed product with a trial, a free tier, and a retiring plan. It runs through a runner contract that can target real agents. Deterministic CI validates the harness and case expectations without spending model tokens. Publishable evidence requires every case in `evals/cases-roster.txt` across at least three model families, with both arms for every case, and the matrix refuses to run when the roster and the case directories disagree. A published model baseline must include its raw plans, runner and model identifiers, validator version, source commit, date, and actual token usage. The build-outcome harness tests the stronger thesis by giving matched plans to the same no-skill builder, hiding the arm from a fresh godaudits pass, and comparing open Critical plus High findings.
 
 ## What the first head-to-head run showed
 
-The first published build-outcome run used `gpt-5.6-sol` on a multi-tenant notes API. Both arms passed the same implementation verifier, so both worked. Then an independent audit scored both repositories without knowing which was which.
+The first published build-outcome run measured the godplans 1.9.0 release candidate, using `gpt-5.6-sol` on the Codex CLI on 2026-07-23, on a multi-tenant notes API. No later version has been re-measured. Both arms passed the same implementation verifier, so both worked. Then an independent audit scored both repositories without knowing which was which.
 
 | | Critical | High |
 |---|---|---|
@@ -181,9 +193,12 @@ godplans was designed and written by AI agents under human direction, in one ses
 
 ## Composing with siblings
 
+The short version: plan with godplans, execute with anything, audit with auditor-suite or godaudits.
+
 - Plan with godplans, then execute with any agent following the embedded rules.
 - Or execute with arc-ready's build tiers: the plan's tier sections map onto arc-ready's artifact contract.
-- Run the seven auditors at the end as verification that the inversion held. Their reports should come back clean, and where they do not, replan mode folds the findings into new tasks.
+- Audit with [auditor-suite](https://github.com/hannsxpeter/auditor-suite): run its eight auditors at the end to check whether the inversion held. Expect fewer preventable findings, not zero; replan mode folds any findings into new tasks.
+- Or audit with [godaudits](https://github.com/hannsxpeter/godaudits), which audits the whole codebase in one run and, when `.godplans/PLAN.mdx` is present, also checks the code against the plan. It writes `.godaudits/EVIDENCE.json`; a later brownfield plan cites that inventory when its recorded revision matches the revision the plan binds to, and fingerprints the codebase itself when the file is stale or absent. The head-to-head run above used godaudits as its blind auditor.
 - pillars and codedna remain the living, in-repo forms of the agent-memory and style-genome sections the plan seeds.
 - docdna is the after-the-fact form of the documentation set: point it at the finished repository to check the manifest against what the code can actually prove, and to fire the exclusion tripwires the plan wrote.
-- All three siblings stay standalone. godplans depends on none of them at runtime and none of them depends on godplans; shared discipline travels between the repositories as copied edits, never as references.
+- All six siblings named here (arc-ready, auditor-suite, godaudits, pillars, codedna, docdna) stay standalone. godplans depends on none of them at runtime and none of them depends on godplans; reading another sibling's output file when it happens to exist is not a dependency, and shared discipline travels between the repositories as copied edits, never as references.

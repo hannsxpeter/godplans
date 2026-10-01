@@ -3,6 +3,7 @@
 #
 # Usage:
 #   ./install.sh                       install globally for every detected tool
+#   ./install.sh --global              same as the default: install into your home directory
 #   ./install.sh --project [dir]       install into a project (default: cwd)
 #   ./install.sh --tools claude,codex  limit targets (agents,claude,factory,cline,windsurf,copilot-cloud)
 #   ./install.sh --copy                copy instead of symlink (Windows, some CI)
@@ -57,7 +58,7 @@ while [ $# -gt 0 ]; do
     --copy) LINK_MODE="copy" ;;
     --uninstall) ACTION="uninstall" ;;
     --force) FORCE=1 ;;
-    -h|--help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown flag: $1 (try --help)" >&2; exit 1 ;;
   esac
   shift
