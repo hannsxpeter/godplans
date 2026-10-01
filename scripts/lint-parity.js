@@ -24,6 +24,9 @@ const validatorRel = 'skills/godplans/scripts/validate-plan.sh';
 const buildRel = 'scripts/build-prompt.sh';
 const metricsRel = 'scripts/context-metrics.js';
 const portableRel = 'tests/portable-prompt.test.sh';
+const templateRel = 'skills/godplans/templates/PLAN.template.mdx';
+const discoveryRel = 'skills/godplans/references/discovery.md';
+const schemaRel = 'skills/godplans/schemas/PLAN.schema.json';
 
 function die(message) {
   process.stderr.write(`${message}\n`);
@@ -159,7 +162,7 @@ function domainParity(contractText) {
   // Read every source once. A source whose shape cannot be found is one
   // problem, and the checks that need it are skipped.
   const texts = {};
-  for (const rel of [skillRel, validatorRel, buildRel, metricsRel, portableRel]) {
+  for (const rel of [skillRel, validatorRel, buildRel, metricsRel, portableRel, templateRel, discoveryRel, schemaRel]) {
     try {
       texts[rel] = read(rel);
     } catch (error) {
@@ -214,6 +217,28 @@ function domainParity(contractText) {
     core: quotedStrings(need(text.match(/const coreModules = \[([\s\S]*?)\];/), 'const coreModules = [...]')[1]),
     lazy: quotedStrings(need(text.match(/const lazyModules = \[([\s\S]*?)\];/), 'const lazyModules = [...]')[1]),
   }));
+  // A plan copies the template's matrix and the discovery module shows a worked
+  // one; the validator fails any plan whose matrix lacks a known domain, so a
+  // row missing here reaches every plan an agent writes from these examples.
+  const matrixRows = (text) => {
+    const lines = text.split(/\r?\n/);
+    const start = lines.findIndex((line) => line === '## Applicability matrix');
+    if (start < 0) throw new Error('cannot find the "## Applicability matrix" heading');
+    const names = [];
+    for (let i = start + 1; i < lines.length && !/^#{1,3} /.test(lines[i]) && !lines[i].startsWith('```'); i += 1) {
+      const row = lines[i].match(/^\|\s*([a-z][a-z0-9-]*)\s*\|/);
+      if (row) names.push(row[1]);
+    }
+    if (names.length === 0) throw new Error('the applicability matrix has no domain rows');
+    return names;
+  };
+  const templateMatrix = extract(`${templateRel} applicability matrix`, templateRel, matrixRows);
+  const discoveryMatrix = extract(`${discoveryRel} worked applicability matrix`, discoveryRel, matrixRows);
+  const schemaCount = extract(`${schemaRel} applicability count`, schemaRel, (text) => {
+    const applicability = need(JSON.parse(text).properties || null, 'top-level properties').applicability;
+    need(applicability, 'properties.applicability');
+    return { min: applicability.minItems, max: applicability.maxItems };
+  });
   const portable = extract(`${portableRel} module lists`, portableRel, (text) => ({
     core: words(need(text.match(/^expected_refs="([^"]*)"/m), 'expected_refs="..."')[1]),
     lazy: words(need(text.match(/^lazy_refs="([^"]*)"/m), 'lazy_refs="..."')[1]),
@@ -228,7 +253,12 @@ function domainParity(contractText) {
   if (orders) lists.push([`${buildRel} full REFERENCE_ORDER`, orders.full]);
   if (metrics) lists.push([`${metricsRel} coreModules + lazyModules`, metrics.core.concat(metrics.lazy)]);
   if (portable) lists.push([`${portableRel} expected_refs + lazy_refs`, portable.core.concat(portable.lazy)]);
+  if (templateMatrix) lists.push([`${templateRel} applicability matrix`, templateMatrix]);
+  if (discoveryMatrix) lists.push([`${discoveryRel} worked applicability matrix`, discoveryMatrix]);
   for (const [label, names] of lists) compareToDomains(label, names.filter(isDomain));
+  if (schemaCount && (schemaCount.min !== domains.length || schemaCount.max !== domains.length)) {
+    problems.push(`${schemaRel} applicability minItems ${schemaCount.min} and maxItems ${schemaCount.max} must both equal the ${domains.length} domain modules`);
+  }
 
   // The core and lazy split agrees with context-metrics.js.
   if (metrics) {

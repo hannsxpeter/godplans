@@ -668,6 +668,13 @@ check_tag_release_parity() {
     skip "authenticated gh CLI unavailable; scripts/release-check.sh requires it"
     return 0
   fi
+  # A clone made with --no-tags or --depth has nothing to compare, and an empty
+  # loop must not read as parity.
+  if [ "$(git -C "$REPO_DIR" rev-parse --is-shallow-repository 2>/dev/null)" = "true" ] ||
+      [ -z "$(git -C "$REPO_DIR" tag --list 'v*')" ]; then
+    fail "no v* tags in a full-history checkout; run git fetch --tags --unshallow (or git fetch --tags) first"
+    return 0
+  fi
   for tag in $(git -C "$REPO_DIR" tag --list 'v*' --sort=version:refname); do
     version=${tag#v}
     tagged_version=$(git -C "$REPO_DIR" show "$tag:package.json" 2>/dev/null | awk -F'"' '/"version":/ { print $4; exit }' || true)

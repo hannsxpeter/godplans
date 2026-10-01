@@ -129,7 +129,7 @@ node -e '
   const crypto = require("node:crypto");
   const plan = fs.readFileSync(process.argv[1]);
   fs.writeFileSync(process.argv[2], JSON.stringify({
-    format: "godplans/plan-json@1",
+    format: "godplans/plan-json@2",
     plan_digest: "sha256:" + crypto.createHash("sha256").update(plan).digest("hex")
   }));
 ' "$TMP/PLAN.mdx" "$TMP/PLAN.json"

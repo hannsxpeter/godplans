@@ -158,7 +158,7 @@ Final artifact check: `test -f .godplans/PLAN.mdx && test -x .godplans/validate-
 
 - **Greenfield**: the full method above.
 - **Brownfield**: Phase 0 fingerprints the existing codebase first. The style genome is extracted, not invented; the stack section records what is and plans only deliberate changes; tasks reference real existing files. The plan extends the codebase, never restarts it.
-- **Replan**: `.godplans/PLAN.mdx` exists. Re-derive state from disk: count checked and unchecked tasks, read the session log, and recompute the recorded source and completed-or-imported evidence. If material evidence drifted, treat the plan as stale and return it to `planning` before reconciliation. Completed tasks are never renumbered, reworded, or unchecked. New and changed work gets new task IDs. Superseded unstarted tasks are struck through with a one-line reason, not deleted. The Phase 0 half-life report on the outgoing plan measures cumulative task survival and per-domain supersession rate; a domain struck repeatedly was over-planned at that scale, so shrink its appetite instead of reseeding the same tasks. If the re-copied validator reports a missing domain, the skill gained it after the plan was written: add its matrix row, frontmatter entry, and disposition line on the usual rules, and treat an applicable new domain as material. Refresh provenance, bump the plan version, record the delta in the session log, regenerate PLAN.json, and require fresh approval before execution resumes.
+- **Replan**: `.godplans/PLAN.mdx` exists. Re-derive state from disk: count checked and unchecked tasks, read the session log, and recompute the recorded source and completed-or-imported evidence. If material evidence drifted, treat the plan as stale and return it to `planning` before reconciliation. Completed tasks are never renumbered, reworded, or unchecked. New and changed work gets new task IDs. Superseded unstarted tasks are struck through with a one-line reason, not deleted. The Phase 0 half-life report on the outgoing plan measures cumulative task survival and per-domain supersession rate; a domain struck repeatedly was over-planned at that scale, so shrink its appetite instead of reseeding the same tasks. If the re-copied validator reports a missing domain, the skill gained it after the plan was written: add its matrix row, frontmatter entry, and (when applicable) disposition line on the usual rules, re-point any documentation row whose catalog owner moved, and treat an applicable new domain as material. Refresh provenance, bump the plan version, record the delta in the session log, regenerate PLAN.json, and require fresh approval before execution resumes.
 
 ## After the plan: execution
 
@@ -1627,8 +1627,8 @@ source_revision: 0123456789abcdef0123456789abcdef01234567
 input_digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 validated_at: 2026-07-13T12:00:00Z
 domains_applicable: [product, architecture, stack, database, security, ...]
-domains_deferred: [observe]
-domains_excluded: [seo, llm]
+domains_deferred: [observe, seo]
+domains_excluded: [llm]
 progress:
   phases_total: 0
   phases_done: 0
@@ -1641,7 +1641,7 @@ Allowed modes are `greenfield`, `brownfield`, and `replan`. Frontmatter is the d
 
 Allowed product forms are `web-application`, `api-or-service`, `cli-or-sdk`, `mobile-or-desktop`, `data-or-ml`, and `infrastructure-or-iac`. `public_release` is `true` only when execution can activate a public site, service, package, store artifact, model, or infrastructure surface. Internal and local-only projects set it to `false`; they do not inherit a public-activation gate.
 
-`archetype_confidence` is `high`, `medium`, or `low`, and it is derived, not asserted: the validator recomputes it from the scores in the `### Archetype confidence` block and fails any disagreement. `overlays` is an inline list from the fixed set in `discovery.md` (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`, `monetized`), or `[]`. Overlays raise and never lower: a domain any listed overlay covers may be `applicable` or `deferred` but never `excluded`, and the validator enforces that against the matrix.
+`archetype_confidence` is `high`, `medium`, or `low`, and it is derived, not asserted: the validator recomputes it from the scores in the `### Archetype confidence` block and fails any disagreement. `overlays` is an inline list from the fixed set in `discovery.md` (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`, `monetized`), or `[]`. Overlays raise and never lower: a domain any listed overlay covers is never `excluded`; it is `applicable`, or `deferred` where the deferrable set allows, and the validator enforces that against the matrix.
 
 `source_revision` is the full Git commit used for planning, or `none` when no revision exists. `validated_at` is a UTC ISO-8601 timestamp. The `## Plan provenance` values repeat those frontmatter values exactly, with no trailing punctuation. Its machine-readable inventory contains one or more lines shaped ``- `<label>` = `sha256:<64-lowercase-hex>` ``. Prefix a stable file artifact with `[recheck]` when phase-boundary drift checks must recompute it: ``- [recheck] `path/to/artifact` = `sha256:<64-lowercase-hex>` ``. A recheck label is a repository-relative file path, not an alias. Labels use only ASCII letters, digits, `.`, `_`, `/`, and `-`; labels are unique; and exactly one label is `intake`. Hash normalized intake text for `intake`, and hash raw file bytes for file entries. To derive `input_digest`, sort entries lexicographically by label, concatenate each as `<label><TAB><64-lowercase-hex><LF>`, hash the UTF-8 bytes with SHA-256, and prefix the result with `sha256:`. The `[recheck]` marker does not enter the digest. Inventory display order does not affect the aggregate. These values bind the plan to its inputs; they are not claims that later execution leaves the repository unchanged.
 
@@ -1698,7 +1698,7 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
    ```
 
    `dropped-by` takes exactly one of `scale`, `archetype`, or `form`, and carries a parenthetical reason. A requirement listed as dropped may not appear on any task's `Requirements:` line, and the two lists in one module line may not overlap. Naming the dropping layer is what separates a decision from an oversight: without it, a requirement cut to fit a weekend appetite is indistinguishable from one nobody considered.
-7. `## Decisions`. Hard-to-reverse bets first: wire formats, public identifiers, data-model shape, auth and ownership boundaries. Each entry is a decision with rationale, a hypothesis with a validation plan, or a pointer to Open Questions. Where options were weighed, show the comparison in a small table. Every `### D<n>` decision entry carries this structured falsifier:
+7. `## Decisions`. Hard-to-reverse bets first: wire formats, public identifiers, data-model shape, auth and ownership boundaries. Each entry is a decision with rationale, a hypothesis with a validation plan, or a pointer to Open Questions. The only `###` headings under `## Decisions` are `### D<n>: <title>` entries and `### Assumptions ledger`; hypotheses live in the ledger and pointers to Open Questions sit in a D<n> body. Where options were weighed, show the comparison in a small table. Every `### D<n>` decision entry carries this structured falsifier:
 
    ```markdown
    Falsifier:
@@ -1900,7 +1900,7 @@ bash .godplans/validate-plan.sh --allow-planning --emit-json .godplans/PLAN.json
 
 PLAN.json carries the frontmatter, applicability rows, decision falsifiers, progress counters, phases, active tasks, superseded tasks, and cumulative supersession metrics (with `depends_on` and `requirements` as arrays, and `parallel` carrying the validated `[P]` marker so a runner can schedule a wave without re-deriving which tasks are safe to run at once) so executing agents and tooling never parse MDX checkboxes. It is generated atomically and never hand-edited: any plan edit regenerates it with the same command. Its `plan_digest` field is the SHA-256 of the PLAN.mdx bytes at generation time; a consumer recomputes the digest before trusting the sidecar and regenerates on mismatch. The plan remains the only source of truth; the sidecar is a derived view, and the validator regenerates it only from a plan that passes every structural check.
 
-The published schema is `schemas/PLAN.schema.json`. Consumers validate the sidecar against it before scheduling work, then verify `plan_digest` against the PLAN.mdx bytes.
+The published schema is `schemas/PLAN.schema.json` for `format: godplans/plan-json@2`; sidecars from godplans 1.13.0 and earlier carry `@1` and validate against `schemas/PLAN.v1.schema.json`. Consumers pick the schema by the `format` tag and validate the sidecar before scheduling work, then verify `plan_digest` against the PLAN.mdx bytes.
 
 ## Size discipline
 
@@ -1908,7 +1908,7 @@ The plan is re-read every session; bloat is a tax on every future turn. Budgets:
 
 ## Replan protocol
 
-When PLAN.mdx already exists: read it fully, recount progress from checkboxes, read the session log, and recompute the source evidence recorded under `## Plan provenance`. Recheck every artifact recorded as completed or imported. If its content, revision, or existence changed materially, mark the plan stale by returning `status` to `planning` before applying the delta; do not trust the chat or old validation timestamp. Completed work is history and never altered. New work gets fresh IDs continuing the sequence. Superseded unstarted tasks are not deleted. Strike only the heading (`~~- [ ] GP-310 [W3.1] Old work~~`), then retain `  - Superseded: <one-line reason>` and `  - Requirements: <original ids>` so the audit trail and domain metric survive. Refresh the evidence inventory, `input_digest`, and `validated_at`; bump `plan_version`; log the delta in the session log; and re-run the Phase 6 audit on any section that changed.
+When PLAN.mdx already exists: read it fully, recount progress from checkboxes, read the session log, and recompute the source evidence recorded under `## Plan provenance`. Recheck every artifact recorded as completed or imported. If its content, revision, or existence changed materially, mark the plan stale by returning `status` to `planning` before applying the delta; do not trust the chat or old validation timestamp. Completed work is history and never altered. New work gets fresh IDs continuing the sequence. Superseded unstarted tasks are not deleted. Strike only the heading (`~~- [ ] GP-310 [W3.1] Old work~~`), then retain `  - Superseded: <one-line reason>` and `  - Requirements: <original ids>` so the audit trail and domain metric survive. A plan written by an older godplans may fail the re-copied validator on rules added since; each message names its fix. Add a domain the skill gained (its matrix row, frontmatter entry, and disposition line when applicable), re-point a documentation row whose catalog owner moved (a required `frame.business-case` row makes business applicable), retitle Decisions headings, and move a task block, completed or not, to restore wave order: none of these rewords completed work. Refresh the evidence inventory, `input_digest`, and `validated_at`; bump `plan_version`; log the delta in the session log; and re-run the Phase 6 audit on any section that changed.
 
 Measure the outgoing plan first, in Phase 0, before the compliance gate re-copies the companion: run `bash .godplans/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json`. It uses `GODPLANS_VALIDATOR` when set, else the plan's own `.godplans/validate-plan.sh`; a newer validator may reject the outgoing plan. The report records active, superseded, and historical tasks, plus cumulative supersession and survival rates overall and per requirement domain. A domain whose tasks are struck repeatedly was over-planned at that scale; shrink its appetite on the next pass instead of reseeding the same tasks.
 
@@ -2026,21 +2026,21 @@ An excluded cell reads: `absent:` or `by-design:`, then the reason, then
 | observe | applicable-deferred-or-excluded | excluded: state + reason + revisit when; deferred: trigger + reversibility |
 | launch | applicable-deferred-or-excluded | excluded: state + reason + revisit when; deferred: trigger + reversibility |
 
-### Module disposition
+One module disposition line per applicable module follows. `dropped-by` names
+the layer that removed a requirement: scale, archetype, or form. A dropped ID
+appears on no task.
 
-One line per applicable module. `dropped-by` names the layer that removed a
-requirement: scale, archetype, or form. A dropped ID appears on no task.
+### Module disposition
 
 - MODULE: landed R-XXX-n, R-XXX-n; dropped-by scale R-XXX-n (reason)
 
-Scale calibration: weekend | side-project | funded-product | enterprise.
-
 ## Decisions
 
-Hard-to-reverse bets first. Each entry: the decision with rationale and rejected
-alternatives, a structured Falsifier block (the observable signal, failure
-boundary, and return-to-planning action), or a hypothesis with its validation
-task, or a pointer to Open Questions.
+Hard-to-reverse bets first. Each `### D<n>:` entry: the decision with rationale
+and rejected alternatives and a structured Falsifier block (the observable
+signal, failure boundary, and return-to-planning action). Hypotheses go in the
+`### Assumptions ledger`; pointers to Open Questions sit in a D<n> body. No other
+`###` headings belong under Decisions.
 
 ### D1: (data-model shape / tenancy)
 Falsifier:
@@ -3231,7 +3231,7 @@ if ($matrix_count == 1) {
         if ($disposition eq 'excluded') {
             fail("applicability matrix cannot exclude load-bearing domain $domain; it scales down instead")
                 if $never_excludable{$domain};
-            fail("applicability matrix excludes $domain, which the $overlay_protected{$domain} overlay covers; overlays raise and never lower, so this row may be applicable or deferred but not excluded")
+            fail("applicability matrix excludes $domain, which the $overlay_protected{$domain} overlay covers; overlays raise and never lower, so this row " . ($deferrable_domain{$domain} ? "may be applicable or deferred but not excluded" : "must be applicable"))
                 if $overlay_protected{$domain};
             my ($state) = $reason =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
             $state = defined $state ? lc $state : '';
@@ -3418,7 +3418,7 @@ if (%domain_disposition) {
                 if exists $task_requirement{$id};
         }
         for my $id (sort keys %landed) {
-            fail("module disposition lands $id but nothing in the plan references it")
+            fail("module disposition lands $id but nothing outside the frontmatter, session log, and disposition block references it")
                 unless $reference_lines{$id};
         }
         push @json_disposition, {
@@ -3821,7 +3821,7 @@ if ($emit_json ne '') {
     } sort keys %domain_disposition;
 
     my %document = (
-        format          => 'godplans/plan-json@1',
+        format          => 'godplans/plan-json@2',
         plan_digest     => 'sha256:' . sha256_hex($plan_bytes),
         name            => $frontmatter{name},
         plan_version    => $frontmatter{plan_version} + 0,

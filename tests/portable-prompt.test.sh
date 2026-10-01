@@ -182,6 +182,16 @@ unresolved=$(unresolved_paths "$FULL_PROMPT")
 [ -z "$unresolved" ] || fail "unresolved required local reference remains in the full prompt:\n$unresolved"
 assert_halflife_portable full "$FULL_PROMPT"
 
+# A rewritten "the inlined X reference" must point at a module this prompt
+# actually inlines; the generic full-mode rewrite would otherwise turn a path
+# to a file outside the skill into a reference to nothing.
+for file in "$PROMPT" "$FULL_PROMPT"; do
+  for name in $(grep -o 'the inlined [a-z-]* reference' "$file" | awk '{print $3}' | sort -u); do
+    grep -Fqx "# INLINED REFERENCE: references/$name.md" "$file" ||
+      fail "${file##*/} says 'the inlined $name reference' but inlines no references/$name.md"
+  done
+done
+
 for written in "$REPO_DIR/PROMPT.md" "$REPO_DIR/PROMPT.full.md"; do
   if [ -e "$written" ] && [ -n "$(find "$written" -newer "$STAMP")" ]; then
     fail "test run rewrote ${written#"$REPO_DIR"/}"

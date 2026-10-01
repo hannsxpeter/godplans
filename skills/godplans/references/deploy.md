@@ -67,7 +67,7 @@ Criterion: WHEN a deploy is the first to its environment THE PLAN SHALL include 
 R-DEPLOY-13. The readiness probe is truthful: it returns healthy only when the service can serve a real request, exercising at least one critical dependency, never on socket bind.
 Criterion: WHEN health checking is planned THE PLAN SHALL require the probe to fail while a critical dependency is down and SHALL NOT accept a 200-on-bind probe.
 
-R-DEPLOY-14. Feature-flag lineage is audited: no flag name is reused from a prior deploy until the old code path behind it is confirmed removed. The flag mechanism, its fallback, owners and expiry, and runtime kill switches are R-BIZ-23's when business is applicable; this requirement owns name reuse.
+R-DEPLOY-14. Feature-flag lineage is audited: no flag name is reused from a prior deploy until the old code path behind it is confirmed removed. When R-BIZ-23 lands, the flag mechanism, its fallback, owners and expiry, and runtime kill switches are its; otherwise this module plans them. This requirement always owns name reuse.
 Criterion: IF the plan introduces or reuses feature flags THE PLAN SHALL include a lineage-audit step before any name reuse.
 
 R-DEPLOY-15. Every production deploy is followed by planned verification: healthcheck healthy, p99 latency and error rate within the canary threshold for at least 15 minutes, critical-path smoke run, and the contract phase scheduled if an expand shipped.

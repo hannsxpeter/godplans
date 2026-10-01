@@ -291,6 +291,16 @@ expect "a new module unknown to every list fails domain-parity" 1 \
   "FAIL [domain-parity] scripts/context-metrics.js coreModules + lazyModules lacks domain module product-ops" \
   "FAIL [domain-parity] tests/portable-prompt.test.sh expected_refs + lazy_refs lacks domain module product-ops"
 
+# The template matrix every plan copies, discovery's worked matrix, and the
+# schema's row count are compared too.
+fresh
+perl -0pi -e 's/^\| business \| applicable-or-excluded \|[^\n]*\n//m' "$CASE/skills/godplans/templates/PLAN.template.mdx"
+perl -0pi -e 's/"minItems": 19,/"minItems": 18,/' "$CASE/skills/godplans/schemas/PLAN.schema.json"
+run domain-parity
+expect "template matrix and schema count are compared" 1 \
+  "FAIL [domain-parity] skills/godplans/templates/PLAN.template.mdx applicability matrix lacks domain module business" \
+  "FAIL [domain-parity] skills/godplans/schemas/PLAN.schema.json applicability minItems 18 and maxItems 19 must both equal the 19 domain modules"
+
 # One list drifting fails only on that file: once as a missing module and
 # once as a gap in its lazy list.
 fresh

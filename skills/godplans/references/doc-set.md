@@ -86,7 +86,7 @@ Never emit a folder named `rfc/`. In any shop with an ITSM process, RFC reads as
 | `design.ui-spec` | durable | ui | ui is applicable |
 | `design.integration-map` | durable | architecture | a third-party dependency carries a failure mode |
 | `design.capacity-model` | durable | architecture | an availability or throughput target binds, or the plan caches, replicates, or partitions |
-| `design.metrics-register` | durable | business | business is applicable and the plan names a metric (R-BIZ-3) |
+| `design.metrics-register` | durable | business | R-BIZ-3 lands (business is applicable at side-project scale or above) |
 
 ### build
 
@@ -140,7 +140,7 @@ Never emit a folder named `rfc/`. In any shop with an ITSM process, RFC reads as
 |---|---|---|---|
 | `serve.user-guide` | durable | launch | external users exist |
 | `serve.support-policy` | durable | launch | paying users exist |
-| `serve.release-notes` | durable | business | external users receive changes (R-BIZ-24; the developer changelog stays `govern.changelog`) |
+| `serve.release-notes` | durable | business | business is applicable and external users receive changes (R-BIZ-24); otherwise release notes ride `govern.changelog` |
 
 ### govern
 
@@ -157,7 +157,7 @@ Never emit a folder named `rfc/`. In any shop with an ITSM process, RFC reads as
 | Document | Durability | Owner module | Selected by |
 |---|---|---|---|
 | `retire.archive-manifest` | evidence | roadmap | a stated sunset date or a data-retention obligation |
-| `retire.deprecation-notice` | evidence | business | a feature, plan, or public API version is deprecated (R-BIZ-24) |
+| `retire.deprecation-notice` | evidence | business | business is applicable and a feature, plan, or public API version is deprecated (R-BIZ-24) |
 
 ## 6. Verdict times state equals action
 

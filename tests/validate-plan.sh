@@ -734,7 +734,7 @@ node -e '
   const plan = fs.readFileSync(process.argv[1]);
   const doc = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
   const digest = "sha256:" + crypto.createHash("sha256").update(plan).digest("hex");
-  if (doc.format !== "godplans/plan-json@1") throw new Error("bad format tag");
+  if (doc.format !== "godplans/plan-json@2") throw new Error("bad format tag");
   if (doc.plan_digest !== digest) throw new Error("plan_digest mismatch");
   if (doc.status !== "planning") throw new Error("status mismatch");
   if (doc.public_release !== false) throw new Error("public_release mismatch");
@@ -925,7 +925,7 @@ expect_fail "module disposition drops a requirement a task cites" "module dispos
 
 new_case
 perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-STACK-7/m' "$CASE_FILE"
-expect_fail "module disposition lands an unreferenced requirement" "module disposition lands R-STACK-7 but nothing in the plan references it" --allow-planning "$CASE_FILE"
+expect_fail "module disposition lands an unreferenced requirement" "module disposition lands R-STACK-7 but nothing outside the frontmatter, session log, and disposition block references it" --allow-planning "$CASE_FILE"
 
 new_case
 perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-SEC-1/m' "$CASE_FILE"
@@ -1077,7 +1077,7 @@ expect_fail "business never defers" "cannot defer load-bearing domain business" 
 
 new_case
 perl -0pi -e 's/^overlays: \[\]$/overlays: [monetized]/m; s/^- Overlays: none$/- Overlays: monetized/m' "$CASE_FILE"
-expect_fail "monetized overlay keeps business in the plan" "which the monetized overlay covers" --allow-planning "$CASE_FILE"
+expect_fail "monetized overlay keeps business in the plan" "which the monetized overlay covers; overlays raise and never lower, so this row must be applicable" --allow-planning "$CASE_FILE"
 
 BUSINESS_PLAN="$TMP_DIR/valid-business.mdx"
 cp "$BASE_PLAN" "$BUSINESS_PLAN"
@@ -1497,15 +1497,15 @@ expect_fail "module disposition lands an undefined id" "module disposition for r
 
 new_case
 perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-STACK-1, R-STACK-7/m; s/^- 2026-07-13 plan created$/- 2026-07-13 plan created; R-STACK-7 noted/m' "$CASE_FILE"
-expect_fail "landed requirement only in the session log" "module disposition lands R-STACK-7 but nothing in the plan references it" --allow-planning "$CASE_FILE"
+expect_fail "landed requirement only in the session log" "module disposition lands R-STACK-7 but nothing outside the frontmatter, session log, and disposition block references it" --allow-planning "$CASE_FILE"
 
 new_case
 perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-STACK-1, R-STACK-7/m; s/^name: validator-fixture$/name: validator-fixture-R-STACK-7/m' "$CASE_FILE"
-expect_fail "landed requirement only in the frontmatter" "module disposition lands R-STACK-7 but nothing in the plan references it" --allow-planning "$CASE_FILE"
+expect_fail "landed requirement only in the frontmatter" "module disposition lands R-STACK-7 but nothing outside the frontmatter, session log, and disposition block references it" --allow-planning "$CASE_FILE"
 
 new_case
 perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-STACK-1, R-STACK-7/m; s/\(one shell entry point, no heavy pattern to justify\)/(one shell entry point, see R-STACK-7)/' "$CASE_FILE"
-expect_fail "landed requirement only in another disposition line" "module disposition lands R-STACK-7 but nothing in the plan references it" --allow-planning "$CASE_FILE"
+expect_fail "landed requirement only in another disposition line" "module disposition lands R-STACK-7 but nothing outside the frontmatter, session log, and disposition block references it" --allow-planning "$CASE_FILE"
 
 LANDED_IN_DECISION_PLAN="$TMP_DIR/landed-in-decision.mdx"
 cp "$BASE_PLAN" "$LANDED_IN_DECISION_PLAN"

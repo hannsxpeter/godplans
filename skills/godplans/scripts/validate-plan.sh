@@ -1039,7 +1039,7 @@ if ($matrix_count == 1) {
         if ($disposition eq 'excluded') {
             fail("applicability matrix cannot exclude load-bearing domain $domain; it scales down instead")
                 if $never_excludable{$domain};
-            fail("applicability matrix excludes $domain, which the $overlay_protected{$domain} overlay covers; overlays raise and never lower, so this row may be applicable or deferred but not excluded")
+            fail("applicability matrix excludes $domain, which the $overlay_protected{$domain} overlay covers; overlays raise and never lower, so this row " . ($deferrable_domain{$domain} ? "may be applicable or deferred but not excluded" : "must be applicable"))
                 if $overlay_protected{$domain};
             my ($state) = $reason =~ /^[ \t]*([A-Za-z-]+)[ \t]*:/;
             $state = defined $state ? lc $state : '';
@@ -1226,7 +1226,7 @@ if (%domain_disposition) {
                 if exists $task_requirement{$id};
         }
         for my $id (sort keys %landed) {
-            fail("module disposition lands $id but nothing in the plan references it")
+            fail("module disposition lands $id but nothing outside the frontmatter, session log, and disposition block references it")
                 unless $reference_lines{$id};
         }
         push @json_disposition, {
@@ -1629,7 +1629,7 @@ if ($emit_json ne '') {
     } sort keys %domain_disposition;
 
     my %document = (
-        format          => 'godplans/plan-json@1',
+        format          => 'godplans/plan-json@2',
         plan_digest     => 'sha256:' . sha256_hex($plan_bytes),
         name            => $frontmatter{name},
         plan_version    => $frontmatter{plan_version} + 0,
