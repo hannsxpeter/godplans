@@ -20,9 +20,12 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          # Tag parity reads releases through gh with GH_TOKEN; nothing here
+          # pushes or fetches with the git credential, so do not persist it.
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
@@ -30,7 +33,7 @@ jobs:
           python-version: '3.13'
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 24
 
@@ -41,3 +44,51 @@ jobs:
         run: SKILLS_REF_BIN="$(command -v skills-ref)" npm run release:check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # The scripts promise stock macOS: /bin/bash 3.2 and BSD awk, grep, sed, and
+  # find, which Ubuntu's bash 5 and GNU tools never exercise. The release-only
+  # steps (the pinned official validator, gh tag parity, npm pack) stay on the
+  # Ubuntu job.
+  macos:
+    name: stock macOS tools
+    runs-on: macos-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+
+      - name: Put /bin/bash 3.2 and BSD awk, grep, sed, and find first on PATH
+        run: |
+          # Homebrew bash 5 and GNU tools can come first on the runner's PATH.
+          # Every `bash` the tests start, and every awk, grep, sed, and find
+          # they call, resolves here instead.
+          shim="$RUNNER_TEMP/macos-shim"
+          mkdir -p "$shim"
+          ln -sf /bin/bash "$shim/bash"
+          ln -sf /usr/bin/awk "$shim/awk"
+          ln -sf /usr/bin/grep "$shim/grep"
+          ln -sf /usr/bin/sed "$shim/sed"
+          ln -sf /usr/bin/find "$shim/find"
+          echo "$shim" >> "$GITHUB_PATH"
+
+      - name: Show the tools under test
+        run: |
+          for t in bash awk grep sed find perl node python3; do
+            printf '%-8s %s\n' "$t" "$(command -v "$t" || echo missing)"
+          done
+          bash --version | sed -n 1p
+
+      - name: Run the test suite under bash 3.2
+        run: bash tests/run.sh
+
+      - name: Run every lint check under bash 3.2
+        run: bash scripts/lint.sh --all --verbose

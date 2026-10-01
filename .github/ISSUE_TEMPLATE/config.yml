@@ -1,0 +1,6 @@
+# Blank issues stay open: a vague report is still worth filing.
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/hannsxpeter/godplans/security/advisories/new
+    about: Report a way this skill's content or scripts could make an agent take unsafe action through a private GitHub Security Advisory, not a public issue (see SECURITY.md).
