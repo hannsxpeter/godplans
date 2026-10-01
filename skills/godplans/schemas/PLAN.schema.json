@@ -60,7 +60,8 @@
           "shipped-artifact",
           "operated-by-others",
           "regulated-data",
-          "agent-skill-package"
+          "agent-skill-package",
+          "monetized"
         ]
       }
     },
@@ -81,8 +82,8 @@
     },
     "applicability": {
       "type": "array",
-      "minItems": 18,
-      "maxItems": 18,
+      "minItems": 19,
+      "maxItems": 19,
       "items": {
         "type": "object",
         "required": ["domain", "status", "reason", "evidence_state", "revisit_when"],

@@ -41,6 +41,7 @@ plan-format
 "
 
 lazy_refs="
+business
 llm
 ux
 ui
@@ -129,12 +130,20 @@ grep -Fq 'expected exactly one ## Plan provenance section' "$PROMPT" ||
 # 7053 bytes against a 7070-byte smallest core module (compliance), which is
 # the invariant above, stated in bytes.
 #
-# Before moving it a third time: cut content or drop a module first, then set
+# Raised at 1.14.0, to 347923. That release closed roughly 25 validator gaps
+# (about 3.6 KB of checks the core inlines whole) and wired the business domain
+# into the orchestrator, discovery, the template, and the validator tables
+# (about 1.5 KB; the business module itself stays lazy). It paid first: the
+# Phase 5b failure-class list became a pointer to the exemplar gate it
+# duplicated, and the plan-format machine-checks summary was regrouped, about
+# 2.2 KB cut. 347923 leaves 7053 bytes against compliance at 7070 again.
+#
+# Before moving it a fourth time: cut content or drop a module first, then set
 # the number so headroom lands just under the smallest core module again. Print
 # the module sizes with `npm run metrics:context` and read them out of
 # evals/metrics/context-cost.json rather than guessing.
 prompt_bytes=$(wc -c < "$PROMPT" | tr -d ' ')
-[ "$prompt_bytes" -le 337000 ] || fail "portable core exceeds 337000-byte budget: $prompt_bytes"
+[ "$prompt_bytes" -le 347923 ] || fail "portable core exceeds 347923-byte budget: $prompt_bytes"
 
 unresolved_paths() {
   sed '/^# INLINED REFERENCE: /d; /^# INLINED TEMPLATE: /d; /^# INLINED VALIDATOR: /d; /^# INLINED SCRIPT: /d' "$1" |

@@ -275,6 +275,7 @@ my %overlay_domains = (
     'operated-by-others'  => ['observe', 'deploy'],
     'regulated-data'      => ['database'],
     'agent-skill-package' => ['agent-memory'],
+    'monetized'           => ['business'],
 );
 my @overlays;
 my %overlay_declared;
@@ -287,7 +288,7 @@ if (exists $frontmatter{overlays}) {
             $overlay = trim($overlay);
             next if $overlay eq '';
             if (!exists $overlay_domains{$overlay}) {
-                fail("frontmatter overlays names unknown overlay $overlay; expected ai-system, public-ui, shipped-artifact, operated-by-others, regulated-data, or agent-skill-package");
+                fail("frontmatter overlays names unknown overlay $overlay; expected ai-system, public-ui, shipped-artifact, operated-by-others, regulated-data, agent-skill-package, or monetized");
                 next;
             }
             fail("frontmatter overlays lists $overlay twice") if $overlay_declared{$overlay}++;
@@ -357,6 +358,7 @@ for my $index (section('## Requirements')) {
 
 my %catalog_max = (
     ARCH => 24,
+    BIZ => 26,
     BUILD => 20,
     CODE => 24,
     DB => 23,
@@ -406,8 +408,9 @@ my %doc_catalog = (
     'design.capacity-model' => 'architecture|durable',
     'design.data-model' => 'database|durable',
     'design.integration-map' => 'architecture|durable',
+    'design.metrics-register' => 'business|durable',
     'design.ui-spec' => 'ui|durable',
-    'frame.business-case' => 'product|durable',
+    'frame.business-case' => 'business|durable',
     'frame.glossary' => 'style-genome|durable',
     'frame.objective' => 'product|durable',
     'frame.stakeholders' => 'repo|durable',
@@ -423,6 +426,8 @@ my %doc_catalog = (
     'operate.runbook' => 'observe|durable',
     'operate.slo' => 'observe|durable',
     'retire.archive-manifest' => 'roadmap|evidence',
+    'retire.deprecation-notice' => 'business|evidence',
+    'serve.release-notes' => 'business|durable',
     'serve.support-policy' => 'launch|durable',
     'serve.user-guide' => 'launch|durable',
     'verify.dod' => 'product|durable',
@@ -999,7 +1004,7 @@ if ($provenance_count == 1) {
 }
 
 my %known_domain = map { $_ => 1 } qw(
-    product architecture stack database security llm ux ui seo code-quality
+    product business architecture stack database security llm ux ui seo code-quality
     style-genome agent-memory repo build roadmap deploy observe launch
 );
 my %allowed_disposition = map { $_ => 1 } qw(applicable deferred excluded);
@@ -1092,7 +1097,7 @@ if ($matrix_count == 1) {
 # that name, a requirement cut to fit a weekend appetite is indistinguishable
 # from one nobody ever considered, and only one of those is a decision.
 my %module_prefix = (
-    'product' => 'PRD', 'architecture' => 'ARCH', 'stack' => 'STACK',
+    'product' => 'PRD', 'business' => 'BIZ', 'architecture' => 'ARCH', 'stack' => 'STACK',
     'database' => 'DB', 'security' => 'SEC', 'llm' => 'LLM', 'ux' => 'UX',
     'ui' => 'UI', 'seo' => 'SEO', 'code-quality' => 'CODE',
     'style-genome' => 'DNA', 'agent-memory' => 'MEM', 'repo' => 'REPO',

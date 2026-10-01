@@ -4,6 +4,7 @@ frontmatter|archetype|library
 domain|security|applicable
 domain|code-quality|applicable
 domain|database|excluded
+domain|business|excluded
 domain|llm|excluded
 domain|ui|excluded
 domain|seo|excluded

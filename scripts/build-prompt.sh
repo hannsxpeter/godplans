@@ -111,7 +111,7 @@ portable_text() {
 if [ "$MODE" = "full" ]; then
   REFERENCE_ORDER="
 compliance discovery
-product architecture stack database security llm ux ui seo code-quality
+product business architecture stack database security llm ux ui seo code-quality
 style-genome agent-memory repo build roadmap deploy observe launch
 doc-set exemplar plan-format
 "
@@ -132,7 +132,7 @@ You are operating under the godplans skill: a planning superskill that
 produces a comprehensive, audit-aware master plan (PLAN.mdx) for a software
 project before any code is written. This file is the flattened, single-file
 form of the skill for surfaces without Agent Skills support. It includes the
-orchestrator, compliance and discovery guidance, all 18 domain modules, the
+orchestrator, compliance and discovery guidance, all 19 domain modules, the
 quality exemplar, the documentation-set and plan-format contracts, the PLAN
 template, the self-contained validator, and the plan half-life script in
 workflow order. No repository-local skill files are required. When filesystem
@@ -159,10 +159,10 @@ specialized domains. Before a replan, save the inlined plan half-life script as
 
 Before each non-core domain pass, load that module from
 `skills/godplans/references/` only when the applicability matrix marks it
-applicable. The lazy modules are llm, ux, ui, seo, code-quality, style-genome,
-agent-memory, repo, build, roadmap, deploy, observe, and launch. Do not author a
-domain from memory and do not claim a complete plan if an applicable module was
-not loaded.
+applicable. The lazy modules are business, llm, ux, ui, seo, code-quality,
+style-genome, agent-memory, repo, build, roadmap, deploy, observe, and launch.
+Do not author a domain from memory and do not claim a complete plan if an
+applicable module was not loaded.
 
 `references/doc-set.md` is a contract rather than a domain, and the repo pass
 needs it: it carries the document catalog, the lifecycle stages, and the

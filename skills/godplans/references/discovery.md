@@ -119,6 +119,7 @@ Every plan records what changes if the runner-up is right, priced in the same un
 - Margin: 31 points
 - Confidence: high
 - Vetoes applied: none
+- Overlays: none
 - If the runner-up is right: +2 tasks and +0 phases; the ui and seo rows flip to excluded, GP-210 through GP-212 drop, and the contract-test task in Phase 3 grows a consumer fixture
 ```
 
@@ -136,6 +137,7 @@ An archetype answers what this thing is. An overlay answers what extra obligatio
 | `operated-by-others` | somebody other than the author runs it in production | observe, deploy |
 | `regulated-data` | personal, health, payment, or otherwise regulated data is stored | database, llm when `ai-system` also fires |
 | `agent-skill-package` | the deliverable is instructions an AI agent consumes | agent-memory |
+| `monetized` | the product charges money, sells plans or seats, or meters paid usage | business |
 
 **Overlays raise and never lower.** An overlay moves its domains up the lattice `excluded < deferred < applicable`; nothing an overlay does may push a domain down it. Concretely, an overlay forbids `excluded` for its domains. Deferral stays available wherever the deferrable set already allows it, so `public-ui` on a project whose visual system genuinely comes later still defers `ui` with its trigger. What it cannot do is deny that `ui` exists.
 
@@ -182,7 +184,7 @@ Deferral is a privilege of the reversible. Only these domains may defer, and onl
 - **ui**: the visual system (tokens, primitives) may defer with the trigger before the component library task; ux journeys are never deferred because they shape the architecture.
 - **deploy**: libraries and CLI tools may defer with the trigger before the first distribution task; services with a completion-evidence gate deploy early and never defer.
 
-Never deferrable: product, architecture, stack, database, security, llm (when applicable), ux (when applicable), code-quality, style-genome, agent-memory, repo, build, roadmap. These decide hard-to-reverse shape or feed every other pass; deferring them is plan theater with a calendar.
+Never deferrable: product, business, architecture, stack, database, security, llm (when applicable), ux (when applicable), code-quality, style-genome, agent-memory, repo, build, roadmap. These decide hard-to-reverse shape or feed every other pass; deferring them is plan theater with a calendar.
 
 ```markdown
 ## Applicability matrix
@@ -190,6 +192,7 @@ Never deferrable: product, architecture, stack, database, security, llm (when ap
 | Domain | Status | Reason |
 |---|---|---|
 | product | applicable | |
+| business | excluded | by-design: one household, no charge, no analytics; revisit when: any task adds a price, a checkout, an uninvited sign-up route, or an analytics SDK |
 | architecture | applicable | |
 | stack | applicable | |
 | database | applicable | |
@@ -209,7 +212,7 @@ Never deferrable: product, architecture, stack, database, security, llm (when ap
 | launch | excluded | by-design: internal tool, adoption is an email; revisit when: the plan adds a sign-up route reachable without an invite, or `public_release` flips to true |
 ```
 
-Hard rules: security, code-quality, style-genome, repo, roadmap are never excluded and never deferred (they scale down instead). seo requires a public crawlable surface. llm requires actual model integration; "we might add AI later" is a roadmap entry, not an llm pass and not a deferral. ui requires rendered pixels the project owns.
+Hard rules: security, code-quality, style-genome, repo, roadmap are never excluded and never deferred (they scale down instead). business requires external users or a charge. seo requires a public crawlable surface. llm requires actual model integration; "we might add AI later" is a roadmap entry, not an llm pass and not a deferral. ui requires rendered pixels the project owns.
 
 ### Module disposition and monotonic escalation
 

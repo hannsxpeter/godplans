@@ -305,13 +305,13 @@ count_is "every message names the drifting file" 2 "FAIL [domain-parity] tests/p
 # The core and lazy split, the lazy module sentence, and the module count in
 # build-prompt.sh are compared too, even when every union list is complete.
 fresh
-replace_once "$CASE/scripts/build-prompt.sh" 'all 18 domain modules' 'all 17 domain modules'
-replace_once "$CASE/scripts/build-prompt.sh" 'The lazy modules are llm, ux, ui,' 'The lazy modules are llm, ui,'
+replace_once "$CASE/scripts/build-prompt.sh" 'all 19 domain modules' 'all 18 domain modules'
+replace_once "$CASE/scripts/build-prompt.sh" 'The lazy modules are business, llm, ux, ui,' 'The lazy modules are business, llm, ui,'
 perl -0pi -e 's/^product architecture stack database security\nexemplar plan-format$/product architecture stack database\nexemplar plan-format/m' "$CASE/scripts/build-prompt.sh"
 perl -0pi -e 's/^ux\n//m; s/^security\n/security\nux\n/m' "$CASE/tests/portable-prompt.test.sh"
 run domain-parity
 expect "build-prompt prose and the core and lazy split are compared" 1 \
-  "FAIL [domain-parity] scripts/build-prompt.sh full-mode header says all 17 domain modules, but skills/godplans/references has 18" \
+  "FAIL [domain-parity] scripts/build-prompt.sh full-mode header says all 18 domain modules, but skills/godplans/references has 19" \
   "FAIL [domain-parity] scripts/build-prompt.sh core-mode lazy module sentence lacks ux, which scripts/context-metrics.js lazyModules names" \
   "FAIL [domain-parity] scripts/build-prompt.sh core REFERENCE_ORDER lacks security, which scripts/context-metrics.js coreModules names" \
   "FAIL [domain-parity] tests/portable-prompt.test.sh expected_refs names ux, which scripts/context-metrics.js coreModules does not" \

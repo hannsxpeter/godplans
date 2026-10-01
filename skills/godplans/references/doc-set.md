@@ -64,7 +64,7 @@ Every row carries the module that owns it. **A document has exactly one owner mo
 | Document | Durability | Owner module | Selected by |
 |---|---|---|---|
 | `frame.objective` | durable | product | always (lives in PLAN.mdx, not a separate file) |
-| `frame.business-case` | durable | product | scale is funded-product or enterprise |
+| `frame.business-case` | durable | business | business is applicable and scale is funded-product or enterprise (R-BIZ-1, R-BIZ-2) |
 | `frame.glossary` | durable | style-genome | always (R-DNA-12 domain glossary) |
 | `frame.stakeholders` | durable | repo | an external authorizer exists, or scale is enterprise |
 
@@ -86,6 +86,7 @@ Never emit a folder named `rfc/`. In any shop with an ITSM process, RFC reads as
 | `design.ui-spec` | durable | ui | ui is applicable |
 | `design.integration-map` | durable | architecture | a third-party dependency carries a failure mode |
 | `design.capacity-model` | durable | architecture | an availability or throughput target binds, or the plan caches, replicates, or partitions |
+| `design.metrics-register` | durable | business | business is applicable and the plan names a metric (R-BIZ-3) |
 
 ### build
 
@@ -139,6 +140,7 @@ Never emit a folder named `rfc/`. In any shop with an ITSM process, RFC reads as
 |---|---|---|---|
 | `serve.user-guide` | durable | launch | external users exist |
 | `serve.support-policy` | durable | launch | paying users exist |
+| `serve.release-notes` | durable | business | external users receive changes (R-BIZ-24; the developer changelog stays `govern.changelog`) |
 
 ### govern
 
@@ -155,6 +157,7 @@ Never emit a folder named `rfc/`. In any shop with an ITSM process, RFC reads as
 | Document | Durability | Owner module | Selected by |
 |---|---|---|---|
 | `retire.archive-manifest` | evidence | roadmap | a stated sunset date or a data-retention obligation |
+| `retire.deprecation-notice` | evidence | business | a feature, plan, or public API version is deprecated (R-BIZ-24) |
 
 ## 6. Verdict times state equals action
 

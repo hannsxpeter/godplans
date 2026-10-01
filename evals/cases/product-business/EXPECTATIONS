@@ -1,0 +1,18 @@
+outcome|plan|
+frontmatter|mode|greenfield
+frontmatter|archetype|saas-dashboard
+frontmatter|overlays|\[[^]]*monetized[^]]*\]
+domain|business|applicable
+domain|database|applicable
+domain|llm|excluded
+contains|R-BIZ-9|
+contains|R-BIZ-12|
+contains|R-BIZ-13|
+contains|R-BIZ-16|
+contains-ci|kill criterion|
+contains-ci|north star|
+contains-ci|legacy|
+max-count|## Open Questions|1
+contains|## Documentation set|
+contains|### Module disposition|
+contains|revisit when:|

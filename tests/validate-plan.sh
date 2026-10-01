@@ -31,7 +31,7 @@ input_digest: sha256:1c7ca1006bb3157ad989c1f1dd1cd1d6e8e2a44d9509821ffa43f3be205
 validated_at: 2026-07-13T12:00:00Z
 domains_applicable: [product, architecture, stack, security, code-quality, style-genome, agent-memory, repo, build, roadmap]
 domains_deferred: []
-domains_excluded: [database, llm, ux, ui, seo, deploy, observe, launch]
+domains_excluded: [database, business, llm, ux, ui, seo, deploy, observe, launch]
 progress:
   phases_total: 2
   phases_done: 0
@@ -78,6 +78,7 @@ Result: pass.
 | Domain | Status | Reason |
 |---|---|---|
 | product | applicable | fixture requirement |
+| business | excluded | by-design: the validator ships free inside the skill with no account, price, or telemetry; revisit when: any task adds a price, a hosted endpoint, a sign-up route, or a telemetry call |
 | architecture | applicable | shell and embedded Perl boundary |
 | stack | applicable | stock macOS and Linux toolchain |
 | database | excluded | by-design: the validator reads a plan and writes a sidecar, holding no state between runs; revisit when: any task introduces a datastore or a persisted cache |
@@ -742,7 +743,7 @@ node -e '
   if (doc.tasks[1].depends_on[0] !== "GP-101") throw new Error("depends_on mismatch");
   if (doc.tasks[2].requirements.indexOf("R-CODE-21") < 0) throw new Error("requirements mismatch");
   if (doc.phases.length !== 2 || doc.phases[1].name !== "Verification") throw new Error("phase shape mismatch");
-  if (doc.applicability.length !== 18) throw new Error("applicability mismatch");
+  if (doc.applicability.length !== 19) throw new Error("applicability mismatch");
   if (doc.decisions.length !== 1 || doc.decisions[0].falsifier.signal.indexOf("Perl") < 0) throw new Error("decision mismatch");
   if (doc.metrics.task_history.active !== 3 || doc.metrics.task_history.superseded !== 0) throw new Error("history mismatch");
 ' "$BASE_PLAN" "$JSON_OUT" && record_pass "JSON sidecar content" || record_fail "JSON sidecar content" "node assertion failed"
@@ -1061,6 +1062,40 @@ perl -0pi -e '
   s/^domains_deferred: \[\]$/domains_deferred: [deploy]/m
 ' "$OVERLAY_PLAN"
 expect_pass "overlay domain may defer" --allow-planning "$OVERLAY_PLAN"
+
+# The business domain: a plan written before the domain existed gains the
+# row in replan, the domain never defers, the monetized overlay keeps it in
+# the plan, and its requirements resolve against the embedded catalog.
+
+new_case
+perl -0pi -e 's/^\| business \| excluded \|[^\n]*\|\n//m; s/^(domains_excluded: \[database), business/$1/m' "$CASE_FILE"
+expect_fail "plan written before the business domain" "applicability matrix is missing domain business" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| business \| excluded \|[^\n]*\|$/| business | deferred | trigger: the first priced plan enters the roadmap; reversible until checkout ships |/m; s/^(domains_excluded: \[database), business/$1/m; s/^domains_deferred: \[\]$/domains_deferred: [business]/m' "$CASE_FILE"
+expect_fail "business never defers" "cannot defer load-bearing domain business" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^overlays: \[\]$/overlays: [monetized]/m; s/^- Overlays: none$/- Overlays: monetized/m' "$CASE_FILE"
+expect_fail "monetized overlay keeps business in the plan" "which the monetized overlay covers" --allow-planning "$CASE_FILE"
+
+BUSINESS_PLAN="$TMP_DIR/valid-business.mdx"
+cp "$BASE_PLAN" "$BUSINESS_PLAN"
+perl -0pi -e '
+  s/^overlays: \[\]$/overlays: [monetized]/m;
+  s/^- Overlays: none$/- Overlays: monetized/m;
+  s/^\| business \| excluded \|[^\n]*\|$/| business | applicable | the fixture sells a paid tier |/m;
+  s/^(domains_excluded: \[database), business/$1/m;
+  s/^(domains_applicable: \[product), /$1, business, /m;
+  s/^(- product: landed R-PRD-1;[^\n]*\n)/$1- business: landed R-BIZ-9; dropped-by archetype R-BIZ-25 (D1: no controlled experiments, D2: no flag mechanism)\n/m;
+  s/^(  - Requirements: R-1\.1, R-CODE-21, R-ARCH-4, R-STACK-1)$/$1, R-BIZ-9/m
+' "$BUSINESS_PLAN"
+expect_pass "monetized plan with the business module landed" --allow-planning "$BUSINESS_PLAN"
+
+new_case
+cp "$BUSINESS_PLAN" "$CASE_FILE"
+perl -0pi -e 's/^(  - Requirements: R-1\.1, R-CODE-21, R-ARCH-4, R-STACK-1), R-BIZ-9$/$1, R-BIZ-27/m' "$CASE_FILE"
+expect_fail "business requirement outside the catalog" "R-BIZ-27" --allow-planning "$CASE_FILE"
 
 # Brownfield absent: claims carry the search that came back empty.
 
