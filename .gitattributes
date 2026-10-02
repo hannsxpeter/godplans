@@ -1,0 +1,25 @@
+# Store and check out every text file with LF endings, whatever a
+# contributor's core.autocrlf says. The scripts run under bash 3.2 and BSD
+# tools, where a CR breaks a shell line, and SKILL.md has every plan copy
+# scripts/validate-plan.sh byte for byte and compare it with cmp -s.
+* text=auto eol=lf
+
+# Binary assets: never normalized, never diffed as text.
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.ico binary
+
+# Frozen evaluation evidence and fixture inputs are not product code: keep
+# them out of the repository language stats.
+evals/outcomes/results/** linguist-vendored=true
+evals/cases/*/INPUT/** linguist-vendored=true
+
+# Generated files: GitHub collapses their diffs. Regenerate them, never edit
+# them by hand (npm run build:prompt, npm run metrics:context).
+PROMPT.md linguist-generated=true
+evals/metrics/context-cost.json linguist-generated=true
+
+# Agent CLI event streams are machine output; a line diff of them says nothing.
+*.jsonl -diff

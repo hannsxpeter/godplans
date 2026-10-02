@@ -11,7 +11,21 @@ fail() {
   exit 1
 }
 
-cp -R "$ROOT" "$TMP/repo"
+# copy_repo DEST: copy every tracked file and every untracked file git does not
+# ignore (never the 16 MB validator venv or other local state), then give the
+# copy its own repository so the lint's git-based file list and ignore rules
+# apply there.
+copy_repo() {
+  mkdir -p "$1"
+  (cd "$ROOT" && git ls-files -z --cached --others --exclude-standard |
+    while IFS= read -r -d '' f; do
+      if [ -e "$f" ] || [ -L "$f" ]; then printf '%s\0' "$f"; fi
+    done |
+    tar -cf - --null -T -) | (cd "$1" && tar -xf -)
+  (cd "$1" && git init -q && git add -A) >/dev/null 2>&1
+}
+
+copy_repo "$TMP/repo"
 
 MEMORY_MODULE="$TMP/repo/skills/godplans/references/agent-memory.md"
 if grep -Fq 'only for context and repo' "$MEMORY_MODULE"; then
@@ -23,9 +37,12 @@ fi
 grep -Fq 'agents/context.md and agents/repo.md at status: present with always_load: true' "$MEMORY_MODULE" || fail "agent-memory guidance lost the mandatory context and repo floor"
 grep -Fq 'always-loaded scope total' "$MEMORY_MODULE" || fail "agent-memory guidance lost the total always-load budget"
 
-mkdir -p "$TMP/repo/.venv-skills-ref"
-perl -CSD -e 'print chr(0x00E9), "\n"' > "$TMP/repo/.venv-skills-ref/third-party-license"
-if ! bash "$TMP/repo/scripts/lint.sh" unicode-clean >/dev/null 2>&1; then
+# A truncated .json file holding a non-ASCII byte: both unicode-clean and
+# json-valid fail on it if the ignored venv is ever scanned, so this guard can
+# fail.
+mkdir -p "$TMP/repo/.venv-skills-ref/lib"
+perl -CSD -e 'print "{\"name\": \"caf", chr(0x00E9), "\"\n"' > "$TMP/repo/.venv-skills-ref/lib/METADATA.json"
+if ! bash "$TMP/repo/scripts/lint.sh" unicode-clean json-valid >/dev/null 2>&1; then
   fail "ignored official-validator environment was scanned as authored content"
 fi
 
@@ -55,7 +72,7 @@ if bash "$TMP/repo/scripts/lint.sh" json-valid >/dev/null 2>&1; then
 fi
 
 space_repo="$TMP/repo with space"
-cp -R "$ROOT" "$space_repo"
+copy_repo "$space_repo"
 if ! bash "$space_repo/scripts/lint.sh" json-valid >/dev/null 2>&1; then
   fail "valid JSON failed when the repository path contained spaces"
 fi

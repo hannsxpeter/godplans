@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "godplans generated plan sidecar, format godplans/plan-json@1 (emitted by godplans 1.13.0 and earlier: 18 applicability rows)",
+  "type": "object",
+  "required": [
+    "format",
+    "plan_digest",
+    "name",
+    "plan_version",
+    "status",
+    "created",
+    "updated",
+    "mode",
+    "product_form",
+    "archetype",
+    "archetype_confidence",
+    "overlays",
+    "public_release",
+    "source_revision",
+    "input_digest",
+    "validated_at",
+    "progress",
+    "applicability",
+    "module_disposition",
+    "documentation",
+    "decisions",
+    "phases",
+    "tasks",
+    "superseded_tasks",
+    "metrics"
+  ],
+  "properties": {
+    "format": { "const": "godplans/plan-json@1" },
+    "plan_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "name": { "type": "string", "minLength": 1 },
+    "plan_version": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["planning", "approved", "executing", "done"] },
+    "created": { "type": "string", "format": "date" },
+    "updated": { "type": "string", "format": "date" },
+    "mode": { "enum": ["greenfield", "brownfield", "replan"] },
+    "product_form": {
+      "enum": [
+        "web-application",
+        "api-or-service",
+        "cli-or-sdk",
+        "mobile-or-desktop",
+        "data-or-ml",
+        "infrastructure-or-iac"
+      ]
+    },
+    "archetype": { "type": "string", "minLength": 1 },
+    "archetype_confidence": { "enum": ["high", "medium", "low"] },
+    "overlays": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "ai-system",
+          "public-ui",
+          "shipped-artifact",
+          "operated-by-others",
+          "regulated-data",
+          "agent-skill-package"
+        ]
+      }
+    },
+    "public_release": { "type": "boolean" },
+    "source_revision": { "type": "string", "minLength": 1 },
+    "input_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "validated_at": { "type": "string", "minLength": 1 },
+    "progress": {
+      "type": "object",
+      "required": ["phases_total", "phases_done", "tasks_total", "tasks_done"],
+      "properties": {
+        "phases_total": { "type": "integer", "minimum": 1 },
+        "phases_done": { "type": "integer", "minimum": 0 },
+        "tasks_total": { "type": "integer", "minimum": 1 },
+        "tasks_done": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "applicability": {
+      "type": "array",
+      "minItems": 18,
+      "maxItems": 18,
+      "items": {
+        "type": "object",
+        "required": ["domain", "status", "reason", "evidence_state", "revisit_when"],
+        "properties": {
+          "domain": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["applicable", "deferred", "excluded"] },
+          "reason": { "type": "string" },
+          "evidence_state": { "type": ["string", "null"], "enum": ["absent", "by-design", null] },
+          "revisit_when": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "module_disposition": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["module", "landed", "dropped"],
+        "properties": {
+          "module": { "type": "string", "minLength": 1 },
+          "landed": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^R-[A-Z][A-Z0-9-]*-[0-9]+$" }
+          },
+          "dropped": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["layer", "reason", "requirements"],
+              "properties": {
+                "layer": { "enum": ["scale", "archetype", "form"] },
+                "reason": { "type": "string", "minLength": 1 },
+                "requirements": {
+                  "type": "array",
+                  "items": { "type": "string", "pattern": "^R-[A-Z][A-Z0-9-]*-[0-9]+$" }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "documentation": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "stage", "verdict", "owner", "durability", "detail"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z]+[.][a-z0-9-]+$" },
+          "stage": {
+            "enum": ["frame", "decide", "design", "build", "verify", "assure", "operate", "serve", "govern", "retire"]
+          },
+          "verdict": { "enum": ["required", "recommended", "optional", "not-applicable"] },
+          "owner": { "type": "string", "minLength": 1 },
+          "durability": { "enum": ["durable", "evidence", "transient"] },
+          "detail": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "falsifier"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^D[1-9][0-9]*$" },
+          "title": { "type": "string", "minLength": 1 },
+          "falsifier": {
+            "type": "object",
+            "required": ["signal", "failure_boundary", "replan_action"],
+            "properties": {
+              "signal": { "type": "string", "minLength": 1 },
+              "failure_boundary": { "type": "string", "minLength": 1 },
+              "replan_action": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "phases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["number", "name", "tasks"],
+        "properties": {
+          "number": { "type": "integer", "minimum": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "tasks": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "pattern": "^GP-[1-9][0-9]{2,}$" }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "phase", "wave", "done", "parallel", "files", "depends_on", "reuses", "acceptance", "verify", "requirements"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^GP-[1-9][0-9]{2,}$" },
+          "phase": { "type": "integer", "minimum": 1 },
+          "wave": { "type": "string", "pattern": "^W[1-9][0-9]*[.][1-9][0-9]*$" },
+          "done": { "type": "boolean" },
+          "parallel": { "type": "boolean" },
+          "files": { "type": "string", "minLength": 1 },
+          "depends_on": { "type": "array", "items": { "type": "string" } },
+          "reuses": { "type": "string", "minLength": 1 },
+          "acceptance": { "type": "string", "minLength": 1 },
+          "verify": { "type": "string", "minLength": 1 },
+          "requirements": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "superseded_tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "phase", "reason", "requirements"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^GP-[1-9][0-9]{2,}$" },
+          "phase": { "type": ["integer", "null"] },
+          "reason": { "type": "string" },
+          "requirements": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["task_history", "domains"],
+      "properties": {
+        "task_history": {
+          "type": "object",
+          "required": ["active", "superseded", "historical", "supersession_rate", "survival_rate"],
+          "properties": {
+            "active": { "type": "integer", "minimum": 0 },
+            "superseded": { "type": "integer", "minimum": 0 },
+            "historical": { "type": "integer", "minimum": 0 },
+            "supersession_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "survival_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "additionalProperties": false
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["domain", "active", "superseded", "historical", "supersession_rate"],
+            "properties": {
+              "domain": { "type": "string", "minLength": 1 },
+              "active": { "type": "integer", "minimum": 0 },
+              "superseded": { "type": "integer", "minimum": 0 },
+              "historical": { "type": "integer", "minimum": 0 },
+              "supersession_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -43,8 +43,6 @@ Evidence inventory:
 - `intake` = `sha256:INTAKE-DIGEST`
 - [recheck] `path/to/stable-artifact` = `sha256:EVIDENCE-DIGEST`
 
-Inventory labels are unique, exactly one is `intake`, and every digest covers the named normalized intake text or raw file bytes. Mark completed or imported evidence that must be rechecked on resume in its label or an adjacent plan section without changing the machine-readable inventory line.
-
 ## Product form
 
 Primary: web application | API or service | CLI or SDK | mobile or desktop | data or ML | infrastructure or IaC.
@@ -86,6 +84,7 @@ An excluded cell reads: `absent:` or `by-design:`, then the reason, then
 | Domain | Status | Reason |
 |---|---|---|
 | product | applicable | |
+| business | applicable-or-excluded | state: reason; revisit when: predicate |
 | architecture | applicable | |
 | stack | applicable | |
 | database | applicable-or-excluded | state: reason; revisit when: predicate |
@@ -104,21 +103,21 @@ An excluded cell reads: `absent:` or `by-design:`, then the reason, then
 | observe | applicable-deferred-or-excluded | excluded: state + reason + revisit when; deferred: trigger + reversibility |
 | launch | applicable-deferred-or-excluded | excluded: state + reason + revisit when; deferred: trigger + reversibility |
 
-### Module disposition
+One module disposition line per applicable module follows. `dropped-by` names
+the layer that removed a requirement: scale, archetype, or form. A dropped ID
+appears on no task.
 
-One line per applicable module. `dropped-by` names the layer that removed a
-requirement: scale, archetype, or form. A dropped ID appears on no task.
+### Module disposition
 
 - MODULE: landed R-XXX-n, R-XXX-n; dropped-by scale R-XXX-n (reason)
 
-Scale calibration: weekend | side-project | funded-product | enterprise.
-
 ## Decisions
 
-Hard-to-reverse bets first. Each entry: the decision with rationale and rejected
-alternatives, a structured Falsifier block (the observable signal, failure
-boundary, and return-to-planning action), or a hypothesis with its validation
-task, or a pointer to Open Questions.
+Hard-to-reverse bets first. Each `### D<n>:` entry: the decision with rationale
+and rejected alternatives and a structured Falsifier block (the observable
+signal, failure boundary, and return-to-planning action). Hypotheses go in the
+`### Assumptions ledger`; pointers to Open Questions sit in a D<n> body. No other
+`###` headings belong under Decisions.
 
 ### D1: (data-model shape / tenancy)
 Falsifier:
@@ -249,7 +248,7 @@ with an R-ROAD-7 validation task scheduled ahead of it, not a question. Write
 > 2. Find the first unchecked task in wave order. Re-derive state from checkboxes; trust nothing remembered.
 > 3. One task at a time. Respect Depends on. Tasks marked [P] may run concurrently; the validator has already proved their Files lists are disjoint from every other unchecked task in the wave, so treat [P] as the schedulable set and never widen it by hand.
 > 4. Run the task's Verify command. Only after it passes, flip [ ] to [x] and update the frontmatter counters and `updated:` date in the same edit. Never batch check-offs. Regenerate the sidecar in the same batch: `bash .godplans/validate-plan.sh --allow-planning --emit-json .godplans/PLAN.json .godplans/PLAN.mdx`.
-> 5. If Verify fails: the box stays unchecked. Append an indented `- Note (YYYY-MM-DD):` line under the task saying what happened.
+> 5. If Verify fails: the box stays unchecked. Append a `- Note (YYYY-MM-DD):` line under the task, indented two spaces like its fields, saying what happened.
 > 6. Phase-boundary gate: before the first task of a new phase, run `bash .godplans/validate-plan.sh --drift-check N .godplans/PLAN.mdx`, replacing N with the completed phase. The command recomputes `[recheck]` provenance files, reruns a deterministic sample of up to three completed task Verify commands, and reruns the phase's Checkpoint verify command. Any failure returns status to `planning` and stops execution for replan.
 > 7. If a deferred domain's trigger fires mid-execution (its named event occurs), return status to `planning` and run that domain's pass before continuing.
 > 8. Scope changes are not improvised. Return status to `planning`, patch the plan (new task IDs, struck-through superseded tasks with a reason), increment `plan_version`, and obtain fresh approval before more execution.
@@ -260,4 +259,4 @@ with an R-ROAD-7 validation task scheduled ahead of it, not a question. Write
 
 ## Session log
 
-- YYYY-MM-DD plan created (godplans v1.13.0)
+- YYYY-MM-DD plan created (godplans v1.14.0)

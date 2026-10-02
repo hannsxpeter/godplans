@@ -1,9 +1,9 @@
 # godplans
 
 [![lint](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml/badge.svg)](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml)
-[![version](https://img.shields.io/badge/version-1.13.0-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.14.0-blue)](CHANGELOG.md)
 [![agent skills](https://img.shields.io/badge/Agent%20Skills-compatible-2f6fed)](skills/godplans/SKILL.md)
-[![planning domains](https://img.shields.io/badge/planning%20domains-18-2f6fed)](#lineage)
+[![planning domains](https://img.shields.io/badge/planning%20domains-19-2f6fed)](#how-it-works)
 [![plan gate](https://img.shields.io/badge/plan%20gate-machine%20checked-2f6fed)](skills/godplans/scripts/validate-plan.sh)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -30,9 +30,9 @@ Think of it like construction. An **audit** is the building inspection that happ
 Today's AI tooling clusters at those two ends:
 
 - **Planning tools** write specs and architecture diagrams before you start.
-- **Auditors** scan finished code and report what slipped through: security holes, slow database queries, fragile AI integrations, pages search engines cannot find, screens people with disabilities cannot use, journeys that dead-end.
+- **Auditors** scan finished code and report what slipped through: security holes, slow database queries, fragile AI integrations, pages search engines cannot find, screens people with disabilities cannot use, journeys that dead-end, code that rots, pricing and billing that do not match what was sold.
 
-godplans closes the gap by moving the inspection to the blueprint. Every check an auditor would run at the end becomes a requirement in the plan at the start, attached to a specific task, with a specific way to prove it was done.
+godplans closes the gap by moving the inspection to the blueprint. Every check an auditor would run at the end that can be anticipated becomes a requirement in the plan at the start, attached to a specific task, with a specific way to prove it was done.
 
 > An auditor that finds a missing tenant-isolation policy after three weeks of building has found a rewrite. A plan that requires that policy before the first database migration has prevented one.
 
@@ -45,6 +45,7 @@ A decision costs a sentence at plan time. It costs a sprint at remediation time.
 | A solo builder shipping fast with AI | Decisions you would otherwise discover the hard way, settled in minutes |
 | A small engineering team | One document everyone and every agent reads, instead of five stale ones |
 | A founder or product lead who does not code | A plain-language plan you can actually read, question, and approve before money is spent |
+| A product manager or head of product | Pricing and packaging, what each plan includes and where that is enforced, the billing lifecycle (trial end, failed payment, cancellation, downgrade), one register that defines every metric the plan names, release and sunset policy, feedback that reaches a named person, and the bet with the result that would kill it, all decided before the build starts |
 | Someone inheriting an existing codebase | A plan that studies what is already there and extends it, rather than fighting it |
 
 It earns the most when an incomplete decision would be expensive to undo later: how customer data is separated, what your public API promises, who is allowed to see what, how the thing gets deployed and watched.
@@ -101,6 +102,7 @@ A full plan contains:
 - **The objective**, with an observable definition of done, plus what is explicitly *not* in scope.
 - **The decisions**, hardest-to-reverse first, each with why it was chosen, what was rejected, and the signal that would tell you it was wrong.
 - **The requirements**, numbered and written as testable sentences.
+- **The business model**, when the product charges money or shows a price, lets people outside your team sign up, tracks how they use it, or collects their feedback: who pays and for what, what each plan includes, what happens to access and data when a trial ends or a payment fails, and, for anything bigger than a weekend project, how each success number is calculated and the result that would tell you to stop.
 - **The architecture**, as diagrams placed next to the claims they support, with real capacity numbers rather than the word "scalable."
 - **The phases and tasks**, like the one above, grouped into waves that can safely run at the same time.
 - **The unknowns**, in exactly one place, each with an owner, what it blocks, and the default that fires if nobody answers.
@@ -115,10 +117,11 @@ One canonical plan document, `.godplans/PLAN.mdx`, containing:
 - The compliance gate result and the applicability matrix (every domain planned now, deferred with an observable trigger and reversibility argument, or excluded with the evidence state that licensed the exclusion and the `revisit when` predicate that reverses it), plus the module disposition naming which layer dropped every requirement that did not land.
 - A primary product form selected before archetype, with form-specific vertical slices and completion evidence for web, API or service, CLI or SDK, mobile or desktop, data or ML, and infrastructure or IaC work.
 - A scored archetype rather than a guessed one: weighted signals with vetoes produce a primary and a runner-up, and the plan records both scores, the margin, and what changes if the runner-up is right, priced in tasks and phases. The confidence label is recomputed by the validator from those numbers, so a confident label that does not follow from the plan's own arithmetic fails. Below the 0.45 floor the archetype is `unknown`, goes to Open Questions, and withholds every `assure`-stage document from being marked not-applicable, because a misread archetype deletes threat models quietly. The archetype drives the applicability matrix and, through it, the documentation set, so getting it wrong mis-selects two artifacts at once.
-- Overlays (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`) alongside the archetype. An archetype says what a project is; an overlay says what extra obligations it carries. Overlays raise and never lower: a domain an overlay covers may be applicable or deferred, never excluded. Modelling AI or regulated data as archetypes would force a false choice at the top of the tree and produce the wrong set for exactly the project that is both.
+- Overlays (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`, `monetized`) alongside the archetype. An archetype says what a project is; an overlay says what extra obligations it carries. Overlays raise and never lower: a domain an overlay covers may be applicable or deferred, never excluded. `monetized` fires when the request, an interview answer, or the revenue-model decision charges money, sells plans or seats, or meters paid usage, and it forbids excluding the business domain. Modelling AI or regulated data as archetypes would force a false choice at the top of the tree and produce the wrong set for exactly the project that is both.
 - Plan provenance bound to source revision, a SHA-256 input digest, and a UTC validation timestamp, with stale completed or imported evidence returning the plan to `planning`.
 - Decisions, hard-to-reverse bets first, each with rationale, rejected alternatives, an observable signal, a failure boundary, and a return-to-planning action; assumptions flagged as hypotheses with validation tasks and priced in tasks and phases, so taking the defaults is an informed choice.
 - Numbered requirements with EARS acceptance criteria (WHEN ... THE SYSTEM SHALL ...).
+- A business pass (the product-director lens, `references/business.md`, never deferred) whenever the plan charges or displays a price, outsiders create accounts, the product sends usage telemetry about outsiders, or a contact-sales, waitlist, or feedback surface collects customer signals. It decides the paying unit, revenue model, value metric, and sales motion; one plan catalog that pricing copy, entitlements, limits, and checkout all import; server-enforced entitlements in which an unknown or missing plan never falls through to paid access; access granted by the provider's confirmed payment events, never by the checkout success redirect alone; lifecycle end states for trial end, failed payment, cancellation, downgrade, and closure in which customer data is never deleted without notice and a cited recovery window; one metric register whose north star is one of the product success metrics; release flags with working kill switches, deprecation notices, and experiments that can decide; and customer signals routed to a named reader. Above it sits the director layer an audit cannot judge: the bet as a decision whose Falsifier carries a kill criterion, recorded as `Verdict: pending` until the one named decider records the verdict at the scheduled review, principles written "X over Y" that a decision cites, and a commercial decider row in the roadmap authority map for each commercial action the plan can take. A price enters the plan only when it is cited, given by the user, decided by the named price decider, or flagged as a hypothesis whose validation task runs before the price goes public. Scale trims the strategy and measurement layers on a weekend plan, but a plan that charges never drops its billing-safety requirements through scale.
 - Architecture as mermaid diagrams (components with trust boundaries, data model, load-bearing flows) placed next to the claims they support, plus a capacity model that stops the numbers from floating: each availability target gets a redundancy topology and a named health-check rule, each entity group gets a read-consistency stance and single-node ceiling arithmetic that either names a partition key or shows one node holds, each cached read path gets a staleness budget and stampede protection, and each entry surface gets a stated behavior above its throughput ceiling instead of defaulting to unbounded queueing.
 - A style genome so the first commit already matches the intended code DNA, measured rather than eyeballed in brownfield mode, and the agent-memory files (AGENTS.md, pillars) the scaffold will emit.
 - A documentation set: which documents this project owes, keyed to lifecycle stage with a single owning module and the task that writes each one, and which it does not owe, each absence carrying the evidence behind it and the predicate that would reverse it. An unexamined absence reads exactly like a considered decision, which is the row an auditor pulls first.
@@ -144,10 +147,11 @@ Plans survive tool switches. Chat context does not.
 
 ```mermaid
 graph TD
-  A[idea or codebase] --> B[compliance gate]
-  B --> C[intake: mode, product form, archetype, applicability]
+  A[idea or codebase] --> O[orient: greenfield, brownfield, or replan]
+  O --> B[compliance gate]
+  B --> C[intake: product form, archetype, applicability]
   C --> D[discovery: one question batch]
-  D --> E[18 domain passes]
+  D --> E[19 domain passes]
   E --> F[inversion: audit checks -> task acceptance criteria]
   F --> G[prose integrity: meaning fixed, wording repaired]
   G --> H[independent critic and domain audits: every applicable domain scores 85+]
@@ -155,7 +159,7 @@ graph TD
   I --> J[any agent executes, checkbox by checkbox]
 ```
 
-The eighteen domain passes cover what to build and for whom, how the parts fit together, in what order, on what technology, how the repository is set up, and how the result deploys, gets monitored, launches, and gets hardened, plus the audit dimensions: code quality, security, database, AI integration, search visibility, UI, and UX.
+The nineteen domain passes run in this order: product (what to build and for whom), business (who pays, for what, and how success is measured), architecture (how the parts fit together), stack (on what technology), database, security, AI integration, UX, UI, search visibility, code quality, style genome (how the code should read), agent memory (the instruction files coding agents read), repository setup, application build, roadmap (in what order), deployment, monitoring, and launch. A pass that does not apply yet is deferred behind a trigger or excluded with a reason; the FAQ below explains how.
 
 ## Approval and execution
 
@@ -178,7 +182,7 @@ bash .godplans/validate-plan.sh --drift-check 1 .godplans/PLAN.mdx
 
 Here is the honest version, including the part that is not flattering.
 
-**The first published head-to-head test.** The same builder agent, with no planning skill of its own, built the same multi-tenant notes API twice: once from a godplans plan, once from the plain request. Both passed the same functional tests. Then an independent auditor scored both repositories without being told which was which.
+**The first published head-to-head test** measured the godplans 1.9.0 release candidate, with gpt-5.6-sol on the Codex CLI, on 2026-07-23. The same builder agent, with no planning skill of its own, built the same multi-tenant notes API twice: once from a godplans plan, once from the plain request. Both passed the same functional tests. Then an independent auditor scored both repositories without being told which was which.
 
 | | Critical findings | High findings |
 |---|---|---|
@@ -187,12 +191,12 @@ Here is the honest version, including the part that is not flattering.
 
 **The cost was real too.** Planning consumed 11,236,025 cumulative tokens reported by the CLI (including cached input) against 162,816 for the control. Planning this thoroughly is not free.
 
-That is one case on one model. It is directional support for the claim, not proof of a universal guarantee. The [method, limitations, and raw artifacts](evals/outcomes/results/2026-07-23-tenant-notes-api-codex/README.md) are published in full.
+That is one case on one model. It is directional support for the claim, not proof of a universal guarantee. No later godplans version has been re-measured, so these numbers describe 1.9.0, not the current release. The [method, limitations, and raw artifacts](evals/outcomes/results/2026-07-23-tenant-notes-api-codex/README.md) are published in full.
 
 <details>
 <summary><b>How the evidence is produced, and what still falls short</b></summary>
 
-Repository tests cover installer collisions and aliases, portable-prompt parity, plan-validator failure modes, JSON and shell validity, version parity, immutable action pins, and the behavioral evaluation harness. The behavioral matrix also covers product-form routing, Pillars 1.1 nested scopes and catalogs, stale source evidence, stale prepublication evidence, and observability evidence labels.
+Repository tests cover installer collisions and aliases, portable-prompt parity, plan-validator failure modes, generated PLAN.json sidecars checked against `PLAN.schema.json`, JSON and shell validity, version parity, immutable action pins, a lint self-test that injects one violation per check, and the behavioral evaluation harness. The behavioral matrix also covers product-form routing, Pillars 1.1 nested scopes and catalogs, stale source evidence, stale prepublication evidence, observability evidence labels, and the business pass for a priced B2B product with seat billing, a trial, a free tier, and a retiring plan.
 
 ```bash
 npm test
@@ -232,13 +236,15 @@ bash scripts/eval.sh --baseline
 
 The historical 1.8.0 baseline under `evals/baselines/` covers one model and
 three cases. It is retained as provenance, but it no longer meets the evidence
-minimum. Publishable release evidence now means all eleven cases across Codex,
-Claude, and Gemini, both arms, with raw artifacts and actual token usage. The
-blind external grader adds at least two no-skill judges over five or more plan
-pairs and reports the inter-rater gap. The build-outcome evaluation gives
-matched plans to the same no-skill builder, hides arm identity, runs godaudits
-on both built repositories, and compares open Critical and High findings. A tie
-or loss is published with equal prominence.
+minimum. Publishable release evidence now means every case listed in
+`evals/cases-roster.txt` across at least three model families (Codex, Claude,
+and Gemini by default), both arms, with raw
+artifacts and actual token usage. The blind external grader adds at least two
+no-skill judges over five or more plan pairs and reports the inter-rater gap.
+The build-outcome evaluation gives matched plans to the same no-skill builder,
+hides arm identity, runs godaudits on both built repositories, and compares
+open Critical and High findings. A tie or loss is published with equal
+prominence.
 
 </details>
 
@@ -250,7 +256,7 @@ or loss is published with equal prominence.
 
 ## Works with your tools
 
-The canonical skill is written in the Agent Skills format, and the installer exploits shared paths so six destinations cover every client below.
+The canonical skill is written in the Agent Skills format, and the installer exploits shared paths so six destinations cover every skill-capable client below; chat surfaces paste PROMPT.md instead.
 
 | Tool | Install path | Invoke |
 |---|---|---|
@@ -269,9 +275,11 @@ The canonical skill is written in the Agent Skills format, and the installer exp
 | Aider | `aider --read PROMPT.md` | manual |
 | Any chat UI | paste [PROMPT.md](PROMPT.md) as the system prompt | manual |
 
+Kilo and Goose read `~/.agents/skills` too, so the default install covers them, and `--tools kilo` or `--tools goose` selects that destination alone. `sh install.sh` installs globally (`--global`, the default); `sh install.sh --project [dir]` installs into a project's `.agents/skills`, `.claude/skills`, and `.github/skills` instead.
+
 No skill support in your tool? Paste [PROMPT.md](PROMPT.md) into any chat window and you have most of it.
 
-`PROMPT.md` is the generated slim core: discovery, plan format, product, architecture, stack, database, security, exemplar, template, validator, and plan half-life script. Remaining domains stay lazy as individual files under `skills/godplans/references/` and are attached only when applicable. Generate the historical all-in-one form for a one-off surface with `bash scripts/build-prompt.sh --full --output PROMPT.full.md`.
+`PROMPT.md` is the generated slim core: the SKILL.md orchestrator, compliance, discovery, plan format, product, architecture, stack, database, security, exemplar, template, validator, and plan half-life script. The other fourteen domain modules, business among them, stay lazy as individual files under `skills/godplans/references/` and are attached only when applicable; the doc-set contract is lazy too and is attached with the repo module. Generate the historical all-in-one form for a one-off surface with `bash scripts/build-prompt.sh --full --output PROMPT.full.md`.
 
 `evals/metrics/context-cost.json` records byte counts and an explicitly labeled token estimate for the native skill entry, portable core, generated full prompt, and every lazy module. Real evaluation runners record actual tokens per plan.
 
@@ -288,18 +296,19 @@ Details in [references/compliance.md](skills/godplans/references/compliance.md).
 
 ## Lineage
 
-godplans consolidates, inverts, and adapts sixteen skills into one command. "Inverts" is the operative word for audit sources: checks those tools run *after* the build became requirements godplans writes *before* it.
+godplans consolidates, inverts, and adapts seventeen skills into one command. "Inverts" is the operative word for audit sources: checks those tools run *after* the build became requirements godplans writes *before* it. The eight auditors live together in [hannsxpeter/auditor-suite](https://github.com/hannsxpeter/auditor-suite), and each auditor row links its folder there.
 
 | Source | What carries over |
 |---|---|
 | [arc-ready](https://github.com/hannsxpeter/arc-ready) / [ready-suite](https://github.com/hannsxpeter/ready-suite) | The tier disciplines: PRD, architecture, roadmap, stack, repo, build, deploy, observe, launch, harden; the decision-hypothesis-question rule; the substitution test |
-| [codeauditor](https://github.com/hannsxpeter/codeauditor) | 9 code-quality lenses, inverted into plan requirements |
-| [secauditor](https://github.com/hannsxpeter/secauditor) | 11 OWASP/CWE-grounded dimensions, inverted; paper-control refusals |
-| [dbauditor](https://github.com/hannsxpeter/dbauditor) | Schema, indexing, transactions, migrations, data protection, planned upfront |
-| [llmauditor](https://github.com/hannsxpeter/llmauditor) | 12 LLM-integration dimensions: prompts, routing, cost, evals, guardrails |
-| [seoauditor](https://github.com/hannsxpeter/seoauditor) | Search and AI-answer-engine visibility decided at architecture time |
-| [uiauditor](https://github.com/hannsxpeter/uiauditor) | Accessibility, semantics, design-system consistency as acceptance criteria |
-| [uxauditor](https://github.com/hannsxpeter/uxauditor) | Journeys, workflows, error states designed before build |
+| [codeauditor](https://github.com/hannsxpeter/auditor-suite/tree/main/skills/codeauditor) | 9 code-quality lenses, inverted into plan requirements |
+| [secauditor](https://github.com/hannsxpeter/auditor-suite/tree/main/skills/secauditor) | 11 OWASP/CWE-grounded dimensions, inverted; paper-control refusals |
+| [dbauditor](https://github.com/hannsxpeter/auditor-suite/tree/main/skills/dbauditor) | Schema, indexing, transactions, migrations, data protection, planned upfront |
+| [llmauditor](https://github.com/hannsxpeter/auditor-suite/tree/main/skills/llmauditor) | 12 LLM-integration dimensions: prompts, routing, cost, evals, guardrails |
+| [seoauditor](https://github.com/hannsxpeter/auditor-suite/tree/main/skills/seoauditor) | Search and AI-answer-engine visibility decided at architecture time |
+| [uiauditor](https://github.com/hannsxpeter/auditor-suite/tree/main/skills/uiauditor) | Accessibility, semantics, design-system consistency as acceptance criteria |
+| [uxauditor](https://github.com/hannsxpeter/auditor-suite/tree/main/skills/uxauditor) | Journeys, workflows, error states designed before build |
+| [productauditor](https://github.com/hannsxpeter/auditor-suite/tree/main/skills/productauditor) | 9 product and business dimensions (claims and delivery, plans and entitlements, billing lifecycle, accounts and operations, instrumentation, metric definitions, release and sunset, experiments, feedback), inverted into the business module. Its five Critical classes are designed out at plan time: charging more than, other than, or after what the customer chose, refusing what a plan includes, destroying customer data in a lifecycle event without notice or a recovery window, a business model nothing enforces, and selling something that does not exist. The director layer an audit cannot judge (the bet and its kill criterion, the business model and sales motion, principles and commercial decision rights) is added by godplans, not inverted |
 | [pillars](https://github.com/hannsxpeter/pillars) | Pillars 1.1 agent memory: nested scopes, local absent catalogs, deterministic routing, and context budgets |
 | [codedna](https://github.com/hannsxpeter/codedna) | The style genome: prescribed for greenfield, fingerprinted for brownfield. The AI-tells catalog and the measurement script ship with godplans, vendored by copy |
 | [docdna](https://github.com/hannsxpeter/docdna) | The documentation selection engine, inverted to plan time: which documents this project owes, which it does not and on what evidence, and the tripwire that reverses each absence. Also the three-valued evidence model, the durability split, and the rule that no number is invented |
@@ -319,6 +328,9 @@ No. It plans. The plan carries its own instructions for the agent that builds it
 **Does "audit-aware" mean guaranteed audit-clean?**
 No. Moving known checks into requirements reduces preventable findings. It cannot prove how code behaves at runtime, and it does not replace tests, security review, or an independent audit. Execution quality, changing dependencies, and genuinely new risks are still real.
 
+**Does godplans decide my pricing?**
+No. When the plan charges money, the business pass forces the pricing and packaging decisions: who pays, for what unit of value, what each plan includes, what the free offer is, and, above weekend scale, who decides future price changes. It refuses invented prices. A price enters the plan only when it is cited, given by you, decided by the person the plan names as the price decider, or flagged as a hypothesis whose validation task (willingness-to-pay interviews, a priced landing page or checkout test, or recorded sales conversations) runs before the price goes public. It never claims to know the right price.
+
 **What if my project does not need a database, or search visibility, or a launch?**
 Then it does not get a hollow section about one. Every area is either planned now, deferred behind a specific trigger that says when to revisit, or excluded with a stated reason and the condition that would reverse the exclusion. A command-line tool excludes search visibility; an internal tool can defer launch planning until it goes public.
 
@@ -326,29 +338,35 @@ Then it does not get a hollow section about one. Every area is either planned no
 The plan drops straight into documentation pipelines (Docusaurus, Nextra, Fumadocs) and MDX-native plan viewers, but the body is written to be plain GitHub-flavored markdown at the same time. Rename it to `PLAN.md` any time for rich rendering on GitHub. Nothing is lost.
 
 **How is this different from arc-ready?**
-arc-ready walks the arc one tier at a time, building as it goes. godplans front-loads every decision from all tiers plus all seven auditors into one document before anything is built. They compose: plan with godplans, execute with anything, including arc-ready's build tiers.
+arc-ready walks the arc one tier at a time, building as it goes. godplans front-loads the decisions from all tiers plus the anticipatable checks of all eight auditors into one document before anything is built. They compose: plan with godplans, execute with anything, including arc-ready's build tiers.
 
 <details>
 <summary><b>Repository map</b></summary>
 
 | Path | Role |
 |---|---|
-| `skills/godplans/SKILL.md` | The orchestrator: ground rules, the 8-phase method, modes, refusals |
-| `skills/godplans/references/` | 23 modules: 18 domain playbooks plus the plan-format, discovery, compliance, exemplar, and doc-set contracts |
+| `skills/godplans/SKILL.md` | The orchestrator: ground rules, the nine-phase method (Phase 0 to 7 plus 5b), modes, refusals |
+| `skills/godplans/references/` | 24 modules: 19 domain playbooks plus the plan-format, discovery, compliance, exemplar, and doc-set contracts |
 | `skills/godplans/templates/PLAN.template.mdx` | The plan skeleton |
 | `skills/godplans/scripts/validate-plan.sh` | Self-contained PLAN.mdx validator copied beside every plan |
 | `skills/godplans/scripts/plan-halflife.sh` | Cumulative and per-domain task supersession metric generator |
 | `skills/godplans/scripts/style-stats.py` | Measured style baseline for the style-genome pass, vendored by copy from codedna |
-| `skills/godplans/schemas/PLAN.schema.json` | JSON Schema for generated PLAN.json sidecars |
+| `skills/godplans/schemas/PLAN.schema.json` | JSON Schema for generated PLAN.json sidecars (`plan-json@2`; `PLAN.v1.schema.json` covers sidecars from 1.13.0 and earlier) |
 | `.agents/skills/`, `.claude/skills/` | Symlink projections of the canonical skill |
-| `install.sh` | Ownership-safe installer; `--project`, `--tools`, `--copy`, `--uninstall`, `--force` |
+| `install.sh` | Ownership-safe installer; `--global` (the default), `--project`, `--tools`, `--copy`, `--uninstall`, `--force` |
 | `PROMPT.md` | Generated portable fallback |
-| `scripts/lint.sh` | Meta-linter: unicode cleanliness, version parity, module contracts, PROMPT freshness |
+| `scripts/lint.sh` | Meta-linter: unicode cleanliness, version and description parity, module contracts, domain parity, PROMPT freshness |
+| `scripts/lint-parity.js` | The description-length, description-parity, and domain-parity logic that `scripts/lint.sh` runs |
+| `scripts/build-catalog.js` | Maintainer-only generator that derives the validator's embedded requirement and document catalogs from the reference modules (`npm run catalog`); not shipped in the skill |
 | `scripts/release-check.sh` | Release-grade checks: pinned official validator, full suite, eval contract, tag/release parity, package dry run |
 | `requirements/skills-ref.txt` | Pinned official Agent Skills validator dependency |
 | `evals/` | Behavioral, external-grade, context-cost, and build-outcome evaluation contracts |
+| `evals/cases-roster.txt` | The behavioral case roster; the release matrix refuses to run when it and `evals/cases/` differ |
 | `tests/` | Regression suite for product contracts |
+| `MAINTAINING.md` | Maintainer rituals and guardrails |
 | `docs/ABOUT.md` | The long-form writeup: why godplans exists and how it was designed |
+| `docs/ARCHITECTURE.md` | The pieces, and the source -> generator -> artifact -> check graph |
+| `docs/DRIFT.md` | Drift log: what drifted, how it was resolved, and what now prevents it |
 
 </details>
 

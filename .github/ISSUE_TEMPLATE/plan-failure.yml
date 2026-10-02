@@ -1,0 +1,58 @@
+name: Plan failure
+description: A plan godplans emitted lacked something, and the executing agent went wrong because of it.
+title: "[plan failure] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The best issues name a concrete failure: "planned X, the emitted plan lacked Y, the executing agent then did Z wrong." Attach the PLAN.mdx fragment when you can, and redact anything private.
+
+        Vague reports are still welcome; they just take longer to act on. "The plan felt generic for my project type" is worth filing even without a diagnosis.
+
+        Do not use this form for a way the skill's content or scripts could make an agent take unsafe action. Report that privately instead (see SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: godplans version
+      description: The "Skill version" line in SKILL.md, or the version in the plan's "plan created (godplans vX.Y.Z)" line.
+      placeholder: X.Y.Z
+    validations:
+      required: true
+  - type: input
+    id: harness
+    attributes:
+      label: Harness
+      description: The agent and surface that ran godplans, for example Claude Code, Codex, Cursor, or the portable PROMPT.md pasted into a chat.
+    validations:
+      required: true
+  - type: textarea
+    id: planned
+    attributes:
+      label: What you planned (X)
+      description: The request or idea you gave godplans, plus any path or constraint you passed, and whether the project was greenfield, brownfield, or a replan.
+    validations:
+      required: true
+  - type: textarea
+    id: lacked
+    attributes:
+      label: What the emitted plan lacked (Y)
+      description: The decision, requirement, task, or acceptance criterion that was missing, wrong, or too vague to verify. Name the domain section if you know it.
+    validations:
+      required: true
+  - type: textarea
+    id: consequence
+    attributes:
+      label: What the executing agent then did wrong (Z)
+      description: What happened when an agent built from the plan. Leave empty if the plan was never executed.
+  - type: textarea
+    id: fragment
+    attributes:
+      label: PLAN.mdx fragment
+      description: The section or tasks that show the gap. Redact anything private.
+      render: markdown
+  - type: textarea
+    id: validator
+    attributes:
+      label: Validator output
+      description: Output of `bash .godplans/validate-plan.sh .godplans/PLAN.mdx`, if you ran it.
+      render: shell

@@ -1,8 +1,38 @@
+# OS junk
 .DS_Store
+._*
+Thumbs.db
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+
+# Dependencies and local tool environments
 node_modules/
 .venv-skills-ref/
+
+# Python bytecode. install.sh copies the whole skill directory, so a
+# __pycache__ left by running style-stats.py would ship to users.
+__pycache__/
+*.pyc
+
+# Packed archives
 *.tgz
+
+# Logs. Raw eval logs are published evidence (evals/README.md: a summary
+# without raw artifacts is not publishable), so the results trees keep theirs.
 *.log
+!evals/results/**/*.log
+!evals/external/results/**/*.log
+!evals/outcomes/results/**/*.log
+
+# Generated locally, never committed
 PROMPT.full.md
 /.godplans/
 evals/output/
+
+# Local harness state. .claude/ itself stays tracked because
+# .claude/skills/godplans is a tracked symlink to the canonical skill.
+.claude/settings.local.json
+.claude/worktrees/

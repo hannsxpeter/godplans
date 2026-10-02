@@ -25,6 +25,7 @@ const coreModules = [
 ];
 const lazyModules = [
   'doc-set',
+  'business',
   'llm',
   'ux',
   'ui',

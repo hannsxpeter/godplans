@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "godplans generated plan sidecar",
+  "title": "godplans generated plan sidecar, format godplans/plan-json@2 (godplans 1.14.0 and later: 19 applicability rows)",
   "type": "object",
   "required": [
     "format",
@@ -30,13 +30,13 @@
     "metrics"
   ],
   "properties": {
-    "format": { "const": "godplans/plan-json@1" },
+    "format": { "const": "godplans/plan-json@2" },
     "plan_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
     "name": { "type": "string", "minLength": 1 },
     "plan_version": { "type": "integer", "minimum": 1 },
     "status": { "enum": ["planning", "approved", "executing", "done"] },
-    "created": { "type": "string", "format": "date" },
-    "updated": { "type": "string", "format": "date" },
+    "created": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$", "format": "date" },
+    "updated": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$", "format": "date" },
     "mode": { "enum": ["greenfield", "brownfield", "replan"] },
     "product_form": {
       "enum": [
@@ -60,14 +60,15 @@
           "shipped-artifact",
           "operated-by-others",
           "regulated-data",
-          "agent-skill-package"
+          "agent-skill-package",
+          "monetized"
         ]
       }
     },
     "public_release": { "type": "boolean" },
-    "source_revision": { "type": "string", "minLength": 1 },
+    "source_revision": { "type": "string", "pattern": "^(?:none|[0-9a-f]{40,64})$" },
     "input_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
-    "validated_at": { "type": "string", "minLength": 1 },
+    "validated_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" },
     "progress": {
       "type": "object",
       "required": ["phases_total", "phases_done", "tasks_total", "tasks_done"],
@@ -81,8 +82,8 @@
     },
     "applicability": {
       "type": "array",
-      "minItems": 18,
-      "maxItems": 18,
+      "minItems": 19,
+      "maxItems": 19,
       "items": {
         "type": "object",
         "required": ["domain", "status", "reason", "evidence_state", "revisit_when"],
@@ -180,7 +181,6 @@
           "name": { "type": "string", "minLength": 1 },
           "tasks": {
             "type": "array",
-            "minItems": 1,
             "items": { "type": "string", "pattern": "^GP-[1-9][0-9]{2,}$" }
           }
         },
@@ -200,11 +200,11 @@
           "done": { "type": "boolean" },
           "parallel": { "type": "boolean" },
           "files": { "type": "string", "minLength": 1 },
-          "depends_on": { "type": "array", "items": { "type": "string" } },
+          "depends_on": { "type": "array", "items": { "type": "string", "pattern": "^GP-[1-9][0-9]{2,}$" } },
           "reuses": { "type": "string", "minLength": 1 },
           "acceptance": { "type": "string", "minLength": 1 },
           "verify": { "type": "string", "minLength": 1 },
-          "requirements": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+          "requirements": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^R-(?:[0-9]+[.][0-9]+|[A-Z][A-Z0-9-]*-[0-9]+)$" } }
         },
         "additionalProperties": false
       }
@@ -217,8 +217,8 @@
         "properties": {
           "id": { "type": "string", "pattern": "^GP-[1-9][0-9]{2,}$" },
           "phase": { "type": ["integer", "null"] },
-          "reason": { "type": "string" },
-          "requirements": { "type": "array", "items": { "type": "string" } }
+          "reason": { "type": "string", "minLength": 1 },
+          "requirements": { "type": "array", "items": { "type": "string", "pattern": "^R-(?:[0-9]+[.][0-9]+|[A-Z][A-Z0-9-]*-[0-9]+)$" } }
         },
         "additionalProperties": false
       }

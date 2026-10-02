@@ -2,8 +2,9 @@
 'use strict';
 
 // Single source of version truth: package.json. Writes that version into every
-// version surface (or verifies with --check) and regenerates the prompt, so a
-// release never hand-edits version strings in lockstep. Run: npm run version:sync.
+// version surface (or verifies with --check), then regenerates the prompt and
+// the context metrics that hash it, so a release never hand-edits version
+// strings in lockstep. Run: npm run version:sync.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -43,6 +44,9 @@ if (check) {
   process.stderr.write(`Could not sync:\n  ${mismatches.join('\n  ')}\n`);
   process.exitCode = 1;
 } else {
+  // The metrics hash PROMPT.md and SKILL.md, so they go stale on every bump and
+  // must be rebuilt after the prompt, never before it.
   execFileSync('bash', ['scripts/build-prompt.sh'], { cwd: root, stdio: 'inherit' });
-  process.stdout.write(`Version surfaces synced to ${version}; prompt regenerated.\n`);
+  execFileSync('node', ['scripts/context-metrics.js'], { cwd: root, stdio: 'inherit' });
+  process.stdout.write(`Version surfaces synced to ${version}; prompt and context metrics regenerated.\n`);
 }

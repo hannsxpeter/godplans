@@ -192,4 +192,33 @@ run_global "$fixture" "$home" --tools agents --uninstall --force >/dev/null
 [ ! -e "$home/.agents/skills/godplans" ] || fail "forced uninstall preserved the unowned destination"
 pass "force explicitly permits replacement and removal"
 
+# Installing never rewrites the source checkout's tracked PROMPT.md; lint
+# prompt-fresh keeps the committed prompt current instead.
+new_fixture prompt
+mkdir -p "$fixture/scripts"
+cp "$ROOT/scripts/build-prompt.sh" "$fixture/scripts/build-prompt.sh"
+chmod +x "$fixture/scripts/build-prompt.sh"
+printf '%s\n' 'source prompt sentinel' > "$fixture/PROMPT.md"
+home=$TMP_ROOT/home-prompt
+mkdir -p "$home"
+run_global "$fixture" "$home" --tools agents >/dev/null
+assert_file_contains "$fixture/PROMPT.md" "source prompt sentinel"
+pass "install leaves the source PROMPT.md untouched"
+
+# A copy install omits Python bytecode found in the source checkout, and never
+# deletes it from the source.
+new_fixture bytecode
+mkdir -p "$fixture/skills/godplans/scripts/__pycache__"
+printf '%s\n' bytecode > "$fixture/skills/godplans/scripts/__pycache__/style-stats.cpython-314.pyc"
+printf '%s\n' bytecode > "$fixture/skills/godplans/scripts/stray.pyc"
+home=$TMP_ROOT/home-bytecode
+mkdir -p "$home"
+run_global "$fixture" "$home" --tools agents --copy >/dev/null
+[ -f "$home/.agents/skills/godplans/install-test-payload" ] || fail "bytecode fixture copy did not install"
+[ ! -e "$home/.agents/skills/godplans/scripts/__pycache__" ] || fail "copy install shipped __pycache__"
+[ ! -e "$home/.agents/skills/godplans/scripts/stray.pyc" ] || fail "copy install shipped a .pyc file"
+[ -f "$fixture/skills/godplans/scripts/__pycache__/style-stats.cpython-314.pyc" ] ||
+  fail "copy install deleted bytecode from the source checkout"
+pass "copy install omits Python bytecode"
+
 echo "1..$PASS_COUNT"

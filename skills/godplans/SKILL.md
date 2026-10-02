@@ -1,9 +1,9 @@
 ---
 name: godplans
-description: "Produce an audit-aware, agent-executable master plan (PLAN.mdx) for a software project before application code is written. One command runs discovery, forces hard-to-reverse decisions, and plans product, architecture, roadmap, stack, repo, build, deploy, observability, launch, security, code quality, style genome, database, LLM integration, SEO, UI, UX, and agent memory upfront. After-the-fact audit checks become plan-time acceptance criteria, a prose-integrity pass removes generic language without changing meaning, and a self-contained validator enforces task structure and approval state. Use when the user says: plan this project, godplans, master plan, plan everything upfront, idea to plan, plan before code, audit-aware plan, replan, or starts a greenfield project or major feature. Refuses plan theater (sections filled, decisions absent), vague tasks without verification, unsupported quality guarantees, and projects whose core purpose violates the Anthropic Usage Policy."
+description: "Produce an audit-aware, agent-executable master plan (PLAN.mdx) before application code is written. One command runs discovery, forces hard-to-reverse decisions, and plans product, business (pricing, entitlements, billing, metrics, feedback), architecture, roadmap, stack, repo, build, deploy, observability, launch, security, code quality, style genome, database, LLM integration, SEO, UI, UX, and agent memory upfront. After-the-fact audit checks become plan-time acceptance criteria, a prose-integrity pass removes generic language without changing meaning, and a self-contained validator enforces task structure and approval state. Use when the user says: plan this project, godplans, master plan, product plan, plan everything upfront, plan before code, audit-aware plan, replan, or starts a greenfield project or major feature. Refuses plan theater, vague tasks without verification, unsupported quality guarantees, and projects whose core purpose violates the Anthropic Usage Policy."
 license: MIT
 metadata:
-  version: "1.13.0"
+  version: "1.14.0"
   author: aihxp
   homepage: https://github.com/hannsxpeter/godplans
 ---
@@ -14,9 +14,9 @@ metadata:
 
 Plan everything before anything. godplans is a planning superskill: it runs the decision arc of a software project upfront and emits one master plan, `.godplans/PLAN.mdx`, whose decisions, hypotheses, open questions, tasks, and verification commands are explicit enough for a coding agent to execute checkbox by checkbox.
 
-The core move is inversion. Auditors run after the work exists and tell you what is wrong. godplans takes the dimensions those auditors check (code quality, security, database, LLM integration, SEO, UI, UX) and the disciplines the arc tiers enforce (PRD, architecture, roadmap, stack, repo, build, deploy, observability, launch, hardening) and converts applicable checks into plan-time requirements with acceptance criteria on concrete tasks. This is designed to prevent avoidable findings and rewrites; it does not replace runtime verification or an independent final audit.
+The core move is inversion. Auditors run after the work exists and tell you what is wrong. godplans takes the dimensions those auditors check (code quality, security, database, LLM integration, SEO, UI, UX, product delivery and monetization) and the disciplines the arc tiers enforce (PRD, architecture, roadmap, stack, repo, build, deploy, observability, launch, hardening) and converts applicable checks into plan-time requirements with acceptance criteria on concrete tasks. This is designed to prevent avoidable findings and rewrites; it does not replace runtime verification or an independent final audit.
 
-godplans descends from: hannsxpeter/arc-ready and hannsxpeter/ready-suite (the tier disciplines), hannsxpeter/codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, and uxauditor (the inverted audit dimensions), hannsxpeter/pillars (agent memory), hannsxpeter/codedna (style genome), BuilderIO visual-plan (plan discipline and the visual layer), mattpocock/skills wayfinder (one fact in one place, and a frontier that is proved rather than asserted), and cursor/pstack unslop (a meaning-preserving prose integrity pass before independent scoring).
+godplans descends from: hannsxpeter/arc-ready and hannsxpeter/ready-suite (the tier disciplines), hannsxpeter/auditor-suite (codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, uxauditor, and productauditor: the inverted audit dimensions), hannsxpeter/pillars (agent memory), hannsxpeter/codedna (style genome), hannsxpeter/docdna (the documentation set), UditAkhourii/adhd (the critic is not the author), BuilderIO visual-plan (plan discipline and the visual layer), mattpocock/skills wayfinder (one fact in one place, and a frontier that is proved rather than asserted), and cursor/pstack unslop (a meaning-preserving prose integrity pass before independent scoring).
 
 ## Ground rules (non-negotiable)
 
@@ -44,7 +44,7 @@ Detect what exists. Look for:
 - Source code (manifests like `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`) -> **brownfield mode**.
 - Neither -> **greenfield mode**.
 
-Record the mode. Bind the plan to disk evidence before planning: record the current Git revision when available, list the source and intake evidence used, compute a SHA-256 input digest, and record the UTC validation timestamp. In brownfield mode, fingerprint before planning: read the manifests, entry points, and directory shape, run `python3 scripts/style-stats.py .` for the measured style baseline, then close-read enough representative source to interpret it. The plan must extend what exists, not fight it. This pass is read-only. Record what the fingerprint did not reach as explicitly as what it found; a pass that never ran is not a pass that came back empty.
+Record the mode. In replan mode, run `scripts/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json` now, while `.godplans/validate-plan.sh` is still the outgoing plan's own validator. Bind the plan to disk evidence before planning: record the current Git revision when available, list the source and intake evidence used, compute a SHA-256 input digest, and record the UTC validation timestamp. In brownfield mode, fingerprint before planning: read the manifests, entry points, and directory shape, run `python3 scripts/style-stats.py .` for the measured style baseline, then close-read enough representative source to interpret it. The plan must extend what exists, not fight it. This pass is read-only. Record what the fingerprint did not reach as explicitly as what it found; a pass that never ran is not a pass that came back empty.
 
 ### Phase 1: Compliance gate
 
@@ -60,14 +60,15 @@ For a mitigate or pass result, create `.godplans/` and copy this skill's
 `scripts/validate-plan.sh` into it immediately, before discovery or plan
 authoring. Make it executable and confirm it is byte-identical to the resolved
 skill source. Create the validator companion before drafting the plan. A hard
-stop creates neither artifact.
+stop creates neither artifact. In replan mode, copy only after the Phase 0
+half-life measurement.
 
 ### Phase 2: Intake and applicability
 
 Read `references/discovery.md`. Establish:
 
 1. **Product form**: web application, API or service, CLI or SDK, mobile or desktop, data or ML, or infrastructure or IaC. Pick this before archetype and domain composition because it defines vertical slices and completion evidence. Record secondary forms only when they have independent users, contracts, distribution paths, and deliverables.
-2. **Archetype and overlays**: score the nine archetypes on weighted signals with vetoes, record primary, runner-up, margin, and the confidence those numbers give, and price what changes if the runner-up is right. Below the 0.45 floor the archetype is `unknown` and takes a slot in the question batch. Then add the overlays that fire (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`). An archetype says what this is; an overlay says what extra obligations it carries, and an overlay raises a domain's disposition and never lowers it.
+2. **Archetype and overlays**: score the nine archetypes on weighted signals with vetoes, record primary, runner-up, margin, and the confidence those numbers give, and price what changes if the runner-up is right. Below the 0.45 floor the archetype is `unknown` and takes a slot in the question batch. Then add the overlays that fire (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`, `monetized`). An archetype says what this is; an overlay says what extra obligations it carries, and an overlay raises a domain's disposition and never lowers it.
 3. **Applicability matrix**: every planning domain in the table below is applicable, deferred, or excluded. A CLI tool excludes seo and ui; it does not get empty SEO sections. An excluded row carries three things: the evidence state (`absent:` or `by-design:`), the project-specific reason, and a `revisit when:` predicate that would make the domain applicable again. Deferral is reserved for the deferrable set in the discovery module (seo, launch, observe, ui, deploy): the row names the observable trigger that forces the domain pass and argues reversibility until then. The matrix goes into the plan verbatim.
 4. **Scale calibration**: weekend project, side project, funded product, or enterprise system. Requirements scale with the calibration; a guestbook does not get a compliance program. Weekend plans have at most 3 phases and 8 tasks. Treat that as a hard ceiling, not a target, and fit the total task appetites inside the user's stated capacity.
 
@@ -82,23 +83,24 @@ For each applicable domain, in this order, read its module and author that plan 
 | Order | Domain | Module | Descends from |
 |---|---|---|---|
 | 1 | Product (PRD) | `references/product.md` | prd-ready |
-| 2 | Architecture | `references/architecture.md` | architecture-ready |
-| 3 | Stack | `references/stack.md` | stack-ready |
-| 4 | Database | `references/database.md` | dbauditor |
-| 5 | Security | `references/security.md` | secauditor, harden-ready |
-| 6 | LLM integration | `references/llm.md` | llmauditor |
-| 7 | UX | `references/ux.md` | uxauditor |
-| 8 | UI | `references/ui.md` | uiauditor |
-| 9 | SEO and AI visibility | `references/seo.md` | seoauditor |
-| 10 | Code quality | `references/code-quality.md` | codeauditor |
-| 11 | Style genome | `references/style-genome.md` | codedna |
-| 12 | Agent memory | `references/agent-memory.md` | pillars |
-| 13 | Repository | `references/repo.md` | repo-ready |
-| 14 | Application build | `references/build.md` | production-ready |
-| 15 | Roadmap and tasks | `references/roadmap.md` | roadmap-ready, kickoff-ready |
-| 16 | Deployment | `references/deploy.md` | deploy-ready |
-| 17 | Observability | `references/observe.md` | observe-ready |
-| 18 | Launch | `references/launch.md` | launch-ready |
+| 2 | Business (product-director lens) | `references/business.md` | productauditor |
+| 3 | Architecture | `references/architecture.md` | architecture-ready |
+| 4 | Stack | `references/stack.md` | stack-ready |
+| 5 | Database | `references/database.md` | dbauditor |
+| 6 | Security | `references/security.md` | secauditor, harden-ready |
+| 7 | LLM integration | `references/llm.md` | llmauditor |
+| 8 | UX | `references/ux.md` | uxauditor |
+| 9 | UI | `references/ui.md` | uiauditor |
+| 10 | SEO and AI visibility | `references/seo.md` | seoauditor |
+| 11 | Code quality | `references/code-quality.md` | codeauditor |
+| 12 | Style genome | `references/style-genome.md` | codedna |
+| 13 | Agent memory | `references/agent-memory.md` | pillars |
+| 14 | Repository | `references/repo.md` | repo-ready |
+| 15 | Application build | `references/build.md` | production-ready |
+| 16 | Roadmap and tasks | `references/roadmap.md` | roadmap-ready, kickoff-ready |
+| 17 | Deployment | `references/deploy.md` | deploy-ready |
+| 18 | Observability | `references/observe.md` | observe-ready |
+| 19 | Launch | `references/launch.md` | launch-ready |
 
 Each module gives you: the decisions to force, plan requirements, task seeds, a self-audit rubric (used in Phase 6), and anti-patterns. Apply them at the selected scale. Satisfy load-bearing requirements and record a compact module-level disposition for requirements excluded by archetype or scale. Do not instantiate a task seed merely because it exists. Weekend plans select only requirements that materially change product behavior, public compatibility, security, or verification within the stated appetite.
 
@@ -112,15 +114,7 @@ Walk every applicable module's Plan requirements section and give it one of thre
 
 Read `references/exemplar.md`, including its prose-integrity gate. Freeze the plan's meaning before editing: IDs, decisions, hypotheses, question owners and defaults, requirement references, numbers, sources, file paths, commands, applicability dispositions, task dependencies, and lifecycle state may not change during this pass. Rewrite human-facing prose only. Code, commands, paths, identifiers, protocol fields, quoted evidence, and wording required by an external contract stay literal.
 
-Scan every plan section for these failure classes:
-
-1. **Vague attribution.** A claim credited to experts, reports, teams, users, or best practice names the source. Without a source it becomes a flagged hypothesis with a validation task or is deleted.
-2. **Mechanism-free claims.** Replace claims about quality, ease, speed, safety, or importance with the mechanism, observable behavior, threshold, file, or command that makes the claim true.
-3. **Inflated or indirect wording.** Prefer the plain verb. Cut filler, promotional adjectives, empty intensifiers, formulaic contrast, generic conclusions, and adverbs that hide a missing measurement.
-4. **False structure.** Do not force a pair, range, or three-part list when the items have no real relationship. Keep schema-mandated field counts and genuinely ordered sets intact.
-5. **Dense or actorless sentences.** Keep one operative claim per sentence when splitting does not lose the relationship. Name the actor for planned actions; passive voice remains valid when the actor is unknown or irrelevant.
-6. **Vocabulary drift.** Use the canonical domain noun repeatedly instead of cycling through synonyms. Preserve terms fixed by the data model, API, UI vocabulary, and style genome.
-7. **Decorative explanation.** Delete sentences that restate a heading, table, task field, prompt, or adjacent sentence without adding a decision, source, consequence, or check.
+Scan every plan section against that gate's ten checks: a vague attribution names its source or becomes a flagged hypothesis or is deleted; a quality claim names its mechanism; plain verbs replace filler and indirect wording; lists and ranges express a real relationship; dense or actorless sentences are split and planned actions name their actor; one domain concept keeps one canonical noun; hedging matches recorded uncertainty; and decorative explanation is deleted.
 
 Run the substitution test and three-label test again after rewriting. Then compare the before and after plan: if a commitment, uncertainty label, source, scope boundary, or verification condition changed, restore the original meaning and rewrite only the sentence. This gate is contextual, not a global word blacklist. A technical term is allowed when it is the exact term the design needs.
 
@@ -149,7 +143,7 @@ Final artifact check: `test -f .godplans/PLAN.mdx && test -x .godplans/validate-
 
 - **Greenfield**: the full method above.
 - **Brownfield**: Phase 0 fingerprints the existing codebase first. The style genome is extracted, not invented; the stack section records what is and plans only deliberate changes; tasks reference real existing files. The plan extends the codebase, never restarts it.
-- **Replan**: `.godplans/PLAN.mdx` exists. Re-derive state from disk: count checked and unchecked tasks, read the session log, and recompute the recorded source and completed-or-imported evidence. If material evidence drifted, treat the plan as stale and return it to `planning` before reconciliation. Completed tasks are never renumbered, reworded, or unchecked. New and changed work gets new task IDs. Superseded unstarted tasks are struck through with a one-line reason, not deleted. Before patching, run `scripts/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json` on the outgoing plan. The report measures cumulative task survival and per-domain supersession rate; a domain struck repeatedly was over-planned at that scale, so shrink its appetite instead of reseeding the same tasks. Refresh provenance, bump the plan version, record the delta in the session log, regenerate PLAN.json, and require fresh approval before execution resumes.
+- **Replan**: `.godplans/PLAN.mdx` exists. Re-derive state from disk: count checked and unchecked tasks, read the session log, and recompute the recorded source and completed-or-imported evidence. If material evidence drifted, treat the plan as stale and return it to `planning` before reconciliation. Completed tasks are never renumbered, reworded, or unchecked. New and changed work gets new task IDs. Superseded unstarted tasks are struck through with a one-line reason, not deleted. The Phase 0 half-life report on the outgoing plan measures cumulative task survival and per-domain supersession rate; a domain struck repeatedly was over-planned at that scale, so shrink its appetite instead of reseeding the same tasks. If the re-copied validator reports a missing domain, the skill gained it after the plan was written: add its matrix row, frontmatter entry, and (when applicable) disposition line on the usual rules, re-point any documentation row whose catalog owner moved, and treat an applicable new domain as material. Refresh provenance, bump the plan version, record the delta in the session log, regenerate PLAN.json, and require fresh approval before execution resumes.
 
 ## After the plan: execution
 
@@ -178,11 +172,11 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 | `references/compliance.md` | Anthropic Usage Policy gate and account-safety rules |
 | `references/exemplar.md` | Worked GOOD and BAD plan fragments; the quality bar |
 | `references/doc-set.md` | The documentation-set contract: catalog, lifecycle stages, durability, selection and exclusion rules |
-| `references/<domain>.md` | 18 domain modules (see Phase 4 table) |
+| `references/<domain>.md` | 19 domain modules (see Phase 4 table) |
 | `templates/PLAN.template.mdx` | The skeleton PLAN.mdx |
 | `scripts/validate-plan.sh` | Self-contained validator copied beside each emitted plan |
 | `scripts/plan-halflife.sh` | Replan metric generator for cumulative and per-domain task supersession |
 | `scripts/style-stats.py` | Measured style baseline for the style-genome pass (naming histograms, comment density, function length) |
-| `schemas/PLAN.schema.json` | Published JSON Schema for the generated PLAN.json sidecar |
+| `schemas/PLAN.schema.json` | Published JSON Schema for the generated PLAN.json sidecar (`plan-json@2`; `PLAN.v1.schema.json` covers `@1` sidecars) |
 
-## Skill version: 1.13.0
+## Skill version: 1.14.0

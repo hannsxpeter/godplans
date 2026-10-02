@@ -83,7 +83,8 @@ case_dirs() {
 validate_expectations() {
   file=$1
   outcome_count=0
-  while IFS='|' read -r op arg value; do
+  # read fails on a final line with no newline; the second test keeps it.
+  while IFS='|' read -r op arg value || [ -n "$op$arg$value" ]; do
     case "$op" in
       ''|'#'*) continue ;;
       outcome)
@@ -119,7 +120,7 @@ score_artifact() {
   SCORE_PASSED=0
   SCORE_TOTAL=0
 
-  while IFS='|' read -r op arg value; do
+  while IFS='|' read -r op arg value || [ -n "$op$arg$value" ]; do
     case "$op" in ''|'#'*) continue ;; esac
     SCORE_TOTAL=$((SCORE_TOTAL + 1))
     ok=0
@@ -167,6 +168,15 @@ score_artifact() {
       printf '%s\tMISS\t%s|%s|%s\n' "$score_report_label" "$op" "$arg" "$value" >&2
     fi
   done < "$score_expectations"
+}
+
+# Skill minus control, with an explicit sign so a loss never reads as "+-N".
+signed_delta() {
+  if [ "$1" -ge 0 ]; then
+    printf '+%s' "$1"
+  else
+    printf '%s' "$1"
+  fi
 }
 
 CASE_LIST=$(mktemp)
@@ -293,7 +303,7 @@ while IFS= read -r dir; do
     fi
 
     score_artifact "$base_artifact" "$dir/EXPECTATIONS" ""
-    printf '%s\tBASE\t%s/%s\tdelta +%s\n' "$id" "$SCORE_PASSED" "$SCORE_TOTAL" "$((passed - SCORE_PASSED))"
+    printf '%s\tBASE\t%s/%s\tdelta %s\n' "$id" "$SCORE_PASSED" "$SCORE_TOTAL" "$(signed_delta "$((passed - SCORE_PASSED))")"
     skill_points=$((skill_points + passed))
     base_points=$((base_points + SCORE_PASSED))
     arm_total=$((arm_total + total))
@@ -301,8 +311,8 @@ while IFS= read -r dir; do
 done < "$CASE_LIST"
 
 if [ "$BASELINE" -eq 1 ] && [ "$arm_total" -gt 0 ]; then
-  printf 'AGGREGATE\tskill %s/%s\tbaseline %s/%s\tdelta +%s\n' \
-    "$skill_points" "$arm_total" "$base_points" "$arm_total" "$((skill_points - base_points))"
+  printf 'AGGREGATE\tskill %s/%s\tbaseline %s/%s\tdelta %s\n' \
+    "$skill_points" "$arm_total" "$base_points" "$arm_total" "$(signed_delta "$((skill_points - base_points))")"
 fi
 
 node "$ROOT/scripts/summarize-eval.js" "$OUTPUT"

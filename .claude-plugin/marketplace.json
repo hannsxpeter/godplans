@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "godplans: plan everything before anything. A single-command planning superskill emitting audit-aware, validated, agent-executable master plans.",
-    "version": "1.13.0"
+    "version": "1.14.0"
   },
   "plugins": [
     {
       "name": "godplans",
       "source": "./plugins/godplans",
-      "description": "Produce a complete, agent-executable master plan (PLAN.mdx) for a software project before any code is written: discovery, hard-to-reverse decisions, and 18 planning domains with every after-the-fact audit inverted into plan-time acceptance criteria.",
+      "description": "Produce an audit-aware, agent-executable master plan (PLAN.mdx) before application code is written. One command runs discovery, forces hard-to-reverse decisions, and plans product, business (pricing, entitlements, billing, metrics, feedback), architecture, roadmap, stack, repo, build, deploy, observability, launch, security, code quality, style genome, database, LLM integration, SEO, UI, UX, and agent memory upfront. After-the-fact audit checks become plan-time acceptance criteria, a prose-integrity pass removes generic language without changing meaning, and a self-contained validator enforces task structure and approval state. Use when the user says: plan this project, godplans, master plan, product plan, plan everything upfront, plan before code, audit-aware plan, replan, or starts a greenfield project or major feature. Refuses plan theater, vague tasks without verification, unsupported quality guarantees, and projects whose core purpose violates the Anthropic Usage Policy.",
       "category": "planning"
     }
   ]

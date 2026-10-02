@@ -31,7 +31,7 @@ input_digest: sha256:1c7ca1006bb3157ad989c1f1dd1cd1d6e8e2a44d9509821ffa43f3be205
 validated_at: 2026-07-13T12:00:00Z
 domains_applicable: [product, architecture, stack, security, code-quality, style-genome, agent-memory, repo, build, roadmap]
 domains_deferred: []
-domains_excluded: [database, llm, ux, ui, seo, deploy, observe, launch]
+domains_excluded: [database, business, llm, ux, ui, seo, deploy, observe, launch]
 progress:
   phases_total: 2
   phases_done: 0
@@ -78,6 +78,7 @@ Result: pass.
 | Domain | Status | Reason |
 |---|---|---|
 | product | applicable | fixture requirement |
+| business | excluded | by-design: the validator ships free inside the skill with no account, price, or telemetry; revisit when: any task adds a price, a hosted endpoint, a sign-up route, or a telemetry call |
 | architecture | applicable | shell and embedded Perl boundary |
 | stack | applicable | stock macOS and Linux toolchain |
 | database | excluded | by-design: the validator reads a plan and writes a sidecar, holding no state between runs; revisit when: any task introduces a datastore or a persisted cache |
@@ -263,6 +264,23 @@ new_case() {
   cp "$BASE_PLAN" "$CASE_FILE"
 }
 
+# Every sidecar the suite emits is also checked against the published schema,
+# so the schema and the emitter cannot drift apart unnoticed.
+SCHEMA="$ROOT_DIR/skills/godplans/schemas/PLAN.schema.json"
+SCHEMA_CHECK="$ROOT_DIR/tests/lib/plan-schema-check.js"
+check_sidecar() {
+  if output=$(node "$SCHEMA_CHECK" "$SCHEMA" "$2" 2>&1); then
+    record_pass "$1 conforms to PLAN.schema.json"
+  else
+    record_fail "$1 conforms to PLAN.schema.json" "$output"
+  fi
+}
+
+emit_sidecar() {
+  expect_pass "$1" --allow-planning --emit-json "$2" "$3"
+  check_sidecar "$1" "$2"
+}
+
 BASE_PLAN="$TMP_DIR/valid-planning.mdx"
 CASE_NUMBER=0
 write_valid_plan "$BASE_PLAN" planning
@@ -328,8 +346,13 @@ expect_pass "derived completed phase counters" "$PARTIAL_PLAN"
 
 DONE_PLAN="$TMP_DIR/valid-done.mdx"
 write_valid_plan "$DONE_PLAN" done
+perl -0pi -e 's/- \[ \] GP-/- [x] GP-/g; s/phases_done: 0/phases_done: 2/; s/tasks_done: 0/tasks_done: 3/' "$DONE_PLAN"
 expect_fail "done execution gate" "requires status approved or executing" "$DONE_PLAN"
 expect_pass "done structural validation" --allow-planning "$DONE_PLAN"
+
+CASE_FILE="$TMP_DIR/done-with-open-tasks.mdx"
+write_valid_plan "$CASE_FILE" done
+expect_fail "done with unchecked tasks" "status done requires every task checked, found 0 of 3" --allow-planning "$CASE_FILE"
 
 new_case
 perl -0pi -e 's/tasks_total: 3/tasks_total: 4/' "$CASE_FILE"
@@ -539,6 +562,10 @@ PUBLIC_PLAN="$TMP_DIR/valid-public-release.mdx"
 cp "$BASE_PLAN" "$PUBLIC_PLAN"
 perl -0pi -e '
   s/public_release: false/public_release: true/;
+  s/^\| launch \| excluded \|[^\n]*\|$/| launch | applicable | the validator ships as a public package |/m;
+  s/^(domains_excluded: \[[^\]]*), launch\]$/$1]/m;
+  s/^(domains_applicable: \[[^\]]*)\]$/$1, launch]/m;
+  s/^(- roadmap: landed R-ROAD-1)$/$1\n- launch: landed R-LAUNCH-22/m;
   s/(- \[ \] GP-101.*?  - Requirements: )[^\n]+/$1R-1.1, R-SEC-26, R-ARCH-4, R-STACK-1/s;
   s/(- \[ \] GP-102.*?  - Acceptance: )[^\n]+/$1fresh prepublication check records checked_at, hardening_revision, finding_counts, policy, verdict, owner, justification, accepted_at, and expires_at after current hardening evidence; any later change invalidates the pass/s;
   s/(- \[ \] GP-102.*?  - Requirements: )[^\n]+/$1R-1.1, R-ROAD-21, R-REPO-21, R-DNA-14/s;
@@ -604,8 +631,36 @@ expect_fail "parallel task shares a wave file" "GP-101 and GP-102 are both in W1
 
 PARALLEL_PLAN="$TMP_DIR/valid-parallel-tasks.mdx"
 cp "$BASE_PLAN" "$PARALLEL_PLAN"
-perl -0pi -e 's/- \[ \] GP-101 \[W1\.1\]/- [ ] GP-101 [P] [W1.1]/; s/- \[ \] GP-102 \[W1\.1\]/- [ ] GP-102 [P] [W1.1]/' "$PARALLEL_PLAN"
+perl -0pi -e 's/- \[ \] GP-101 \[W1\.1\]/- [ ] GP-101 [P] [W1.1]/; s/- \[ \] GP-102 \[W1\.1\]/- [ ] GP-102 [P] [W1.1]/; s/Depends on: GP-101\n/Depends on: none\n/' "$PARALLEL_PLAN"
 expect_pass "parallel tasks with disjoint files" --allow-planning "$PARALLEL_PLAN"
+
+# [P] promises a runner it may start both tasks together; a dependency between
+# them breaks that promise even when their files are disjoint.
+CASE_FILE="$TMP_DIR/parallel-dependent-pair.mdx"
+cp "$PARALLEL_PLAN" "$CASE_FILE"
+perl -0pi -e 's/(GP-102 \[P\] \[W1\.1\].*?Depends on: )none/$1GP-101/s' "$CASE_FILE"
+expect_fail "parallel task depends on its wave sibling" "GP-101 and GP-102 are both in W1.1 and one is marked [P], but one depends on the other" --allow-planning "$CASE_FILE"
+
+# Paths compare as paths: backticks, notes, ./ and directory prefixes do not hide a shared file.
+CASE_FILE="$TMP_DIR/parallel-backticked-path.mdx"
+cp "$PARALLEL_PLAN" "$CASE_FILE"
+perl -0pi -e 's{  - Files: tests/validate-plan\.sh\n  - Depends on: none}{  - Files: `skills/godplans/scripts/validate-plan.sh`\n  - Depends on: none}' "$CASE_FILE"
+expect_fail "parallel backticked path still conflicts" "but they share skills/godplans/scripts/validate-plan.sh" --allow-planning "$CASE_FILE"
+
+CASE_FILE="$TMP_DIR/parallel-directory-prefix.mdx"
+cp "$PARALLEL_PLAN" "$CASE_FILE"
+perl -0pi -e 's{  - Files: tests/validate-plan\.sh\n  - Depends on: none}{  - Files: ./skills//godplans/scripts/\n  - Depends on: none}' "$CASE_FILE"
+expect_fail "parallel directory covers a sibling file" "but they share skills/godplans/scripts/validate-plan.sh" --allow-planning "$CASE_FILE"
+
+CASE_FILE="$TMP_DIR/parallel-annotated-path.mdx"
+cp "$PARALLEL_PLAN" "$CASE_FILE"
+perl -0pi -e 's{  - Files: tests/validate-plan\.sh\n  - Depends on: none}{  - Files: README.md, skills/godplans/scripts/validate-plan.sh (exit codes only, see D1)\n  - Depends on: none}' "$CASE_FILE"
+expect_fail "parallel annotated path still conflicts" "but they share skills/godplans/scripts/validate-plan.sh" --allow-planning "$CASE_FILE"
+
+CASE_FILE="$TMP_DIR/parallel-wrapped-files.mdx"
+cp "$PARALLEL_PLAN" "$CASE_FILE"
+perl -0pi -e 's{  - Files: tests/validate-plan\.sh\n  - Depends on: none}{  - Files: README.md,\n    skills/godplans/scripts/validate-plan.sh\n  - Depends on: none}' "$CASE_FILE"
+expect_fail "parallel wrapped Files line still conflicts" "but they share skills/godplans/scripts/validate-plan.sh" --allow-planning "$CASE_FILE"
 
 new_case
 perl -0pi -e 's/\| seo \| excluded \|[^\n]*\|/| seo | deferred | reversible until pages ship |/' "$CASE_FILE"
@@ -672,14 +727,14 @@ perl -0pi -e 's/### D1: portable runtime boundary.*?## Requirements/## Requireme
 expect_fail "missing decision entries" "Decisions must contain at least one" --allow-planning "$CASE_FILE"
 
 JSON_OUT="$TMP_DIR/plan.json"
-expect_pass "emit JSON sidecar" --allow-planning --emit-json "$JSON_OUT" "$BASE_PLAN"
+emit_sidecar "emit JSON sidecar" "$JSON_OUT" "$BASE_PLAN"
 node -e '
   const fs = require("node:fs");
   const crypto = require("node:crypto");
   const plan = fs.readFileSync(process.argv[1]);
   const doc = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
   const digest = "sha256:" + crypto.createHash("sha256").update(plan).digest("hex");
-  if (doc.format !== "godplans/plan-json@1") throw new Error("bad format tag");
+  if (doc.format !== "godplans/plan-json@2") throw new Error("bad format tag");
   if (doc.plan_digest !== digest) throw new Error("plan_digest mismatch");
   if (doc.status !== "planning") throw new Error("status mismatch");
   if (doc.public_release !== false) throw new Error("public_release mismatch");
@@ -688,7 +743,7 @@ node -e '
   if (doc.tasks[1].depends_on[0] !== "GP-101") throw new Error("depends_on mismatch");
   if (doc.tasks[2].requirements.indexOf("R-CODE-21") < 0) throw new Error("requirements mismatch");
   if (doc.phases.length !== 2 || doc.phases[1].name !== "Verification") throw new Error("phase shape mismatch");
-  if (doc.applicability.length !== 18) throw new Error("applicability mismatch");
+  if (doc.applicability.length !== 19) throw new Error("applicability mismatch");
   if (doc.decisions.length !== 1 || doc.decisions[0].falsifier.signal.indexOf("Perl") < 0) throw new Error("decision mismatch");
   if (doc.metrics.task_history.active !== 3 || doc.metrics.task_history.superseded !== 0) throw new Error("history mismatch");
 ' "$BASE_PLAN" "$JSON_OUT" && record_pass "JSON sidecar content" || record_fail "JSON sidecar content" "node assertion failed"
@@ -697,7 +752,7 @@ HISTORY_PLAN="$TMP_DIR/plan-with-superseded-task.mdx"
 cp "$BASE_PLAN" "$HISTORY_PLAN"
 perl -0pi -e 's/(Checkpoint: malformed plans fail with a diagnostic\.)/~~- [ ] GP-103 [W1.2] Add crawl metadata~~\n  - Superseded: no public surface remains in scope\n  - Requirements: R-SEO-1\n\n$1/' "$HISTORY_PLAN"
 HISTORY_JSON="$TMP_DIR/history.json"
-expect_pass "emit superseded task metrics" --allow-planning --emit-json "$HISTORY_JSON" "$HISTORY_PLAN"
+emit_sidecar "emit superseded task metrics" "$HISTORY_JSON" "$HISTORY_PLAN"
 node -e '
   const doc = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
   if (doc.superseded_tasks.length !== 1 || doc.superseded_tasks[0].id !== "GP-103") throw new Error("superseded task missing");
@@ -717,6 +772,51 @@ if "$ROOT_DIR/skills/godplans/scripts/plan-halflife.sh" "$HISTORY_PLAN" "$HALFLI
   record_pass "plan half-life report"
 else
   record_fail "plan half-life report" "report generation failed"
+fi
+
+# Replan measures the outgoing plan with the validator it was written against.
+# The stubs stand in for an older companion that accepts a plan the shipped
+# sibling rejects; neither has an executable bit, so both must run under bash.
+HALFLIFE="$ROOT_DIR/skills/godplans/scripts/plan-halflife.sh"
+write_stub_validator() {
+  printf '%s\n' \
+    'while [ "$#" -gt 0 ]; do' \
+    '  [ "$1" = --emit-json ] && { shift; out=$1; }' \
+    '  shift' \
+    'done' \
+    "printf '{\"plan_digest\":\"sha256:stub\",\"plan_version\":$2,\"metrics\":{}}' > \"\$out\"" > "$1"
+  chmod -x "$1"
+}
+metrics_version_is() {
+  node -e 'const doc = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")); process.exit(doc.plan_version === Number(process.argv[2]) ? 0 : 1);' "$1" "$2"
+}
+COMPANION_DIR="$TMP_DIR/halflife-companion"
+mkdir "$COMPANION_DIR"
+printf '%s\n' 'an outgoing plan the shipped validator rejects' > "$COMPANION_DIR/PLAN.mdx"
+write_stub_validator "$COMPANION_DIR/validate-plan.sh" 7
+write_stub_validator "$TMP_DIR/override-validator.sh" 9
+if "$HALFLIFE" "$COMPANION_DIR/PLAN.mdx" "$COMPANION_DIR/metrics.json" >/dev/null 2>&1 &&
+   metrics_version_is "$COMPANION_DIR/metrics.json" 7; then
+  record_pass "plan half-life uses the plan's companion validator"
+else
+  record_fail "plan half-life uses the plan's companion validator" "the sibling validator measured the plan"
+fi
+if GODPLANS_VALIDATOR="$TMP_DIR/override-validator.sh" "$HALFLIFE" "$COMPANION_DIR/PLAN.mdx" "$COMPANION_DIR/metrics.json" >/dev/null 2>&1 &&
+   metrics_version_is "$COMPANION_DIR/metrics.json" 9; then
+  record_pass "plan half-life GODPLANS_VALIDATOR override wins"
+else
+  record_fail "plan half-life GODPLANS_VALIDATOR override wins" "the override was ignored"
+fi
+# With no companion, the newer sibling measures the plan; a rejection names the way out.
+REPLACED_DIR="$TMP_DIR/halflife-replaced"
+mkdir "$REPLACED_DIR"
+cp "$COMPANION_DIR/PLAN.mdx" "$REPLACED_DIR/PLAN.mdx"
+if output=$("$HALFLIFE" "$REPLACED_DIR/PLAN.mdx" "$REPLACED_DIR/metrics.json" 2>&1); then
+  record_fail "plan half-life rejection names GODPLANS_VALIDATOR" "the sibling accepted an invalid plan"
+elif printf '%s\n' "$output" | grep -F "set GODPLANS_VALIDATOR to the validator it was written against" >/dev/null; then
+  record_pass "plan half-life rejection names GODPLANS_VALIDATOR"
+else
+  record_fail "plan half-life rejection names GODPLANS_VALIDATOR" "missing hint: $output"
 fi
 
 DRIFT_PLAN="$TMP_DIR/drift-check.mdx"
@@ -825,7 +925,7 @@ expect_fail "module disposition drops a requirement a task cites" "module dispos
 
 new_case
 perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-STACK-7/m' "$CASE_FILE"
-expect_fail "module disposition lands an unreferenced requirement" "module disposition lands R-STACK-7 but nothing in the plan references it" --allow-planning "$CASE_FILE"
+expect_fail "module disposition lands an unreferenced requirement" "module disposition lands R-STACK-7 but nothing outside the frontmatter, session log, and disposition block references it" --allow-planning "$CASE_FILE"
 
 new_case
 perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-SEC-1/m' "$CASE_FILE"
@@ -963,6 +1063,40 @@ perl -0pi -e '
 ' "$OVERLAY_PLAN"
 expect_pass "overlay domain may defer" --allow-planning "$OVERLAY_PLAN"
 
+# The business domain: a plan written before the domain existed gains the
+# row in replan, the domain never defers, the monetized overlay keeps it in
+# the plan, and its requirements resolve against the embedded catalog.
+
+new_case
+perl -0pi -e 's/^\| business \| excluded \|[^\n]*\|\n//m; s/^(domains_excluded: \[database), business/$1/m' "$CASE_FILE"
+expect_fail "plan written before the business domain" "applicability matrix is missing domain business" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| business \| excluded \|[^\n]*\|$/| business | deferred | trigger: the first priced plan enters the roadmap; reversible until checkout ships |/m; s/^(domains_excluded: \[database), business/$1/m; s/^domains_deferred: \[\]$/domains_deferred: [business]/m' "$CASE_FILE"
+expect_fail "business never defers" "cannot defer load-bearing domain business" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^overlays: \[\]$/overlays: [monetized]/m; s/^- Overlays: none$/- Overlays: monetized/m' "$CASE_FILE"
+expect_fail "monetized overlay keeps business in the plan" "which the monetized overlay covers; overlays raise and never lower, so this row must be applicable" --allow-planning "$CASE_FILE"
+
+BUSINESS_PLAN="$TMP_DIR/valid-business.mdx"
+cp "$BASE_PLAN" "$BUSINESS_PLAN"
+perl -0pi -e '
+  s/^overlays: \[\]$/overlays: [monetized]/m;
+  s/^- Overlays: none$/- Overlays: monetized/m;
+  s/^\| business \| excluded \|[^\n]*\|$/| business | applicable | the fixture sells a paid tier |/m;
+  s/^(domains_excluded: \[database), business/$1/m;
+  s/^(domains_applicable: \[product), /$1, business, /m;
+  s/^(- product: landed R-PRD-1;[^\n]*\n)/$1- business: landed R-BIZ-9; dropped-by archetype R-BIZ-25 (D1: no controlled experiments, D2: no flag mechanism)\n/m;
+  s/^(  - Requirements: R-1\.1, R-CODE-21, R-ARCH-4, R-STACK-1)$/$1, R-BIZ-9/m
+' "$BUSINESS_PLAN"
+expect_pass "monetized plan with the business module landed" --allow-planning "$BUSINESS_PLAN"
+
+new_case
+cp "$BUSINESS_PLAN" "$CASE_FILE"
+perl -0pi -e 's/^(  - Requirements: R-1\.1, R-CODE-21, R-ARCH-4, R-STACK-1), R-BIZ-9$/$1, R-BIZ-27/m' "$CASE_FILE"
+expect_fail "business requirement outside the catalog" "R-BIZ-27" --allow-planning "$CASE_FILE"
+
 # Brownfield absent: claims carry the search that came back empty.
 
 BROWNFIELD_PLAN="$TMP_DIR/valid-brownfield-absent.mdx"
@@ -1010,6 +1144,523 @@ if "$VALIDATOR" --allow-planning --emit-json "$SIDECAR_JSON" "$SIDECAR_PLAN" >/d
   record_pass "sidecar carries tripwires, disposition, and documentation"
 else
   record_fail "sidecar carries tripwires, disposition, and documentation" "sidecar payload incomplete"
+fi
+check_sidecar "tripwire sidecar" "$SIDECAR_JSON"
+
+# The schema checker must be able to fail, or every conformance pass above is vacuous.
+BAD_SIDECAR="$TMP_DIR/bad-sidecar.json"
+node -e '
+  const fs = require("node:fs");
+  const doc = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  doc.created = "2026-02-30";
+  doc.tasks[0].depends_on = ["GP-1"];
+  doc.surprise = true;
+  fs.writeFileSync(process.argv[2], JSON.stringify(doc));
+' "$JSON_OUT" "$BAD_SIDECAR"
+output=$(node "$SCHEMA_CHECK" "$SCHEMA" "$BAD_SIDECAR" 2>&1) && status=0 || status=$?
+if [ "$status" -ne 0 ] &&
+   printf '%s\n' "$output" | grep -F '$.created: "2026-02-30" is not a valid date' >/dev/null &&
+   printf '%s\n' "$output" | grep -F '$.tasks[0].depends_on[0]' >/dev/null &&
+   printf '%s\n' "$output" | grep -F 'unexpected property surprise' >/dev/null; then
+  record_pass "schema checker rejects a nonconforming sidecar"
+else
+  record_fail "schema checker rejects a nonconforming sidecar" "$output"
+fi
+
+# Encoding: the sidecar is UTF-8 whatever the plan's characters, and the plan
+# itself must be valid UTF-8 without a byte order mark.
+
+UTF8_PLAN="$TMP_DIR/latin-range.mdx"
+cp "$BASE_PLAN" "$UTF8_PLAN"
+perl -0pi -e 's/frontmatter and counters are checked/frontmatter and counters are checked (caf\xc3\xa9 r\xc3\xa9sum\xc3\xa9)/' "$UTF8_PLAN"
+UTF8_JSON="$TMP_DIR/latin-range.json"
+emit_sidecar "Latin-1 range characters in a task" "$UTF8_JSON" "$UTF8_PLAN"
+if node -e '
+  const bytes = require("node:fs").readFileSync(process.argv[1]);
+  const doc = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  if (!doc.tasks[0].acceptance.includes("caf\u00e9 r\u00e9sum\u00e9")) throw new Error("text changed");
+' "$UTF8_JSON"; then
+  record_pass "sidecar is strict UTF-8"
+else
+  record_fail "sidecar is strict UTF-8" "sidecar did not decode as UTF-8"
+fi
+
+new_case
+perl -0pi -e 's/frontmatter and counters are checked/frontmatter and counters are checked (caf\xe9)/' "$CASE_FILE"
+expect_fail "invalid UTF-8 plan" "plan is not valid UTF-8" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/\A/\xef\xbb\xbf/' "$CASE_FILE"
+output=$("$VALIDATOR" --allow-planning "$CASE_FILE" 2>&1) && status=0 || status=$?
+if [ "$status" -ne 0 ] && [ "$(printf '%s\n' "$output" | grep -c '^FAIL ')" -eq 1 ] &&
+   printf '%s\n' "$output" | grep -F 'byte order mark' >/dev/null; then
+  record_pass "byte order mark fails once"
+else
+  record_fail "byte order mark fails once" "$output"
+fi
+
+for codepoint in 2705 27F6 2B05 2588 231A 2934 200D 20E3 E0067 1FB00; do
+  new_case
+  CODEPOINT=$codepoint perl -CSD -e 'print "- 2026-07-14 marker ", chr(hex $ENV{CODEPOINT}), "\n"' >> "$CASE_FILE"
+  expect_fail "banned Unicode U+$codepoint" "banned Unicode" --allow-planning "$CASE_FILE"
+done
+# Keyboard symbols in Miscellaneous Technical are text, not emoji: a plan may document shortcuts.
+for codepoint in 2318 2325 2303 232B; do
+  new_case
+  CODEPOINT=$codepoint perl -CSD -e 'print "- 2026-07-14 press ", chr(hex $ENV{CODEPOINT}), "K\n"' >> "$CASE_FILE"
+  expect_pass "keyboard symbol U+$codepoint is allowed" --allow-planning "$CASE_FILE"
+done
+
+# Frontmatter is YAML: quotes and trailing comments are not part of a value,
+# and a date must exist on the calendar.
+
+QUOTED_PLAN="$TMP_DIR/quoted-frontmatter.mdx"
+cp "$BASE_PLAN" "$QUOTED_PLAN"
+perl -0pi -e 's/^name: validator-fixture$/name: "validator-fixture"/m; s/^validated_at: (\S+)$/validated_at: '"'"'$1'"'"'/m; s/^overlays: \[\]$/overlays: [] # none fired/m; s/^  tasks_total: 3$/  tasks_total: "3"/m' "$QUOTED_PLAN"
+QUOTED_JSON="$TMP_DIR/quoted-frontmatter.json"
+emit_sidecar "quoted frontmatter values" "$QUOTED_JSON" "$QUOTED_PLAN"
+if node -e '
+  const doc = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+  if (doc.name !== "validator-fixture") throw new Error("name kept its quotes");
+  if (doc.validated_at !== "2026-07-13T12:00:00Z") throw new Error("timestamp kept its quotes");
+  if (doc.progress.tasks_total !== 3) throw new Error("counter kept its quotes");
+' "$QUOTED_JSON"; then
+  record_pass "sidecar carries unquoted frontmatter values"
+else
+  record_fail "sidecar carries unquoted frontmatter values" "quotes leaked into the sidecar"
+fi
+
+new_case
+perl -0pi -e 's/^overlays: \[\]$/overlays:/m' "$CASE_FILE"
+expect_fail "empty overlays value" "frontmatter field is empty: overlays" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^created: 2026-07-13$/created: 2026-13-45/m' "$CASE_FILE"
+expect_fail "impossible created date" "created 2026-13-45 is not a real calendar date" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^updated: 2026-07-13$/updated: 2026-02-30/m' "$CASE_FILE"
+expect_fail "impossible updated date" "updated 2026-02-30 is not a real calendar date" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/2026-07-13T12:00:00Z/2026-07-13T25:00:00Z/g' "$CASE_FILE"
+expect_fail "impossible validation time" "validated_at 2026-07-13T25:00:00Z is not a real calendar date" --allow-planning "$CASE_FILE"
+
+LEAP_PLAN="$TMP_DIR/leap-day.mdx"
+cp "$BASE_PLAN" "$LEAP_PLAN"
+perl -0pi -e 's/^updated: 2026-07-13$/updated: 2028-02-29/m' "$LEAP_PLAN"
+expect_pass "leap day is a real date" --allow-planning "$LEAP_PLAN"
+
+# Task fields may wrap; the validator and the sidecar read the whole value.
+
+WRAPPED_PLAN="$TMP_DIR/wrapped-fields.mdx"
+cp "$BASE_PLAN" "$WRAPPED_PLAN"
+perl -0pi -e 's/  - Acceptance: frontmatter and counters are checked\n/  - Acceptance: frontmatter and counters are checked;\n    a malformed plan returns exit 1 with a FAIL line per problem\n/; s/(  - Requirements: R-1\.1, R-CODE-21,) (R-ARCH-4, R-STACK-1)\n/$1\n    $2\n/' "$WRAPPED_PLAN"
+WRAPPED_JSON="$TMP_DIR/wrapped-fields.json"
+emit_sidecar "wrapped task fields" "$WRAPPED_JSON" "$WRAPPED_PLAN"
+if node -e '
+  const doc = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+  if (doc.tasks[0].acceptance !== "frontmatter and counters are checked; a malformed plan returns exit 1 with a FAIL line per problem") throw new Error("acceptance truncated");
+  if (doc.tasks[0].requirements.join(",") !== "R-1.1,R-CODE-21,R-ARCH-4,R-STACK-1") throw new Error("requirements truncated");
+' "$WRAPPED_JSON"; then
+  record_pass "sidecar joins wrapped field lines"
+else
+  record_fail "sidecar joins wrapped field lines" "a wrapped field was cut at its first line"
+fi
+
+new_case
+perl -0pi -e 's/(  - Requirements: R-1\.1, R-CODE-21, R-ARCH-4)(, R-STACK-1)\n/$1\n    R-NOPE-99$2\n/' "$CASE_FILE"
+expect_fail "wrapped requirement is still checked" "has malformed Requirements value" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/(  - Requirements: R-1\.1, R-CODE-21, R-ARCH-4, R-STACK-1)\n/$1,\n    R-NOPE-99\n/' "$CASE_FILE"
+expect_fail "wrapped undefined requirement" "GP-101 cites undefined requirement R-NOPE-99" --allow-planning "$CASE_FILE"
+
+# A failed-Verify note nested under a field is a list item, never part of that field.
+NOTE_PLAN="$TMP_DIR/nested-note.mdx"
+cp "$BASE_PLAN" "$NOTE_PLAN"
+perl -0pi -e 's/(  - Acceptance: frontmatter and counters are checked)\n/$1\n    - Note (2026-08-01): Verify failed on a missing fixture\n/; s/(  - Requirements: R-1\.1, R-CODE-21, R-ARCH-4, R-STACK-1)\n/$1\n    - Note (2026-08-01): Verify failed again\n/' "$NOTE_PLAN"
+NOTE_JSON="$TMP_DIR/nested-note.json"
+emit_sidecar "4-space Note lines under task fields" "$NOTE_JSON" "$NOTE_PLAN"
+if node -e '
+  const doc = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+  if (doc.tasks[0].acceptance !== "frontmatter and counters are checked") throw new Error("note merged into acceptance");
+' "$NOTE_JSON"; then
+  record_pass "sidecar keeps Note lines out of field values"
+else
+  record_fail "sidecar keeps Note lines out of field values" "a Note line was joined to a field"
+fi
+
+# Verify and Checkpoint verify carry a command that can actually be rerun.
+
+new_case
+perl -0pi -e 's/(GP-101.*?  - Verify: )`[^`]+`/$1`  `/s' "$CASE_FILE"
+expect_fail "blank Verify command" "GP-101 Verify must be one executable command in backticks" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/(GP-101.*?  - Verify: )`[^`]+`/$1` manual: open the report`/s' "$CASE_FILE"
+expect_fail "indented manual Verify" "GP-101 Verify must be one executable command in backticks" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^Checkpoint verify: `test -x skills[^\n]*$/Checkpoint verify: ` `/m' "$CASE_FILE"
+expect_fail "blank Checkpoint verify" "Phase 1 Checkpoint verify must be one executable command in backticks" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^Checkpoint verify: `test -x skills[^\n]*$/Checkpoint verify: `Manual: open the report and eyeball it`/m' "$CASE_FILE"
+expect_fail "manual Checkpoint verify" "Phase 1 Checkpoint verify must be one executable command in backticks" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^(Checkpoint verify: [^\n]*)$/$1\n$1/m' "$CASE_FILE"
+expect_fail "duplicate Checkpoint verify" "Phase 1 has duplicate Checkpoint verify" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^Checkpoint: malformed plans[^\n]*\n//m' "$CASE_FILE"
+expect_fail "missing Checkpoint" "Phase 1 is missing Checkpoint" --allow-planning "$CASE_FILE"
+
+# Drift check: a sampled Verify or the phase checkpoint that stops passing
+# returns the plan to planning.
+
+DRIFT_FAIL_PLAN="$TMP_DIR/drift-sample-fails.mdx"
+cp "$DRIFT_PLAN" "$DRIFT_FAIL_PLAN"
+perl -0pi -e 's/(- \[x\] GP-102.*?  - Verify: )`test -f package\.json`/$1`test -f no-such-file-for-drift`/s' "$DRIFT_FAIL_PLAN"
+expect_fail "drift sample failure" "drift sample GP-102 exited 1" --drift-check 1 "$DRIFT_FAIL_PLAN"
+
+DRIFT_FAIL_PLAN="$TMP_DIR/drift-checkpoint-fails.mdx"
+cp "$DRIFT_PLAN" "$DRIFT_FAIL_PLAN"
+perl -0pi -e 's/^Checkpoint verify: `test -f package\.json`$/Checkpoint verify: `test -f no-such-file-for-drift`/m' "$DRIFT_FAIL_PLAN"
+expect_fail "drift checkpoint failure" "Phase 1 checkpoint exited 1" --drift-check 1 "$DRIFT_FAIL_PLAN"
+
+expect_fail "drift phase incomplete" "drift phase 2 is not complete" --drift-check 2 "$DRIFT_PLAN"
+expect_fail "drift phase missing" "drift phase 9 does not exist" --drift-check 9 "$DRIFT_PLAN"
+
+DRIFT_FAIL_PLAN="$TMP_DIR/drift-recheck-intake.mdx"
+cp "$DRIFT_PLAN" "$DRIFT_FAIL_PLAN"
+perl -0pi -e 's/^- `intake` =/- [recheck] `intake` =/m' "$DRIFT_FAIL_PLAN"
+expect_fail "drift recheck of intake" "recheck inventory label intake is not a file path" --drift-check 1 "$DRIFT_FAIL_PLAN"
+
+# Superseded history: struck tasks keep their reason and requirements, stay
+# unchecked, and never reuse an ID.
+
+SUPERSEDED_TASK='~~- [ ] GP-103 [W1.1] Write the readme~~\n  - Superseded: the readme moved to the release task\n  - Requirements: R-REPO-21\n\n'
+new_case
+SUPERSEDED_TASK=$SUPERSEDED_TASK perl -0pi -e 's/(Checkpoint: malformed plans)/$ENV{SUPERSEDED_TASK}$1/; s/\\n/\n/g' "$CASE_FILE"
+cp "$CASE_FILE" "$TMP_DIR/superseded-base.mdx"
+expect_pass "superseded task with reason and requirements" --allow-planning "$CASE_FILE"
+
+superseded_case() {
+  CASE_NUMBER=$((CASE_NUMBER + 1))
+  CASE_FILE="$TMP_DIR/case-$CASE_NUMBER.mdx"
+  cp "$TMP_DIR/superseded-base.mdx" "$CASE_FILE"
+}
+
+superseded_case
+perl -0pi -e 's/~~- \[ \] GP-103/~~- [x] GP-103/' "$CASE_FILE"
+expect_fail "checked superseded task" "superseded task GP-103 must remain unchecked" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/^  - Superseded: [^\n]*\n//m' "$CASE_FILE"
+expect_fail "superseded task without a reason" "superseded task GP-103 missing required field: Superseded" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/^  - Requirements: R-REPO-21\n//m' "$CASE_FILE"
+expect_fail "superseded task without requirements" "superseded task GP-103 missing required field: Requirements" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/^(  - Superseded: [^\n]*)$/$1\n$1/m' "$CASE_FILE"
+expect_fail "superseded task with two reasons" "superseded task GP-103 has duplicate required field: Superseded" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/^  - Superseded: [^\n]*$/  - Superseded:/m' "$CASE_FILE"
+expect_fail "superseded task with an empty reason" "superseded task GP-103 has empty required field: Superseded" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/^  - Requirements: R-REPO-21$/  - Requirements: R-REPO-21, R-NOPE-1/m' "$CASE_FILE"
+expect_fail "superseded task cites an undefined requirement" "superseded task GP-103 cites undefined requirement R-NOPE-1" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/^  - Requirements: R-REPO-21$/  - Requirements: the readme/m' "$CASE_FILE"
+expect_fail "superseded task with malformed requirements" "superseded task GP-103 has malformed Requirements value" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/~~- \[ \] GP-103/~~- [ ] GP-102/' "$CASE_FILE"
+expect_fail "superseded task reuses an active ID" "duplicate historical task ID GP-102" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/(Checkpoint: malformed plans)/~~- [ ] GP-103 [W1.1] Write it again~~\n  - Superseded: duplicate\n  - Requirements: R-REPO-21\n\n$1/' "$CASE_FILE"
+expect_fail "two superseded tasks share an ID" "duplicate historical task ID GP-103" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/Write the readme~~/Write the readme/' "$CASE_FILE"
+expect_fail "unclosed superseded heading" "malformed superseded task on line" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/~~- \[ \] GP-103/~~- [ ] GP-013/' "$CASE_FILE"
+expect_fail "superseded heading with a short ID" "malformed superseded task on line" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/~~- \[ \] GP-103/~~ - [ ] GP-103/' "$CASE_FILE"
+expect_fail "spaced superseded heading after a task" "malformed superseded task on line" --allow-planning "$CASE_FILE"
+if "$VALIDATOR" --allow-planning "$CASE_FILE" 2>&1 | grep -F "GP-102 has duplicate required field" >/dev/null; then
+  record_fail "spaced superseded heading leaves GP-102 fields alone" "its fields were merged into GP-102"
+else
+  record_pass "spaced superseded heading leaves GP-102 fields alone"
+fi
+
+new_case
+perl -0pi -e 's/(### Wave 1\.1\n\n)/$1~~ - [ ] GP-103 [W1.1] Write the readme~~\n  - Superseded: moved\n  - Requirements: R-NOPE-1\n\n/' "$CASE_FILE"
+expect_fail "spaced superseded heading first in a wave" "malformed superseded task on line" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- \[ \] GP-102 \[W1\.1\]/-  [ ] GP-102 [W1.1]/m' "$CASE_FILE"
+expect_fail "task heading with a doubled space" "malformed task definition on line" --allow-planning "$CASE_FILE"
+
+superseded_case
+perl -0pi -e 's/^\| build\.readme \| build \| required \| repo \|[^\n]*\|$/| build.readme | build | required | repo | always; written by GP-103 |/m' "$CASE_FILE"
+expect_fail "required document names a superseded task" "documentation set row build.readme names superseded task GP-103" --allow-planning "$CASE_FILE"
+
+# A phase whose every task was superseded stays as history.
+SUPERSEDED_PHASE_PLAN="$TMP_DIR/superseded-phase.mdx"
+cp "$BASE_PLAN" "$SUPERSEDED_PHASE_PLAN"
+perl -0pi -e '
+  s/phases_total: 2/phases_total: 3/;
+  s/phases_done: 0/phases_done: 1/;
+  s/## Phase 2: Verification/## Phase 2: Packaging\n\n~~- [ ] GP-250 [W2.1] Build a tarball~~\n  - Superseded: the skill installer replaced tarball distribution\n  - Requirements: R-BUILD-1\n\n## Phase 3: Verification/;
+  s/GP-201 \[W2\.1\]/GP-301 [W3.1]/;
+  s/### Wave 2\.1/### Wave 3.1/;
+  s/written by GP-201/written by GP-301/;
+' "$SUPERSEDED_PHASE_PLAN"
+SUPERSEDED_PHASE_JSON="$TMP_DIR/superseded-phase.json"
+emit_sidecar "phase of superseded tasks" "$SUPERSEDED_PHASE_JSON" "$SUPERSEDED_PHASE_PLAN"
+
+# Wave order and dependencies.
+
+new_case
+perl -0pi -e 's/GP-101 \[W1\.1\]/GP-101 [W1.2]/' "$CASE_FILE"
+expect_fail "wave tags go backwards" "GP-102 [W1.1] follows a W1.2 task; waves within a phase must not go backwards" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/Depends on: GP-101\n/Depends on: GP-102\n/' "$CASE_FILE"
+expect_fail "task depends on itself" "GP-102 depends on itself" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/(Checkpoint: malformed plans)/- [ ] GP-150 [W1.1] Stray task\n\n$1/' "$CASE_FILE"
+expect_fail "task heading without fields" "GP-150 missing required field: Files" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- \[ \] GP-101/- [?] GP-101/m' "$CASE_FILE"
+expect_fail "malformed task checkbox" "malformed task definition on line" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/(## Plan provenance)/- [ ] GP-150 [W1.1] Loose task\n\n$1/' "$CASE_FILE"
+expect_fail "task outside a phase" "GP-150 is not inside a numbered phase" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/(  - Files: tests\/validate-plan\.sh\n  - Depends on: GP-101)/$1\n  - Depends on: none/' "$CASE_FILE"
+expect_fail "duplicate task field" "GP-102 has duplicate required field: Depends on" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/  - Reuses: validator fixture/  - Reuses:/' "$CASE_FILE"
+expect_fail "empty task field" "GP-102 has empty required field: Reuses" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/(## Phase 2: Verification)/## Phase 2: Packaging\n\nGoal: nothing yet.\n\n## Phase 3: Verification/; s/GP-201 \[W2\.1\]/GP-301 [W3.1]/' "$CASE_FILE"
+expect_fail "phase without tasks" "Phase 2 has no task definitions" --allow-planning "$CASE_FILE"
+
+# Module disposition: a semicolon inside the reason, landed means referenced
+# outside the frontmatter and the session log, and tasks stay out of excluded
+# or deferred modules.
+
+DISCOVERY_DROP_PLAN="$TMP_DIR/discovery-drop.mdx"
+cp "$BASE_PLAN" "$DISCOVERY_DROP_PLAN"
+perl -0pi -e 's/^- product: landed R-PRD-1;[^\n]*$/- product: landed R-PRD-1; dropped-by archetype R-PRD-9 (no design system to publish; the app uses stock primitives)/m' "$DISCOVERY_DROP_PLAN"
+expect_pass "dropped-by reason containing a semicolon" --allow-planning "$DISCOVERY_DROP_PLAN"
+
+new_case
+perl -0pi -e 's/^- roadmap: landed R-ROAD-1$/- roadmap: landed R-ROAD-1; dropped-by scale R-ROAD-9 ( )/m' "$CASE_FILE"
+expect_fail "module disposition with a blank reason" "dropped-by clause without a parenthesised reason" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- roadmap: landed R-ROAD-1$/- roadmap: landed R-ROAD-1; kept R-ROAD-2/m' "$CASE_FILE"
+expect_fail "module disposition with an unknown clause" "module disposition for roadmap has an unrecognised clause 'kept R-ROAD-2'" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- roadmap: landed R-ROAD-1$/- roadmap: landed R-ROAD-1\n- analytics: landed R-AN-1/m' "$CASE_FILE"
+expect_fail "module disposition names an unknown module" "module disposition names unknown module analytics" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- roadmap: landed R-ROAD-1$/- roadmap: landed R-ROAD-1\n- roadmap: landed R-ROAD-1/m' "$CASE_FILE"
+expect_fail "module disposition duplicate line" "module disposition has a duplicate line for roadmap" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- roadmap: landed R-ROAD-1$/- roadmap: landed R-ROAD-1, R-ROAD-99/m' "$CASE_FILE"
+expect_fail "module disposition lands an undefined id" "module disposition for roadmap lands undefined requirement R-ROAD-99" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-STACK-1, R-STACK-7/m; s/^- 2026-07-13 plan created$/- 2026-07-13 plan created; R-STACK-7 noted/m' "$CASE_FILE"
+expect_fail "landed requirement only in the session log" "module disposition lands R-STACK-7 but nothing outside the frontmatter, session log, and disposition block references it" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-STACK-1, R-STACK-7/m; s/^name: validator-fixture$/name: validator-fixture-R-STACK-7/m' "$CASE_FILE"
+expect_fail "landed requirement only in the frontmatter" "module disposition lands R-STACK-7 but nothing outside the frontmatter, session log, and disposition block references it" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-STACK-1, R-STACK-7/m; s/\(one shell entry point, no heavy pattern to justify\)/(one shell entry point, see R-STACK-7)/' "$CASE_FILE"
+expect_fail "landed requirement only in another disposition line" "module disposition lands R-STACK-7 but nothing outside the frontmatter, session log, and disposition block references it" --allow-planning "$CASE_FILE"
+
+LANDED_IN_DECISION_PLAN="$TMP_DIR/landed-in-decision.mdx"
+cp "$BASE_PLAN" "$LANDED_IN_DECISION_PLAN"
+perl -0pi -e 's/^- stack: landed R-STACK-1$/- stack: landed R-STACK-1, R-STACK-7/m; s/^(The validator uses Bash 3\.2 plus stock Perl instead of a compiled runtime)\.$/$1 (R-STACK-7)./m' "$LANDED_IN_DECISION_PLAN"
+expect_pass "landed requirement referenced by a decision" --allow-planning "$LANDED_IN_DECISION_PLAN"
+
+new_case
+perl -0pi -e 's/(- \[ \] GP-101.*?  - Requirements: )[^\n]+/$1R-1.1, R-CODE-21, R-ARCH-4, R-STACK-1, R-SEO-3/s' "$CASE_FILE"
+expect_fail "task cites an excluded module" "GP-101 cites R-SEO-3, but the applicability matrix marks seo excluded" --allow-planning "$CASE_FILE"
+
+CASE_FILE="$TMP_DIR/deferred-module-cited.mdx"
+cp "$DEFERRED_PLAN" "$CASE_FILE"
+perl -0pi -e 's/(- \[ \] GP-101.*?  - Requirements: )[^\n]+/$1R-1.1, R-CODE-21, R-ARCH-4, R-STACK-1, R-SEO-1/s' "$CASE_FILE"
+expect_fail "task cites a deferred module" "GP-101 cites R-SEO-1, but the applicability matrix marks seo deferred" --allow-planning "$CASE_FILE"
+
+# Documentation set: brownfield state tokens and malformed rows.
+
+BROWNFIELD_DOCS_PLAN="$TMP_DIR/brownfield-doc-states.mdx"
+cp "$BASE_PLAN" "$BROWNFIELD_DOCS_PLAN"
+perl -0pi -e '
+  s/^mode: greenfield$/mode: brownfield/m;
+  s/^\| build\.readme \| build \| required \| repo \|[^\n]*\|$/| build.readme | build | required | repo | present-current: adopt; README.md exists and is current, frontmatter only |/m;
+  s/^\| govern\.manifest \| govern \| required \| repo \|[^\n]*\|$/| govern.manifest | govern | required | repo | present-elsewhere: confirm; the manifest lives in the team wiki |/m;
+  s/^\| serve\.user-guide \| serve \| not-applicable \| launch \|[^\n]*\|$/| serve.user-guide | serve | not-applicable | launch | present-drifted: docs\/guide.md exists but nothing in the profile justifies it (orphan, see Q1) |/m;
+  s/^None\.$/### Q1: Should docs\/guide.md be kept, moved, or archived?\n- Owner: the maintainer (a records decision, not the agent'"'"'s)\n- Blocks: nothing\n- Decide by: 2026-08-14, the Phase 2 start\n- Why it matters: an orphan guide drifts from the validator it describes.\n- Options: (a) keep it and plan a refresh; (b) archive it; (c) fold it into the readme.\n- Recommended default: (b), which deletes nothing and stops the drift./m
+' "$BROWNFIELD_DOCS_PLAN"
+expect_pass "brownfield adopt, confirm, and orphan rows" --allow-planning "$BROWNFIELD_DOCS_PLAN"
+
+CASE_FILE="$TMP_DIR/brownfield-drifted-no-task.mdx"
+cp "$BROWNFIELD_DOCS_PLAN" "$CASE_FILE"
+perl -0pi -e 's/present-current: adopt;/present-drifted: refresh;/' "$CASE_FILE"
+expect_fail "drifted document without a refresh task" "documentation set row build.readme is required but names no GP task" --allow-planning "$CASE_FILE"
+
+CASE_FILE="$TMP_DIR/brownfield-orphan-unasked.mdx"
+cp "$BROWNFIELD_DOCS_PLAN" "$CASE_FILE"
+perl -0pi -e 's/ \(orphan, see Q1\)//' "$CASE_FILE"
+expect_fail "orphan document without a question" "documentation set row serve.user-guide is an orphan but cites no ### Q<n>" --allow-planning "$CASE_FILE"
+
+CASE_FILE="$TMP_DIR/brownfield-orphan-quarter.mdx"
+cp "$BROWNFIELD_DOCS_PLAN" "$CASE_FILE"
+perl -0pi -e 's/docs\/guide\.md exists but/docs\/guide.md was last edited in Q3 2025 but/' "$CASE_FILE"
+expect_pass "orphan row citing its question after a quarter" --allow-planning "$CASE_FILE"
+
+# Greenfield documents are absent: only present-elsewhere may be recorded.
+new_case
+perl -0pi -e 's/^\| build\.readme \| build \| required \| repo \|[^\n]*\|$/| build.readme | build | required | repo | present-current: adopt |/m' "$CASE_FILE"
+expect_fail "greenfield adopt row" "documentation set row build.readme records present-current in a greenfield plan" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| serve\.user-guide \| serve \| not-applicable \| launch \|[^\n]*\|$/| serve.user-guide | serve | not-applicable | launch | present-stub: docs\/guide.md (orphan, see Q1) |/m' "$CASE_FILE"
+expect_fail "greenfield orphan row" "documentation set row serve.user-guide records present-stub in a greenfield plan" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| govern\.manifest \| govern \| required \| repo \|[^\n]*\|$/| govern.manifest | govern | required | repo | present-elsewhere: confirm; the manifest lives in the team wiki |/m' "$CASE_FILE"
+expect_pass "greenfield confirm row" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| serve\.user-guide \| serve \| not-applicable \| launch \|[^\n]*\|$/| serve.user-guide | serve | not-applicable | launch | no external user; revisit when: the validator ships to users outside this repository |/m' "$CASE_FILE"
+expect_fail "not-applicable row without a state" "the cell must open with 'absent:', 'by-design:', or 'present-elsewhere:'" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| build\.readme \| build \| required \| repo \|[^\n]*\|$/| build.readme | build | Required | repo | somebody will get to it |/m' "$CASE_FILE"
+expect_fail "documentation row with a capitalized verdict" "malformed documentation set row: | build.readme | build | Required" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| build\.readme \| build \| required \| repo \|([^\n]*)\|$/| build.readme | build | required | repo (shared) |$1|/m' "$CASE_FILE"
+expect_fail "documentation row with an annotated owner" "malformed documentation set row: | build.readme" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| build\.readme \| build \| required \| repo \|([^\n]*)\|$/| build.readme | build | essential | repo |$1|/m' "$CASE_FILE"
+expect_fail "documentation row with an invalid verdict" "documentation set row build.readme has invalid verdict 'essential'" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^(\| build\.readme \| build \| required \| repo \|[^\n]*\|)$/$1\n$1/m' "$CASE_FILE"
+expect_fail "documentation row twice" "documentation set has a duplicate row for build.readme" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^\| serve\.user-guide \| serve \| not-applicable \| launch \|[^\n]*\|$/| serve.user-guide | serve | optional | launch |  |/m' "$CASE_FILE"
+expect_fail "optional document without a reason" "documentation set row serve.user-guide is optional but says nothing about why" --allow-planning "$CASE_FILE"
+
+# Decisions: every ### heading is a D<n> entry or the assumptions ledger, and
+# the sidecar lists decisions in numeric order.
+
+new_case
+perl -0pi -e 's/^## Requirements$/### Cache: Redis for sessions\n\nWe will use Redis because it is fast.\n\n## Requirements/m' "$CASE_FILE"
+expect_fail "decision heading without a D number" "malformed decision heading on line" --allow-planning "$CASE_FILE"
+
+DECISIONS_PLAN="$TMP_DIR/decision-order.mdx"
+cp "$BASE_PLAN" "$DECISIONS_PLAN"
+DECISION_BLOCK='The second runtime bet.\nFalsifier:\n- Signal: Perl availability on every supported platform\n- Failure boundary: any supported platform ships without Perl\n- Replan action: return to planning and replace the embedded parser with a supported runtime\n\n'
+DECISION_BLOCK=$DECISION_BLOCK perl -0pi -e 's/^## Requirements$/### D10: tenth decision\n$ENV{DECISION_BLOCK}### D2: second decision\n$ENV{DECISION_BLOCK}### Assumptions ledger\n\n- A1: Perl stays in the base image\n  - Blast radius: wrong costs +1 tasks and +0 phases\n  - Validated by: GP-101\n\n## Requirements/m; s/\\n/\n/g' "$DECISIONS_PLAN"
+DECISIONS_JSON="$TMP_DIR/decision-order.json"
+emit_sidecar "decisions with an assumptions ledger" "$DECISIONS_JSON" "$DECISIONS_PLAN"
+if node -e '
+  const doc = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+  if (doc.decisions.map((entry) => entry.id).join(",") !== "D1,D2,D10") throw new Error("decision order");
+' "$DECISIONS_JSON"; then
+  record_pass "sidecar decisions sort numerically"
+else
+  record_fail "sidecar decisions sort numerically" "decisions are not in numeric order"
+fi
+
+new_case
+perl -0pi -e 's/^- Signal: Perl availability[^\n]*\n//m' "$CASE_FILE"
+expect_fail "falsifier missing its signal" "decision D1 Falsifier is missing Signal" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Signal: Perl availability[^\n]*$/- Signal: usage/m' "$CASE_FILE"
+expect_fail "vague falsifier signal" "decision D1 Signal is too vague to observe" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Replan action: [^\n]*$/- Replan action: return to planning and think about it/m' "$CASE_FILE"
+expect_fail "replan action without a verb" "decision D1 Replan action must name what changes" --allow-planning "$CASE_FILE"
+
+# Archetype: a named Primary above the floor must be the frontmatter archetype.
+
+new_case
+perl -0pi -e 's/^archetype: cli-tool$/archetype: unknown/m' "$CASE_FILE"
+expect_fail "unknown archetype above the floor" "Primary is cli-tool but frontmatter archetype is unknown" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Primary: cli-tool \(score 0\.86\)$/- Primary: cli-tool (score 1.20)/m' "$CASE_FILE"
+expect_fail "archetype score above one" "archetype confidence Primary score exceeds 1.00" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Runner-up: library \(score 0\.29\)$/- Runner-up: library (score 0.90)/m' "$CASE_FILE"
+expect_fail "runner-up above primary" "archetype confidence Runner-up scores at or above Primary" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- If the runner-up is right: [^\n]*\n//m' "$CASE_FILE"
+expect_fail "runner-up without a counterfactual" "names a runner-up but no 'If the runner-up is right:' counterfactual" --allow-planning "$CASE_FILE"
+
+# Fenced code is quoted text: headings and task lines inside it are not plan
+# structure. An unclosed fence is reported, and the lines after it are still
+# validated rather than blanked.
+
+FENCED_PLAN="$TMP_DIR/fenced-example.mdx"
+cp "$BASE_PLAN" "$FENCED_PLAN"
+perl -0pi -e 's/^The plan remains the source of truth\.$/The plan remains the source of truth. The emitted AGENTS.md reads:\n\n```markdown\n## Open Questions\n\n- [ ] GP-150 [W1.1] Example task\n```\n\n~~~text\n## Decisions\n~~~/m' "$FENCED_PLAN"
+expect_pass "fenced headings and tasks are not structure" --allow-planning "$FENCED_PLAN"
+
+CASE_FILE="$TMP_DIR/unclosed-fence.mdx"
+cp "$FENCED_PLAN" "$CASE_FILE"
+perl -0pi -e 's/\n~~~\n/\n/' "$CASE_FILE"
+expect_fail "unclosed code fence" "code fence opened on line" --allow-planning "$CASE_FILE"
+
+CASE_FILE="$TMP_DIR/unclosed-mermaid.mdx"
+cp "$BASE_PLAN" "$CASE_FILE"
+perl -0pi -e 's/^(The shell entry point delegates parsing to portable Perl\.)$/$1\n\n```mermaid\nflowchart LR\n  A --> B/m' "$CASE_FILE"
+output=$("$VALIDATOR" --allow-planning "$CASE_FILE" 2>&1)
+if [ "$(printf '%s\n' "$output" | grep -c '^FAIL ')" -eq 1 ] &&
+   printf '%s\n' "$output" | grep -F "code fence opened on line" >/dev/null; then
+  record_pass "unclosed fence is the only failure"
+else
+  record_fail "unclosed fence is the only failure" "$output"
 fi
 
 if [ "$FAIL_COUNT" -ne 0 ]; then

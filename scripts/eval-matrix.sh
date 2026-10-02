@@ -4,6 +4,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# The matrix is always the full roster. eval.sh is handed this path explicitly
+# so an exported GODPLANS_EVAL_CASES cannot shrink a published run.
+CASES="$ROOT/evals/cases"
+ROSTER="$ROOT/evals/cases-roster.txt"
 PROFILES="${GODPLANS_MATRIX_PROFILES:-codex claude gemini}"
 OUTPUT=""
 CHECK_ONLY=0
@@ -12,9 +16,12 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/eval-matrix.sh [--check] [--output DIRECTORY]
 
-Runs all eleven behavioral cases, skill and neutral control arms, for the Codex,
-Claude, and Gemini runner families. Raw artifacts and summaries are retained
-under evals/results/ by default.
+Runs every behavioral case listed in evals/cases-roster.txt, skill and neutral
+control arms, for the Codex, Claude, and Gemini runner families. The case
+directories under evals/cases/ must match the roster exactly. Raw artifacts and
+summaries are retained under evals/results/ by default. A failing case or
+runner in one family still lets the other families run; the command then exits
+non-zero.
 USAGE
 }
 
@@ -32,11 +39,55 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-case_count=$(find "$ROOT/evals/cases" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
-[ "$case_count" -eq 11 ] || {
-  echo "matrix requires exactly 11 cases, found $case_count" >&2
-  exit 1
-}
+# The committed roster is the expected case set. Deriving it from the
+# directories alone would let a deleted, renamed, or sparse-checkout-missing
+# case shrink the published case count without any error, so the directories
+# on disk must match the roster exactly, in both directions.
+[ -d "$CASES" ] || { echo "case directory not found: $CASES" >&2; exit 1; }
+[ -f "$ROSTER" ] || { echo "case roster not found: $ROSTER" >&2; exit 1; }
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
+sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$ROSTER" |
+  grep -v '^$' > "$WORK/roster.raw" || true
+roster_ok=1
+while IFS= read -r case_name; do
+  if ! printf '%s\n' "$case_name" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]*$'; then
+    echo "invalid case name in evals/cases-roster.txt: $case_name" >&2
+    roster_ok=0
+  fi
+done < "$WORK/roster.raw"
+LC_ALL=C sort "$WORK/roster.raw" > "$WORK/roster"
+LC_ALL=C sort -u "$WORK/roster" > "$WORK/roster.unique"
+find "$CASES" -mindepth 1 -maxdepth 1 -type d -print | sed 's|.*/||' | LC_ALL=C sort > "$WORK/disk"
+LC_ALL=C uniq -d "$WORK/roster" > "$WORK/duplicate"
+LC_ALL=C comm -23 "$WORK/disk" "$WORK/roster.unique" > "$WORK/unlisted"
+LC_ALL=C comm -13 "$WORK/disk" "$WORK/roster.unique" > "$WORK/missing"
+while IFS= read -r case_name; do
+  echo "duplicate case in evals/cases-roster.txt: $case_name" >&2
+  roster_ok=0
+done < "$WORK/duplicate"
+while IFS= read -r case_name; do
+  echo "case directory evals/cases/$case_name is not in evals/cases-roster.txt" >&2
+  roster_ok=0
+done < "$WORK/unlisted"
+while IFS= read -r case_name; do
+  echo "evals/cases-roster.txt lists $case_name, but evals/cases/$case_name does not exist" >&2
+  roster_ok=0
+done < "$WORK/missing"
+[ "$roster_ok" -eq 1 ] || exit 1
+[ -s "$WORK/roster.unique" ] || { echo "evals/cases-roster.txt lists no cases" >&2; exit 1; }
+
+# Each case must carry everything both arms read; a half-added case fails here
+# instead of surfacing later as a missing arm.
+while IFS= read -r case_name; do
+  for required in REQUEST.md REQUEST.baseline.md EXPECTATIONS; do
+    [ -f "$CASES/$case_name/$required" ] || {
+      echo "matrix case $case_name is incomplete: missing $required" >&2
+      exit 1
+    }
+  done
+done < "$WORK/roster.unique"
+GODPLANS_EVAL_CASES="$CASES" bash "$ROOT/scripts/eval.sh" --check-cases >/dev/null
 
 profile_count=0
 seen_profiles=" "
@@ -92,15 +143,29 @@ if [ -z "$OUTPUT" ]; then
   OUTPUT="$ROOT/evals/results/$run_date-$revision"
 fi
 mkdir -p "$OUTPUT"
+# A summary left by an earlier run into the same directory must not stand in
+# for this one if it fails.
+rm -f "$OUTPUT/MATRIX.json" "$OUTPUT/MATRIX.md"
 
+# eval.sh exits non-zero on any failing case. Record that per profile instead
+# of letting set -e discard the families that have not run yet.
+status=0
 for profile in $PROFILES; do
   profile_output="$OUTPUT/$profile"
   mkdir -p "$profile_output"
+  GODPLANS_EVAL_CASES="$CASES" \
   GODPLANS_EVAL_RUNNER="$ROOT/evals/runners/$profile.sh" \
   GODPLANS_EVAL_BASELINE_RUNNER="$ROOT/evals/runners/$profile-baseline.sh" \
     bash "$ROOT/scripts/eval.sh" --baseline --output "$profile_output" \
-    | tee "$profile_output/EVAL.tsv"
+    | tee "$profile_output/EVAL.tsv" || status=1
 done
 
-node "$ROOT/scripts/summarize-matrix.js" "$OUTPUT" $PROFILES
-echo "ok   $OUTPUT"
+# The summarizer rejects a profile that lacks either arm for any case, so a
+# missing run fails the matrix instead of publishing a partial one.
+node "$ROOT/scripts/summarize-matrix.js" "$OUTPUT" $PROFILES || status=1
+if [ "$status" -eq 0 ]; then
+  echo "ok   $OUTPUT"
+else
+  echo "FAIL [eval-matrix] at least one family failed; per-family rows are under $OUTPUT" >&2
+fi
+exit "$status"

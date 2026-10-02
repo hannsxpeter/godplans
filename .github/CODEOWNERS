@@ -1,0 +1,46 @@
+# CODEOWNERS for godplans.
+#
+# This file routes pull-request review automatically. The current maintainer
+# is @hannsxpeter; the default rule covers everything. The path rules below
+# name the high-blast-radius surfaces, so a future co-maintainer can see at a
+# glance which files reach users' machines and which gates guard the rest.
+# When several rules match, the last one wins, so specific paths follow their
+# directory.
+
+# Default fallback: the maintainer reviews everything.
+* @hannsxpeter
+
+# The product: SKILL.md and the reference modules become standing instructions
+# in every agent session that loads godplans, and steer every plan it writes.
+/skills/godplans/ @hannsxpeter
+
+# The Phase 1 usage-policy gate. Loosening it changes which projects godplans
+# agrees to plan at all.
+/skills/godplans/references/compliance.md @hannsxpeter
+
+# The validator is copied byte for byte into every user project as
+# .godplans/validate-plan.sh and must run on stock macOS bash 3.2 and Linux. A
+# regression here ships into plans that outlive the release.
+/skills/godplans/scripts/validate-plan.sh @hannsxpeter
+
+# install.sh writes into users' home directories (~/.agents/skills,
+# ~/.claude/skills, and equivalents) under POSIX sh.
+/install.sh @hannsxpeter
+
+# The meta-linter, the prompt builder, version sync, and the eval and release
+# scripts. A lint check that stops failing silently removes a gate.
+/scripts/ @hannsxpeter
+
+# Regression tests, including the lint self-test, and the behavioral eval
+# cases and frozen evidence the README cites.
+/tests/ @hannsxpeter
+/evals/ @hannsxpeter
+
+# CI workflows, Dependabot, and the issue and pull request templates.
+/.github/ @hannsxpeter
+
+# Plugin marketplace and plugin manifests. A manifest typo breaks
+# /plugin install for every Claude Code user; lint checks their version and
+# description against SKILL.md.
+/.claude-plugin/ @hannsxpeter
+/plugins/ @hannsxpeter

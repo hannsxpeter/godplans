@@ -60,9 +60,9 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
 ## Task seeds
 
 - [ ] GP-xxx Wire day-1 success-metric instrumentation
-  - Files: src/lib/analytics.ts, docs/metrics.md
-  - Acceptance: every metric in the plan's Success criteria has a named emit call; docs/metrics.md maps each metric to its event, dashboard, or query
-  - Verify: grep -q "track(" src/lib/analytics.ts && grep -q "<metric_event_name>" docs/metrics.md
+  - Files: src/server/analytics.ts, docs/metrics.md
+  - Acceptance: every metric in the plan's Success criteria has a named server-side emit call after the outcome commits; docs/metrics.md maps each metric to its event, dashboard, or query
+  - Verify: grep -q "track(" src/server/analytics.ts && grep -q "<metric_event_name>" docs/metrics.md
   - Requirements: R-PRD-5
 - [ ] GP-xxx Validate the riskiest assumption before the build wave depending on it
   - Files: docs/validation/<assumption-slug>.md

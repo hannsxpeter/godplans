@@ -36,7 +36,7 @@ Hardest to reverse first. Each must land in the plan's Decisions section as a gr
    - Options: task-based IA in user vocabulary (default); org-chart mirroring (refused as a named anti-pattern).
 7. Consent and cancellation symmetry.
    - Question: is cancel as easy as signup, is "Reject all" symmetric with "Accept all", and is all pricing shown before commitment?
-   - Hard to reverse because billing flows, consent storage, and legal exposure (GDPR, FTC click-to-cancel, EU DSA Art. 25) harden around the first implementation.
+   - Hard to reverse because billing flows, consent storage, and legal exposure (GDPR, ROSCA and state automatic-renewal laws, EU DSA Art. 25; the FTC click-to-cancel rule was vacated on 8 July 2025 and is not cited as law) harden around the first implementation.
    - Options: symmetry written into the plan as grep-verifiable requirements (default); anything less is a compliance and trust finding waiting to happen.
 
 ## Plan requirements
@@ -91,7 +91,7 @@ Hardest to reverse first. Each must land in the plan's Decisions section as a gr
   - Requirements: R-UX-3, R-UX-7
 - [ ] GP-xxx Build the signup-to-activation journey within its step budget
   - Files: src/routes/signup/, src/routes/onboarding/, src/lib/activation.ts
-  - Acceptance: activation event emitted from one named function; no credit-card or email-verification gate before the activation route; first-run seeds sample data
+  - Acceptance: activation event emitted once, server-side after the outcome commits, from one named function (through the R-BIZ-20 tracking wrapper when that requirement lands); no credit-card or email-verification gate before the activation route; first-run seeds sample data
   - Verify: grep -q "trackActivation" src/lib/activation.ts && ! grep -rn "verifyEmailBefore" src/routes/onboarding/
   - Requirements: R-UX-2, R-UX-14
 - [ ] GP-xxx Implement the form standard on all input surfaces

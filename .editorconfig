@@ -1,0 +1,30 @@
+root = true
+
+# Every authored file is plain ASCII (scripts/lint.sh unicode-clean fails on
+# any byte above 0x7F), which is valid UTF-8. Shell and JavaScript use two
+# spaces; no file ends without a newline or carries trailing whitespace.
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+# A trailing double space is a hard line break in Markdown and MDX.
+[*.{md,mdx}]
+trim_trailing_whitespace = false
+
+# style-stats.py follows PEP 8.
+[*.py]
+indent_size = 4
+
+# Frozen evaluation evidence is published byte for byte and carries the
+# conventions of whatever repository the agent built. Never reformat it.
+[evals/{results,external/results,outcomes/results}/**]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+indent_style = unset
+indent_size = unset
+trim_trailing_whitespace = unset
