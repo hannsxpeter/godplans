@@ -11,6 +11,9 @@ concurrency:
   group: quality-${{ github.ref }}
   cancel-in-progress: true
 
+# Branch protection on main requires both jobs by name ("release quality" and
+# "stock macOS tools"), administrators included. Renaming a job blocks every
+# merge until the required checks are updated to match.
 jobs:
   lint:
     name: release quality
@@ -22,6 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # Full history brings every v* tag that tag-release-parity compares.
           fetch-depth: 0
           # Tag and About parity read GitHub through gh with GH_TOKEN; nothing
           # here pushes or fetches with the git credential, so do not persist it.
