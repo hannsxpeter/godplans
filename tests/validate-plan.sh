@@ -215,7 +215,8 @@ None.
 
 ## Rules for executing agents
 
-Only approved or executing plans may be executed.
+> [!IMPORTANT]
+> Only approved or executing plans may be executed.
 
 ## Session log
 
@@ -449,6 +450,16 @@ done
 new_case
 printf '\n## Rules for executing agents\n\nA second copy.\n' >> "$CASE_FILE"
 expect_fail "duplicate executor rules" "expected exactly one ## Rules for executing agents section, found 2" --allow-planning "$CASE_FILE"
+
+# The executor rules open with the template's GFM alert, inside their own
+# section: the same alert elsewhere in the plan does not stand in for them.
+new_case
+perl -0pi -e 's/^> \[!IMPORTANT\]\n//m' "$CASE_FILE"
+expect_fail "executor rules without the IMPORTANT alert" "executor rules lack > [!IMPORTANT]" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^> \[!IMPORTANT\]\n//m; s/^(In scope: validator behavior\.)/> [!IMPORTANT]\n> $1/m' "$CASE_FILE"
+expect_fail "IMPORTANT alert outside the executor rules" "executor rules lack > [!IMPORTANT]" --allow-planning "$CASE_FILE"
 
 new_case
 perl -0pi -e 's/^## Style genome$/## Style genome   /m' "$CASE_FILE"
@@ -772,9 +783,20 @@ for boundary in "things go badly for D1" "things go badly for R-SEC-4 and GP-101
   expect_fail "falsifier boundary '$boundary'" "Failure boundary lacks an observable event or numeric threshold" --allow-planning "$CASE_FILE"
 done
 
+# A calendar quarter is a deadline, not an Open Questions id.
+new_case
+perl -0pi -e 's/Failure boundary: any supported platform ships without Perl/Failure boundary: no paying customer by Q2/' "$CASE_FILE"
+expect_pass "a calendar quarter counts as a boundary threshold" --allow-planning "$CASE_FILE"
+
 new_case
 perl -0pi -e 's/^- Signal: Perl availability[^\n]*$/- Signal: (metric or event and its evidence source)/m' "$CASE_FILE"
 expect_fail "template Signal placeholder" "decision D1 Signal is too vague to observe" --allow-planning "$CASE_FILE"
+
+# Only the placeholder's opening bracket is stripped: a backticked metric whose
+# first segment is a vague word still names something observable.
+new_case
+perl -0pi -e 's/^- Signal: Perl availability[^\n]*$/- Signal: `usage.daily_active_tenants` from the analytics warehouse/m' "$CASE_FILE"
+expect_pass "a backticked metric name opens a Signal" --allow-planning "$CASE_FILE"
 
 # Trailing whitespace is invisible in Markdown, so it hides no heading or label.
 TRAILING_PLAN="$TMP_DIR/trailing-whitespace.mdx"
@@ -1379,6 +1401,34 @@ if [ -s "$TMP_DIR/rules-format" ] && cmp -s "$TMP_DIR/rules-format" "$TMP_DIR/ru
   record_pass "template executor rules match plan-format.md"
 else
   record_fail "template executor rules match plan-format.md" "$(diff "$TMP_DIR/rules-format" "$TMP_DIR/rules-template" 2>&1)"
+fi
+
+# The archetype list is kept by hand in four places: the discovery.md scoring
+# table, the plan-format.md frontmatter paragraph, @archetypes in the
+# validator, and the PLAN.schema.json enum (plus unknown). An archetype added
+# to one and not the others would make the validator refuse plans that use it.
+archetypes_discovery=$(awk -F'|' '
+  /^## / { inside = ($0 == "## Archetype detection") }
+  inside && /^\| [a-z]/ { gsub(/ /, "", $2); print $2 }
+' "$ROOT_DIR/skills/godplans/references/discovery.md" | sort | tr '\n' ' ')
+archetypes_format=$(perl -ne '
+  next unless /^`archetype` is one of the [a-z]+ archetypes `discovery\.md` scores \(([^)]*)\)/;
+  my $list = $1;
+  print "$_\n" for $list =~ /`([a-z-]+)`/g;
+' "$ROOT_DIR/skills/godplans/references/plan-format.md" | sort | tr '\n' ' ')
+archetypes_validator=$(sed -n 's/^my @archetypes = qw(\(.*\));$/\1/p' "$ROOT_DIR/skills/godplans/scripts/validate-plan.sh" | tr ' ' '\n' | sort | tr '\n' ' ')
+archetypes_schema=$(node -e '
+  const s = require(process.argv[1]);
+  const names = s.properties.archetype.enum.filter((x) => x !== "unknown").sort();
+  console.log(names.join("\n"));
+' "$SCHEMA" | sort | tr '\n' ' ')
+if [ -n "$archetypes_discovery" ] &&
+   [ "$archetypes_discovery" = "$archetypes_format" ] &&
+   [ "$archetypes_discovery" = "$archetypes_validator" ] &&
+   [ "$archetypes_discovery" = "$archetypes_schema" ]; then
+  record_pass "archetype list matches discovery.md"
+else
+  record_fail "archetype list matches discovery.md" "discovery [$archetypes_discovery] plan-format [$archetypes_format] validator [$archetypes_validator] schema [$archetypes_schema]"
 fi
 
 # Encoding: the sidecar is UTF-8 whatever the plan's characters, and the plan

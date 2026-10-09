@@ -202,7 +202,6 @@ sub section {
     return @body;
 }
 
-# A skeleton section occurs exactly once; returns how often ## $_[0] does.
 sub section_count {
     my $count = grep { $_ eq "## $_[0]" } @lines;
     fail("expected exactly one ## $_[0] section, found $count") if $count != 1;
@@ -1106,11 +1105,12 @@ if ($matrix_count == 1) {
     }
 }
 
-# The rest of the skeleton. Architecture and Agent memory are owed only while
-# their domain applies; extra ## sections are allowed.
+# The rest of the skeleton; Architecture and Agent memory while applicable.
 section_count($_) for 'Scope and non-goals', 'Compliance gate', 'Requirements', 'Style genome',
     'Phases', 'Rules for executing agents', 'Session log',
     grep { ($domain_disposition{lc($_) =~ tr/ /-/r} || '') eq 'applicable' } 'Architecture', 'Agent memory';
+fail('executor rules lack > [!IMPORTANT]')
+    unless grep { $lines[$_] eq '> [!IMPORTANT]' } section('## Rules for executing agents');
 
 # The module disposition is the only place a module requirement may leave the
 # plan. Precedence alone does not save it: a later layer is not a more correct
@@ -1463,7 +1463,7 @@ if ($decisions_count == 1) {
                 unless exists $falsifier_field{$decision}{$field};
         }
         if (exists $falsifier_field{$decision}{Signal}) {
-            (my $signal = lc $falsifier_field{$decision}{Signal}) =~ s/^[^a-z0-9]+//;
+            (my $signal = lc $falsifier_field{$decision}{Signal}) =~ s/^[(\[]+//;
             fail("decision $decision Signal is too vague to observe")
                 if length($signal) < 12
                     || $signal =~ /^(?:metric|event|signal|performance|usage|something|tbd)\b/;
@@ -1471,7 +1471,7 @@ if ($decisions_count == 1) {
         if (exists $falsifier_field{$decision}{'Failure boundary'}) {
             my $boundary = lc $falsifier_field{$decision}{'Failure boundary'};
             # An id such as D1, R-1.1, R-SEC-4, or GP-101 is not a threshold.
-            (my $scan = $boundary) =~ s/\b(?:[dqa][1-9][0-9]*|gp-[0-9]+|r-[a-z0-9.-]*[0-9])\b//g;
+            (my $scan = $boundary) =~ s/\b(?:[da][1-9][0-9]*|gp-[0-9]+|r-[a-z0-9.-]*[0-9])\b//g;
             fail("decision $decision Failure boundary lacks an observable event or numeric threshold")
                 if length($boundary) < 12
                     || $scan !~ /(?:[0-9]|exceed|below|above|unavailable|removed|reject|prohibit|deprecat|ship|cannot|breach|change|timeout|error)/;
