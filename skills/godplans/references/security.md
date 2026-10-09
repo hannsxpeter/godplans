@@ -1,6 +1,6 @@
 # Security and hardening planning module
 
-Plans the Security and hardening sections of PLAN.mdx by moving secauditor controls into explicit requirements, tasks, and reproduced-attack checks before implementation. The finished project still requires runtime verification and an independent audit. The orchestrator loads this module for every archetype with any network surface, auth, persistent data, secrets, CI/CD, containers, or LLM calls; only a fully offline library with none of these may exclude it, with the reason recorded in the applicability matrix.
+Plans the Security and hardening sections of PLAN.mdx by moving secauditor controls into explicit requirements, tasks, and reproduced-attack checks before implementation. The finished project still requires runtime verification and an independent audit. The orchestrator loads this module for every archetype and never excludes or defers it: a fully offline library with no network surface, auth, persistent data, secrets, CI/CD, containers, or LLM calls scales it down, declaring each absent surface under R-SEC-2.
 
 ## Lineage
 
@@ -8,7 +8,7 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
 
 ## Decisions to force
 
-1. Authorization model and ownership boundary. What single mechanism decides who may touch which record, and where does it live? Hard to reverse because retrofitting ownership means rewriting every query and handler after data exists, and IDOR is the highest-weighted audit dimension (AUTHZ, 18%). Options: central deny-by-default policy middleware with ownership predicates inside the query (default); database row-level security (default for multi-tenant on Postgres or Supabase); scattered per-route checks (refused: new handlers silently bypass a blocklist). Multi-tenant designs must also pick the tenant-scoping mechanism now: RLS or a mandatory ORM filter deriving tenant id from the session, never a client-supplied header.
+1. Authorization model and ownership boundary. What single mechanism decides who may touch which record, and where does it live? Hard to reverse because retrofitting ownership means rewriting every query and handler after data exists, and IDOR is the highest-weighted audit dimension (AUTHZ, 18%). Options: central deny-by-default policy middleware with ownership predicates inside the query (default); database row-level security (default for multi-tenant on Postgres or Supabase); scattered per-route checks (refused: new handlers silently bypass a blocklist). Multi-tenant designs must also pick the tenant-scoping mechanism now: R-DB-19 owns the isolation form; an ORM filter on the session's tenant id is defense in depth, never the only control, and tenant id never comes from a client-supplied header.
 2. Identity architecture. Server-side sessions, self-managed JWTs, or a hosted identity provider, and which password KDF? Hard to reverse because token formats leak into every client and stored hashes cannot be migrated without a login-time upgrade path. Options: hosted OIDC provider with Authorization Code + PKCE (default when the budget allows); server-side sessions with CSPRNG ids (default for classic web apps); self-managed JWT with a strict algorithm allowlist (only with a stated reason). KDF: argon2id default; scrypt, bcrypt, or PBKDF2-HMAC-SHA256 at current cost floors acceptable; anything faster is an automatic Critical.
 3. Secrets sourcing and rotation. Where do secrets live, and how do they rotate? Hard to reverse because anything ever committed is permanent in git history and must be rotated, not deleted. Options: cloud secrets manager with the SDK wiring named in the plan (default for deployed apps); platform-injected env vars (acceptable for small deployments); committed dotfiles (refused). Decide the CI credential mode now: OIDC federation over long-lived static cloud keys.
 4. Data classification and encryption-at-rest scope. Which fields are sensitive or regulated, and does the deletion story reach backups, caches, indexes, and logs? Hard to reverse because retrofitting encryption and erasure onto populated stores and shipped backups is a migration project. Options: classify at schema-design time and pick the regime from the data, PCI, GDPR, HIPAA, or SOC 2 (default when regulated data exists); an explicit "no regulated data" declaration with reason (acceptable).
@@ -16,10 +16,10 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
 
 ## Plan requirements
 
-1. R-SEC-1: The plan contains a threat-model subsection mirroring secauditor Phase 1: entry points (routes, webhooks, uploads, queue consumers, LLM inputs, CLI/env), trust boundaries with their enforcement mechanism, sensitive assets, and principals/roles with what each may and may not do, plus a STRIDE pass per important boundary.
+1. R-SEC-1: The plan contains a threat-model subsection mirroring secauditor Phase 1: entry points (routes, webhooks, uploads, queue consumers, LLM inputs, CLI/env), trust boundaries (R-ARCH-13 when landed, else listed here) with their enforcement mechanism, sensitive assets, and principals/roles with what each may and may not do, plus a STRIDE pass per important boundary.
    Criterion: WHEN the security section is emitted THE PLAN SHALL enumerate entry points, enforced trust boundaries, sensitive assets, and principals, and SHALL declare deployment context (internet-facing, internal, local) and data sensitivity.
 2. R-SEC-2: The plan declares every conditional security surface (web/API, auth, DB, uploads, outbound fetches, containers/IaC, CI/CD, AI/LLM, regulated data) as present or absent so conditional control sets are planned, never discovered missing.
-   Criterion: IF a surface is declared absent THE PLAN SHALL record the reason in the applicability matrix; IF present THE PLAN SHALL carry that surface's requirements onto tasks.
+   Criterion: IF a surface is declared absent THE PLAN SHALL state the reason here and drop requirements only it needs in the module disposition (`dropped-by archetype`); IF present THE PLAN SHALL carry that surface's requirements onto tasks.
 3. R-SEC-3: The plan specifies a central deny-by-default authorization layer every route passes through, and object-level authorization binding each load and mutation to the current user or tenant inside the query itself (findOne({id, ownerId}) pattern or RLS), explicitly covering PUT/PATCH/DELETE, list, search, and export endpoints, plus a cross-tenant isolation test for multi-tenant designs.
    Criterion: WHEN any resource endpoint is planned THE PLAN SHALL name the ownership predicate in the query and the middleware it mounts behind, and SHALL include a task whose test proves a cross-user request returns 403 or 404.
 4. R-SEC-4: The plan specifies server-side role checks on every admin or privileged route with mutating verbs guarded identically to their GET siblings, bans request-settable role/isAdmin/scope/tenant/plan/price fields, and mandates allowlist DTO binding for all writes (create and update) plus explicit response DTOs for all reads (no raw ORM objects, no fields='__all__').
@@ -98,12 +98,12 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
   - Requirements: R-SEC-15
 - [ ] GP-xxx Secret hygiene: gitignore, scanning, CI references
   - Files: .gitignore, .pre-commit-config.yaml, .github/workflows/ci.yml
-  - Acceptance: .env*, *.pem, and credential file patterns ignored before first commit; gitleaks runs in pre-commit and CI over full history; workflow contains no continue-on-error on scan steps and references secrets.* only
+  - Acceptance: .env*, *.pem, and credential file patterns ignored before first commit; gitleaks runs in pre-commit and CI over full history (one gitleaks step, shared with the R-REPO-15 agent-safety task when it lands); workflow contains no continue-on-error on scan steps and references secrets.* only
   - Verify: gitleaks detect --no-banner && ! grep -n "continue-on-error" .github/workflows/ci.yml
   - Requirements: R-SEC-13, R-SEC-14
 - [ ] GP-xxx Supply chain pinning and SCA gate
   - Files: package-lock.json, .github/workflows/ci.yml, .npmrc
-  - Acceptance: CI installs with npm ci; every third-party action pinned to a 40-char commit SHA; audit step gates on high with no || true; SBOM generated at build
+  - Acceptance: CI installs with npm ci; every third-party action pinned to a 40-char commit SHA; audit step gates on high with no || true; SBOM generated at build (when `public_release` is true or scale is enterprise, this is the R-REPO-14 dependency-inventory task's generator, not a second one)
   - Verify: grep -Ec "uses: .*@[0-9a-f]{40}" .github/workflows/ci.yml && grep -c "npm ci" .github/workflows/ci.yml
   - Requirements: R-SEC-17, R-SEC-18
 - [ ] GP-xxx Security event logging with formatter-level redaction
@@ -119,8 +119,8 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
 
 - [ ] GP-xxx Seal hardening evidence for prepublication verification
   - Files: docs/security/HARDENING.md
-  - Acceptance: every Critical records status; permitted acceptances include owner, justification, accepted_at, and expires_at; file records its content hash or immutable revision and regulated hard-gate policy; later changes require a new prepublication check
-  - Verify: git hash-object docs/security/HARDENING.md
+  - Acceptance: every Critical records status; permitted acceptances include owner, justification, accepted_at, and expires_at; file records the regulated hard-gate policy; its content hash or immutable revision lives in the R-ROAD-21 gate; later changes require a new prepublication check
+  - Verify: grep -q '^policy:' docs/security/HARDENING.md && git hash-object docs/security/HARDENING.md
   - Requirements: R-SEC-25, R-SEC-26
 
 ## Self-audit rubric
@@ -134,7 +134,7 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
 - Misconfiguration and resource controls (8): header set with presence test, exact-match CORS, production hardening list, per-endpoint-class rate limits and caps, upload handling.
 - Supply chain and CI/CD (8): integrity installs, SHA-pinned actions, digest-pinned images, SCA gate without soft-fail, SBOM, least-privilege tokens, environment gates, no PPE patterns.
 - Logging, privacy, and API residue (6): event enumeration, formatter-level redaction, alerting to a monitored channel; regulated-data controls mapped to code paths; API Top 10 residue covered where applicable.
-- Conditional surfaces (4): IaC and LLM requirements carried onto tasks when present, or excluded with a stated reason; never silently omitted.
+- Conditional surfaces (4): IaC and LLM requirements carried onto tasks when present, or dropped with a stated reason; never silently omitted.
 - Anti-paper-control and verification handoff (6): every control has a mount point and firing test; automatic-Critical conditions are designed out; public release gets sealed hardening evidence and complete risk records for a fresh downstream check.
 
 Total: 100. Any plan scoring below 85 on this rubric gets revised before emission.
@@ -149,7 +149,7 @@ Total: 100. Any plan scoring below 85 on this rubric gets revised before emissio
 - Hardening-as-ritual (harden-ready): an annual pen test with nothing between. Refusal: the plan declares a continuous cadence with a next execution date.
 - Shallow-audit trap (harden-ready): findings a third party cannot reproduce. Refusal: every security acceptance condition is grep-verifiable or request-reproducible with the exact command in the Verify line.
 - Vague-recommendation ban (secauditor): "validate input", "harden the config", "improve security". Refusal: every requirement names the safe pattern, the file it lands in, and the command that confirms it.
-- Silent surface exclusion (secauditor conditional dimensions): skipping uploads, IaC, or LLM controls because nobody declared the surface. Refusal: the applicability matrix records every surface as present or absent with a reason before any section is written.
+- Silent surface exclusion (secauditor conditional dimensions): skipping uploads, IaC, or LLM controls because nobody declared the surface. Refusal: the R-SEC-2 declaration records every surface as present or absent with a reason before any section is written.
 - Automatic-Critical blindness (secauditor): shipping a design where one condition caps the audit at 79. Refusal: the R-SEC-24 design-out list is checked against the draft plan before emission, and any hit forces a revision.
 - Late-Critical race: launch preparation finishes, hardening changes, and publication trusts the old pass. Refusal: seal current evidence, invalidate stale passes on any change, and require the fresh prepublication task only when a public release surface exists.
 - Primary-path-only authorization: a control proven on the interactive session while an API key, a pre-MFA token, or a raw exported function reaches the same resource ungated. Refusal: every privileged operation lists its caller paths and carries an identical gate on each, tested through the non-primary path (R-SEC-27).

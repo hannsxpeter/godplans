@@ -8,7 +8,7 @@ Loaded in Phase 2 and Phase 3. Turns a raw idea (or an existing codebase) into t
 - Source manifests exist (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `Gemfile`, `pom.xml`, `mix.exs`, `Package.swift`) -> brownfield.
 - Otherwise -> greenfield.
 
-Brownfield fingerprint, read-only, before any planning: stack and versions from manifests; directory shape and module boundaries; entry points; test and CI setup; the style genome measured with `scripts/style-stats.py` and then close-read across 5 to 10 representative source files; anything under `agents/`, `AGENTS.md`, `CLAUDE.md`, or `.cursor/rules/` that records existing conventions. Record the current Git revision when available, a SHA-256 digest of the stable intake and source evidence, and a UTC validation timestamp. The plan extends what exists; a brownfield plan that reads like a greenfield plan has failed before it ships.
+Brownfield fingerprint, read-only, before any planning: stack and versions from manifests; directory shape and module boundaries; entry points; test and CI setup; the style genome measured by running `scripts/style-stats.py` from this skill on the project root and then close-read across 5 to 10 representative source files; anything under `agents/`, `AGENTS.md`, `CLAUDE.md`, or `.cursor/rules/` that records existing conventions. Record the current Git revision when available, a SHA-256 digest of the stable intake and source evidence, and a UTC validation timestamp. The plan extends what exists; a brownfield plan that reads like a greenfield plan has failed before it ships.
 
 Record what the fingerprint did **not** reach as explicitly as what it found. A pass that was never run is not a pass that came back empty, and the applicability matrix below refuses to treat the two the same way.
 
@@ -28,7 +28,7 @@ In brownfield mode, `absent:` is a negative claim about a codebase, and the clai
 So a brownfield `absent:` reason carries a backticked citation: the search that came back empty, or the evidence artifact that recorded the absence.
 
 ```
-| seo | excluded | absent: no HTML template, route table, or static site config under src/ (`rg -l "<html|<!DOCTYPE|createServer" src/` returns nothing); revisit when: any task adds a server-rendered route or a static site config |
+| seo | excluded | absent: no HTML template, route table, or static site config under src/ (`rg -l -e "<html" -e "<!DOCTYPE" -e createServer src/` returns nothing); revisit when: any task adds a server-rendered route or a static site config |
 ```
 
 `by-design:` needs no command. It is the plan deciding, not the plan reporting, and there is nothing to have looked at. This is why greenfield exclusions are almost always `by-design:` and brownfield exclusions are usually not.
@@ -48,7 +48,7 @@ Every claim the matrix and the documentation set make about this project carries
 `unknown` is not `absent`, and conflating them is the failure this table exists to prevent. Reporting "we did not look" as "we decided this does not apply" produces two sentences that read identically and have opposite consequences a year later.
 
 - **Greenfield**: the honest state for anything the plan settles is `by-design`. There is nothing to inspect, and the plan is the decision. `llm | excluded | by-design: the product answers from indexed text with no model call` is a decision. `llm | excluded | no model calls` is a claim about a codebase that does not exist yet.
-- **Brownfield**: `absent` requires that something actually looked, and the reason names it with a backticked command or evidence artifact. `absent: no HTML template, route table, or static site config under src/ (`rg -l "<html|<!DOCTYPE" src/` returns nothing)` is checkable. A bare "no public pages" is not.
+- **Brownfield**: `absent` requires that something actually looked, and the reason names it with a backticked command or evidence artifact. An `absent:` reason citing `rg -l -e "<html" -e "<!DOCTYPE" src/` returning nothing is checkable. A bare "no public pages" is not.
 - **`unknown` and `hint` never exclude.** A domain whose state is either becomes applicable, or its question goes to `## Open Questions` with a recommended default. One confidently false exclusion costs more trust than ten honest unknowns, because the unknowns advertise themselves and the false exclusion does not.
 
 ## Product-form routing
@@ -96,7 +96,7 @@ A weighted sum, not a decision tree. A tree returns one answer, no runner-up, an
 4. **Floor is 0.45.** Below it the archetype is `unknown`, the archetype question takes a slot in the interview batch, and no default may be taken for it.
 5. **Confidence** is `high` only at a margin of 15 points or more **and** a primary score of 0.70 or more. Exactly one of the two gives `medium`. Neither gives `low`.
 
-Confidence is arithmetic, not a feeling. The validator recomputes the margin from the two scores and the confidence from the margin and the primary score, and refuses a plan whose stated confidence does not follow from its own numbers.
+Confidence is arithmetic, not a feeling, and the validator recomputes it.
 
 ### What low confidence costs
 
@@ -120,7 +120,7 @@ Every plan records what changes if the runner-up is right, priced in the same un
 - Confidence: high
 - Vetoes applied: none
 - Overlays: none
-- If the runner-up is right: +2 tasks and +0 phases; the ui and seo rows flip to excluded, GP-210 through GP-212 drop, and the contract-test task in Phase 3 grows a consumer fixture
+- If the runner-up is right: -3 tasks and +0 phases; the ui and seo rows flip to excluded, GP-210 through GP-212 drop, and the contract-test task in Phase 3 grows a consumer fixture
 ```
 
 Hybrids are not a merge. A project that scores close on two archetypes has one primary and, where the second thing is real, an overlay. Merging two matrices and letting one win conflicts forces a false choice at the top of the tree and produces the wrong set for exactly the project that is both.
@@ -141,7 +141,7 @@ An archetype answers what this thing is. An overlay answers what extra obligatio
 
 **Overlays raise and never lower.** An overlay moves its domains up the lattice `excluded < deferred < applicable`; nothing an overlay does may push a domain down it. Concretely, an overlay forbids `excluded` for its domains. Deferral stays available wherever the deferrable set already allows it, so `public-ui` on a project whose visual system genuinely comes later still defers `ui` with its trigger. What it cannot do is deny that `ui` exists.
 
-This is the same monotonic rule the module disposition enforces one level down, applied to the matrix itself. Without it, an overlay written to add obligations could be read as a license to trim, which is the failure mode that makes a selection engine worse than no engine.
+This is the same monotonic rule the module disposition enforces one level down, applied to the matrix itself.
 
 Record overlays in frontmatter as `overlays: [ai-system, regulated-data]`, or `overlays: []` when none fire. An empty list is a finding like an empty hard-to-reverse-bets list: it says each overlay was considered and none applied, not that nobody looked.
 
@@ -219,7 +219,7 @@ Hard rules: security, code-quality, style-genome, repo, roadmap are never exclud
 After the table, the compact module disposition records what each applicable module's requirements did. Its grammar is one line per module:
 
 ```
-- security: landed R-SEC-1, R-SEC-4, R-SEC-12; dropped-by scale R-SEC-22, R-SEC-27 (side-project: no SOC 2 program and no dedicated security review board)
+- security: landed R-SEC-1, R-SEC-4, R-SEC-12; dropped-by archetype R-SEC-22 (D3: managed-platform deploy, no containers, Kubernetes, or IaC planned)
 - ui: landed R-UI-2, R-UI-9; dropped-by archetype R-UI-14 (no design system to publish; the app uses stock primitives)
 ```
 

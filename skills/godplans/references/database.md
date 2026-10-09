@@ -4,7 +4,7 @@ Plans the data layer so checks a database auditor would perform later become req
 
 ## Lineage
 
-Descends from aihxp dbauditor, the read-only after-the-fact audit of schema, relationships, indexing, queries, transactions, migrations, data protection, search, and scale. dbauditor grades shipped DDL, never the ORM's promise, and hunts paper controls (FK NOT VALID never VALIDATEd, RLS ENABLEd but not FORCEd, inert @Transactional). This module inverts every one of its checks into a plan-time obligation: the discipline that carries over is evidence over assertion, the substitution test on every sentence, one owning dimension per defect class, and the rule that a control which does not bind in the database does not count.
+Descends from dbauditor (hannsxpeter/auditor-suite), the read-only after-the-fact audit of schema, relationships, indexing, queries, transactions, migrations, data protection, search, and scale. dbauditor grades shipped DDL, never the ORM's promise, and hunts paper controls (FK NOT VALID never VALIDATEd, RLS ENABLEd but not FORCEd, inert @Transactional). This module inverts every one of its checks into a plan-time obligation: the discipline that carries over is evidence over assertion, the substitution test on every sentence, one owning dimension per defect class, and the rule that a control which does not bind in the database does not count.
 
 ## Decisions to force
 
@@ -21,7 +21,7 @@ Descends from aihxp dbauditor, the read-only after-the-fact audit of schema, rel
 3. Tenancy isolation model.
    - Question: shared schema with RLS FORCEd, schema-per-tenant, or database-per-tenant?
    - Why locked in: retrofitting isolation onto a shared schema means touching every table, every query, and every index.
-   - Options: shared schema with tenant_id plus Postgres RLS FORCEd (fits most SaaS), schema-per-tenant (few large tenants). App-layer WHERE alone is not an option; dbauditor scores it a hard Critical.
+   - Options: shared schema with tenant_id plus Postgres RLS FORCEd (fits most SaaS), schema- or database-per-tenant (few large or regulated tenants). App-layer WHERE alone is not an option; dbauditor scores it a hard Critical.
    - Default: shared schema, tenant_id NOT NULL on every tenant-owned table, RLS FORCEd with policies that survive pooled connections.
 4. Money representation.
    - Question: integer minor units or NUMERIC(p,s), and where does currency live?
@@ -77,8 +77,8 @@ Descends from aihxp dbauditor, the read-only after-the-fact audit of schema, rel
    Criterion: WHEN the plan introduces migration tooling THE PLAN SHALL include a CI gate task that lints migrations and round-trips up-then-down, and IF a migration is destructive THE PLAN SHALL require a backup gate before it runs.
 18. R-DB-18 Access is parameterized queries only, with an allowlist for dynamic sort and table identifiers; the app connects as a least-privilege role with DML only on its tables; a separate migration identity owns DDL; secrets live in env or vault, never in the repo (rotation required on any historical exposure); TLS is verify-full; encryption at rest is declared in IaC; the database binds to a private network only.
    Criterion: WHEN the plan defines database access THE PLAN SHALL specify parameterized queries, the two-role split (app DML vs migration DDL), verify-full TLS, and private binding, and SHALL NOT place a connection string in any committed file.
-19. R-DB-19 Data protection is DB-enforced: multi-tenant isolation via RLS FORCEd (never app WHERE alone) with policies that survive pooled connections; column-level encryption or tokenization for PII/PHI; passwords under argon2id or bcrypt; CVV never stored; an audit trail on sensitive tables; views over PII scoped and security_invoker.
-   Criterion: IF the system is multi-tenant THE PLAN SHALL enforce isolation with FORCEd RLS at the database, and IF PII/PHI/financial data is stored THE PLAN SHALL name the column-level protection per sensitive column.
+19. R-DB-19 Data protection is DB-enforced: multi-tenant isolation in the database (never app WHERE alone) with pooler-safe RLS policies; column-level encryption or tokenization for PII/PHI; passwords hashed with the KDF R-SEC-6 names (argon2id by default); CVV never stored; an audit trail on sensitive tables; views over PII scoped and security_invoker.
+   Criterion: IF the system is multi-tenant THE PLAN SHALL enforce isolation at the database: FORCEd RLS on a shared schema, else a per-tenant schema or database bound through the connection's role (the only option without RLS), and IF PII/PHI/financial data is stored THE PLAN SHALL name the column-level protection per sensitive column.
 20. R-DB-20 If a search surface exists, the plan picks the primitive per feature up front: pg_trgm GIN for substring and fuzzy, tsvector plus GIN with a matching config for FTS, relevance ranking always specified; external engines sync via transactional outbox plus CDC with delete propagation and a documented reindex path (handler dual-write banned); vector columns get an ANN index whose operator class matches the query's distance operator, built after load; tenant and ACL filtering is enforced in the source of truth.
    Criterion: WHEN the plan includes a search feature THE PLAN SHALL name the index primitive and ranking function per feature, and IF an external engine is used THE PLAN SHALL specify outbox-plus-CDC sync with delete propagation.
 21. R-DB-21 Every growth-bearing table (events, logs, audit, sessions, outbox) gets a retention or TTL policy with an automated reaper or partition drop; large append-only tables get declarative range partitioning with automated partition management; hot single-row counters become sharded counters or append-and-aggregate ledgers; partitioning and read routing implement the key and per-entity read stances set by R-ARCH-21, and post-write reads on money, auth, or inventory get read-your-writes routing; slow-query observability (pg_stat_statements or equivalent), backup/PITR posture, and any materialized-view refresh (scheduled, CONCURRENT) are stated.
@@ -93,37 +93,37 @@ Descends from aihxp dbauditor, the read-only after-the-fact audit of schema, rel
 - [ ] GP-xxx Author initial schema migration with DDL-enforced invariants
   - Files: db/migrations/0001_init.sql, docs/data-model.md
   - Acceptance: every CREATE TABLE has a PRIMARY KEY; every *_id column has REFERENCES with an explicit ON DELETE; money columns are BIGINT or NUMERIC with a currency column; instants are TIMESTAMPTZ; natural keys carry UNIQUE; required columns carry NOT NULL
-  - Verify: grep -nE "FLOAT|DOUBLE|REAL" db/migrations/0001_init.sql | grep -iv comment; exit 1 expected, and grep -c "REFERENCES" db/migrations/0001_init.sql matches the relationship count in docs/data-model.md
+  - Verify: ! grep -niwE 'float|double|real' db/migrations/0001_init.sql && test "$(grep -c REFERENCES db/migrations/0001_init.sql)" -eq <relationship-count>
   - Requirements: R-DB-2, R-DB-4, R-DB-5, R-DB-6, R-DB-8
 - [ ] GP-xxx Build the query-to-index map and index migration
   - Files: docs/index-map.md, db/migrations/0002_indexes.sql
   - Acceptance: docs/index-map.md is a table mapping every list endpoint, join, and auth lookup to one index DDL line; every FK child column appears; composites are equality-first-range-last; CREATE INDEX uses CONCURRENTLY
-  - Verify: grep -c "CREATE INDEX CONCURRENTLY" db/migrations/0002_indexes.sql equals the row count of docs/index-map.md minus header
+  - Verify: test "$(grep -c 'CREATE INDEX CONCURRENTLY' db/migrations/0002_indexes.sql)" -eq "$(($(grep -c '^|' docs/index-map.md) - 2))"
   - Requirements: R-DB-10, R-DB-11
 - [ ] GP-xxx Implement transaction and concurrency policy on write paths
   - Files: src/db/tx.ts, src/services/payments.ts, docs/concurrency.md
   - Acceptance: multi-statement writes go through one withTransaction helper with try/finally; balance updates are atomic SET or version-checked UPDATE with rowcount asserted; no HTTP client import inside a transaction body; idempotency key insert shares the effect's transaction
-  - Verify: grep -n "fetch\|axios\|http" src/db/tx.ts src/services/payments.ts returns no hit inside withTransaction blocks; grep -c "FOR UPDATE\|SET .* = .* +\|version =" src/services/payments.ts >= 1
+  - Verify: grep -q withTransaction src/db/tx.ts && ! grep -nE 'fetch|axios|http' src/db/tx.ts && grep -qE 'FOR UPDATE|SET .* = .* \+|version =' src/services/payments.ts
   - Requirements: R-DB-9, R-DB-14, R-DB-15
 - [ ] GP-xxx Wire the migration CI safety gate
   - Files: .github/workflows/migrations.yml, db/README.md
   - Acceptance: CI job lints migrations (squawk or strong_migrations), asserts a single migration head, and round-trips up-then-down against a disposable database; destructive ops require an explicit allow marker with justification
-  - Verify: grep -c "squawk\|strong_migrations" .github/workflows/migrations.yml >= 1 and grep -c "down" .github/workflows/migrations.yml >= 1
+  - Verify: grep -qE 'squawk|strong_migrations' .github/workflows/migrations.yml && grep -q down .github/workflows/migrations.yml
   - Requirements: R-DB-16, R-DB-17
 - [ ] GP-xxx Establish DB security baseline: roles, RLS, TLS, binding
   - Files: db/migrations/0003_roles_rls.sql, infra/db.tf, .env.example
   - Acceptance: app role has DML only, migration role owns DDL; every tenant-owned table has ALTER TABLE ... FORCE ROW LEVEL SECURITY and a tenant policy; infra declares private binding, TLS verify-full, encryption at rest; .env.example carries placeholders only
-  - Verify: grep -c "FORCE ROW LEVEL SECURITY" db/migrations/0003_roles_rls.sql equals the tenant-owned table count; grep -n "postgres://" -r . --include="*.ts" --include="*.yml" returns nothing outside .env.example
+  - Verify: test "$(grep -c 'FORCE ROW LEVEL SECURITY' db/migrations/0003_roles_rls.sql)" -eq <tenant-owned-table-count> && ! grep -rn --include='*.ts' --include='*.yml' --exclude-dir=node_modules 'postgres://' .
   - Requirements: R-DB-18, R-DB-19
 - [ ] GP-xxx Add retention, partitioning, and observability posture
   - Files: db/migrations/0004_partitions.sql, jobs/reaper.ts, docs/db-operations.md
   - Acceptance: every table listed as growth-bearing in the plan has a partition-drop schedule or reaper job; pg_stat_statements enabled; statement, lock, and idle-in-transaction timeouts set at role level; backup/PITR posture documented
-  - Verify: grep -c "PARTITION BY RANGE\|DROP PARTITION\|delete_before" db/migrations/0004_partitions.sql jobs/reaper.ts >= growth-bearing table count; grep -c "statement_timeout" db/migrations/0004_partitions.sql >= 1
+  - Verify: test "$(cat db/migrations/0004_partitions.sql jobs/reaper.ts | grep -cE 'PARTITION BY RANGE|DROP PARTITION|delete_before')" -ge <growth-table-count> && grep -q statement_timeout db/migrations/0004_partitions.sql
   - Requirements: R-DB-13, R-DB-21
 - [ ] GP-xxx Implement search primitives per the plan's search table
   - Files: db/migrations/0005_search.sql, src/search/query.ts
   - Acceptance: each search feature uses its planned primitive (pg_trgm GIN, tsvector GIN, or ANN index) with the index expression matching the query expression; ranking function present; no LIKE '%term%' without a trigram index
-  - Verify: grep -c "USING GIN\|USING gist\|USING hnsw" db/migrations/0005_search.sql >= search feature count; grep -n "LIKE '%" src/search/query.ts returns nothing unindexed
+  - Verify: test "$(grep -ciE 'USING (gin|gist|hnsw)' db/migrations/0005_search.sql)" -ge <search-feature-count> && { ! grep -qi "LIKE '%" src/search/query.ts || grep -q gin_trgm_ops db/migrations/0005_search.sql; }
   - Requirements: R-DB-20
 
 ## Self-audit rubric
@@ -133,7 +133,7 @@ Base weights mirror dbauditor; drop N/A dimensions and re-normalize to 100, neve
 - Referential integrity (14): every relationship has a DDL FK with a justified ON DELETE, matched types both sides, NOT NULL where mandatory; soft-delete and cross-service policies stated; no cascade path reaches financial or audit data.
 - Indexing (13): the query-to-index map exists and is total over hot paths; FK children indexed; composite order and index types justified per pattern; no planned redundancy.
 - Query layer (12): eager-loading named per relation, keyset pagination with caps on every list path, sargable typed predicates, batch reads, a COUNT strategy, timeouts and pool arithmetic that survive the pooler.
-- DB security (12): parameterized-only access, two-role split, verify-full TLS, private binding, secrets never committed, FORCEd RLS for tenancy, per-column PII protection, erasure reach traced.
+- DB security (12): parameterized-only access, two-role split, verify-full TLS, private binding, secrets never committed, DB-enforced tenancy, per-column PII protection, erasure reach traced.
 - Schema design (11): PKs everywhere, junction tables for M:N, constrained state columns, exclusive-arc polymorphism, declared naming convention, denormalization paired with maintenance.
 - Constraints (10): NOT NULL, DEFAULTs, CHECKs, tenant-scoped and natural-key UNIQUEs, idempotency keys, nullable-UNIQUE semantics all decided in DDL terms.
 - Transactions (9, if write path): transaction boundaries, concurrency mechanism per mutable value, lock ordering, no I/O in transactions, outbox and saga coverage, isolation with retry.
