@@ -99,7 +99,7 @@ Criterion: WHEN an SLO, error budget, recovery objective, retention period, or s
 - [ ] GP-xxx Write error-budget policies per SLO
   - Files: observability/SLOS.md
   - Acceptance: each SLO section contains Trigger, Action, Stakeholder, Exit lines; no SLO row without a policy block
-  - Verify: test $(grep -c '^Trigger:' observability/SLOS.md) -eq $(grep -c '| SLO' observability/SLOS.md)
+  - Verify: test "$(grep -c '^Trigger:' observability/SLOS.md)" -eq "$(grep -c '| SLO' observability/SLOS.md)"
   - Requirements: R-OBS-4, R-OBS-20
 
 - [ ] GP-xxx Implement structured logging baseline
@@ -111,7 +111,7 @@ Criterion: WHEN an SLO, error budget, recovery objective, retention period, or s
 - [ ] GP-xxx Wire burn-rate alert rules with runbook links
   - Files: infra/alerts/burn-rates.yaml, observability/ALERTS.md
   - Acceptance: every PAGE rule references an SLI burn rate with at least two windows; every PAGE rule carries runbook_url and owner; cause-based rules routed to TICKET or LOG-ONLY only
-  - Verify: test $(grep -c 'runbook_url' infra/alerts/burn-rates.yaml) -ge $(grep -c 'severity: page' infra/alerts/burn-rates.yaml)
+  - Verify: test "$(grep -c 'runbook_url' infra/alerts/burn-rates.yaml)" -ge "$(grep -c 'severity: page' infra/alerts/burn-rates.yaml)"
   - Requirements: R-OBS-7, R-OBS-8, R-OBS-9
 
 - [ ] GP-xxx Build the primary SLO dashboard spec
@@ -129,7 +129,7 @@ Criterion: WHEN an SLO, error budget, recovery objective, retention period, or s
 - [ ] GP-xxx Author executable runbooks and schedule tabletops
   - Files: runbooks/<alert-slug>.md, observability/RUNBOOKS.md
   - Acceptance: one runbook per PAGE alert; each contains fenced command blocks with exact flags; each carries last_executed; quarterly tabletop entry on the calendar file
-  - Verify: test "$(grep -rL 'last_executed:' runbooks/ | wc -l)" -eq 0
+  - Verify: ls runbooks/*.md >/dev/null && test "$(grep -rL 'last_executed:' runbooks/ | wc -l)" -eq 0
   - Requirements: R-OBS-17
 
 - [ ] GP-xxx Establish incident response and learning loop

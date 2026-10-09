@@ -2,11 +2,15 @@
 // Dependency-free JSON Schema subset checker for PLAN.json sidecars.
 //
 // Usage: node tests/lib/plan-schema-check.js SCHEMA.json DOCUMENT.json...
+// Exits 0 when every document conforms, 1 when any does not, and 2 for a usage
+// error or a schema that uses a keyword this checker does not implement.
 //
-// It implements exactly the keywords PLAN.schema.json uses and throws on any
-// other keyword, so a schema edit that relies on something unimplemented fails
-// the suite instead of passing unchecked. Documents are decoded as strict UTF-8
-// because a sidecar that is not valid UTF-8 is not valid JSON.
+// It implements the keywords PLAN.schema.json and PLAN.v1.schema.json use, plus
+// maxLength, and refuses any other keyword anywhere in the schema, whether or
+// not a document reaches it, so a schema edit that relies on something
+// unimplemented fails the suite instead of passing unchecked. Documents are
+// decoded as strict UTF-8 because a sidecar that is not valid UTF-8 is not
+// valid JSON.
 
 'use strict';
 
@@ -53,12 +57,25 @@ function same(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function check(schema, value, path, errors) {
+// Walk every subschema up front. Checking keywords only where a document
+// reaches would let one hide under an optional property or the items of an
+// array every fixture leaves empty.
+function assertSupported(schema, path) {
+  if (typeOf(schema) !== 'object') throw new Error(`subschema at ${path} is not an object`);
   for (const key of Object.keys(schema)) {
     if (!ANNOTATIONS.has(key) && !KEYWORDS.has(key)) {
       throw new Error(`unsupported schema keyword ${key} at ${path}`);
     }
   }
+  if ('format' in schema && !FORMATS[schema.format]) {
+    throw new Error(`unsupported format ${schema.format} at ${path}`);
+  }
+  for (const [key, item] of Object.entries(schema.properties || {})) assertSupported(item, `${path}.${key}`);
+  if ('items' in schema) assertSupported(schema.items, `${path}[]`);
+  if (typeof schema.additionalProperties === 'object') assertSupported(schema.additionalProperties, `${path}.*`);
+}
+
+function check(schema, value, path, errors) {
   const fail = (message) => errors.push(`${path}: ${message}`);
 
   if ('type' in schema) {
@@ -79,10 +96,8 @@ function check(schema, value, path, errors) {
     if ('pattern' in schema && !new RegExp(schema.pattern, 'u').test(value)) {
       fail(`${JSON.stringify(value)} does not match ${schema.pattern}`);
     }
-    if ('format' in schema) {
-      const format = FORMATS[schema.format];
-      if (!format) throw new Error(`unsupported format ${schema.format} at ${path}`);
-      if (!format(value)) fail(`${JSON.stringify(value)} is not a valid ${schema.format}`);
+    if ('format' in schema && !FORMATS[schema.format](value)) {
+      fail(`${JSON.stringify(value)} is not a valid ${schema.format}`);
     }
   }
 
@@ -123,7 +138,14 @@ function main(argv) {
     process.stderr.write('usage: plan-schema-check.js SCHEMA.json DOCUMENT.json...\n');
     return 2;
   }
-  const schema = readJson(argv[0]);
+  let schema;
+  try {
+    schema = readJson(argv[0]);
+    assertSupported(schema, '$');
+  } catch (error) {
+    process.stderr.write(`FAIL ${argv[0]}: ${error.message}\n`);
+    return 2;
+  }
   let failed = 0;
   for (const path of argv.slice(1)) {
     const errors = [];

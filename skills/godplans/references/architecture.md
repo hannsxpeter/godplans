@@ -1,10 +1,10 @@
 # Architecture planning module
 
-Turns audit-time architecture discipline into plan-time obligations: the orchestrator loads this module during the architecture domain pass for every archetype except pure marketing-site plans with a single static deployable, where the load-bearing check below usually excludes it with a stated reason.
+Turns audit-time architecture discipline into plan-time obligations: the orchestrator loads this module during the architecture domain pass for every archetype; a plan that fails the load-bearing check below still gets R-ARCH-2's one-page shape statement and ADR-001, because `decide.adr` is an always-owed documentation row this module owns.
 
 ## Lineage
 
-Descends from architecture-ready (aihxp ready-suite, consolidated in arc-ready), the planning-tier skill that produces system shape and why before any code or tool choice. What carries over: every box, arrow, and decision must have a named flip point and blast radius or it is decoration and gets deleted; storage shape precedes database name; NFR claims are arithmetic, not adjectives; trust boundaries are written to be copied verbatim into the threat model; and the skill refuses itself when architecture is not load-bearing. godplans inverts the audit: instead of scoring an ARCH.md after the fact, PLAN.mdx must satisfy every check before a line of code exists.
+Descends from architecture-ready (hannsxpeter/ready-suite, consolidated in hannsxpeter/arc-ready), the planning-tier skill that produces system shape and why before any code or tool choice. What carries over: every box, arrow, and decision must have a named flip point and blast radius or it is decoration and gets deleted; storage shape precedes database name; NFR claims are arithmetic, not adjectives; trust boundaries are written to be copied verbatim into the threat model; and the skill refuses itself when architecture is not load-bearing. godplans inverts the audit: instead of scoring an ARCH.md after the fact, PLAN.mdx must satisfy every check before a line of code exists.
 
 ## Decisions to force
 
@@ -14,7 +14,7 @@ Ordered hardest-to-reverse first. Each must land in the plan's Decisions section
 2. Data ownership and tenancy. Per entity: one writer, tenancy model (shared-schema, per-tenant-schema, per-tenant-DB), lifecycle (immutable, append-only, mutable, soft-delete), retention. Hard to reverse because tenancy migration means live data migration under uptime pressure. Default: shared-schema with a tenant_id column and single-writer components, unless compliance demands isolation.
 3. Storage shape per entity group. Relational, document, key-value, time-series, event log, search, graph, object store; chosen before any product name. Hard to reverse because access patterns calcify around the shape. Naming Postgres at this stage is stackitecture; the pick belongs to the stack pass. Default: relational for entities with cross-entity invariants, object store for blobs.
 4. Read-consistency stance and partition key per entity group. Which reads need strong consistency, read-your-writes, bounded staleness with a stated number, or eventual; and whether any group outgrows one node at the 12-month ceiling, which fixes the partition key. Hard to reverse because the stance leaks into every read call site, and a key chosen late means re-keying live data while every query that assumed one node is rewritten. Default: read-your-writes for the writer's own session, bounded staleness elsewhere with the number written down, one node until the arithmetic says otherwise.
-5. Trust boundary placement. Where network edge, authentication, authorization, and tenant isolation sit, and how each is enforced. Hard to reverse because retrofitting a boundary means auditing every existing call path. Default: authn at the edge, authz in the domain layer, tenant isolation enforced in both query layer and schema (two independent layers).
+5. Trust boundary placement. Where network edge, authentication, authorization, and tenant isolation sit, and how each is enforced. Hard to reverse because retrofitting a boundary means auditing every existing call path. Default: authn at the edge, authz in the domain layer, tenant isolation enforced in two independent layers: the query layer and the database, in R-DB-19's form.
 6. Integration posture per external dependency. Sync vs async, transport, idempotency key and retry policy, failure blast radius. Hard to reverse because callers grow to depend on the timing and delivery semantics. Default: sync for request-path reads, async with at-least-once delivery plus idempotent receivers for mutations; exactly-once is never assumed.
 7. Distributed-transaction stance. Adopt cross-service transactions (almost never) or plan the outbox pattern with reconciliation. Hard to reverse because invariant enforcement points spread through the codebase. Default: single-writer boundaries plus outbox; reject two-phase commit.
 8. Wire formats and public interface style. What crosses component boundaries and how it versions. Hard to reverse because external consumers freeze it on first use. Default: JSON over HTTP for sync, versioned event payloads for async, with an explicit compatibility rule.
@@ -30,7 +30,7 @@ R-ARCH-1 PLAN.mdx grounds architecture in the product section: the architecture 
 Criterion: WHEN the architecture section makes a claim, THE PLAN SHALL trace it to a product requirement or a labeled assumption, and SHALL NOT contain architecture invented without either.
 
 R-ARCH-2 PLAN.mdx records the load-bearing check verbatim: more than one persistence layer, more than one deployable, a load-bearing third-party integration, an NFR that constrains shape, team over 2 and growing, or lifespan over 12 months maintained by others. If none hold, the architecture section is a one-page shape statement (one service, one database, sync calls, one trust boundary) and stops.
-Criterion: IF no load-bearing trigger holds, THE PLAN SHALL cap the architecture section at one page and SHALL NOT add ADRs beyond ADR-001.
+Criterion: IF no load-bearing trigger holds, THE PLAN SHALL cap the architecture section at one page with ADR-001 as its only ADR, and SHALL record each skipped requirement as dropped-by scale.
 
 R-ARCH-3 PLAN.mdx answers the 8 pre-flight questions in writing: purpose, appetite, honest 12-month scale ceiling, binding NFRs, team shape, incumbent stack, external integrations with their failure modes, and the product section's explicit deferrals to architecture.
 Criterion: WHEN the architecture section opens, THE PLAN SHALL contain all 8 answers, including a numeric 12-month scale ceiling and at least one named failure mode per external integration.
@@ -65,7 +65,7 @@ Criterion: WHEN the plan is emitted, a grep for the banned adjective list in the
 R-ARCH-13 PLAN.mdx names the four trust boundaries (network edge, authentication, authorization, tenant/data isolation), each with location, what it protects, what an attacker gains if it falls, and enforcement (two independent layers for load-bearing boundaries, or an acknowledged single-layer risk). It also lists the highest-blast-radius mutations: cross-tenant delete, admin impersonation, billing modification, password reset, API key rotation, export-all endpoints. This section is written to be consumed verbatim by the security module's threat model.
 Criterion: WHEN trust boundaries are declared, THE PLAN SHALL cover all four with all four attributes each, and the security section SHALL reference this list rather than restate it.
 
-R-ARCH-14 PLAN.mdx commits to ADR discipline as tasks: at minimum ADR-001 (shape), ADR-002 (storage), ADR-003 (trust boundaries), plus one per non-obvious decision; every ADR includes flip point and blast radius fields; ADRs live in-repo at a stated path. This module owns `decide.adr` in the documentation set, so no other pass plans an ADR-writing task; the repo module records the row and defers here (repo.md R-REPO-14 and R-REPO-23). ADRs are immutable: a superseded ADR is never deleted and never edited, a new number supersedes it with `supersedes` on the new file and `superseded_by` plus a superseded status on the old, and numbers are never reused, because a citation written last year has to keep resolving to the same decision.
+R-ARCH-14 PLAN.mdx commits to ADR discipline as tasks: at minimum ADR-001 (shape), and when R-ARCH-2's check holds ADR-002 (storage), ADR-003 (trust boundaries), and one per non-obvious decision; every ADR includes flip point and blast radius fields; ADRs live in-repo at a stated path. This module owns `decide.adr` in the documentation set, so no other pass plans an ADR-writing task; the repo module records the row and defers here (repo.md R-REPO-14 and R-REPO-23). ADRs are immutable: a superseded ADR is never deleted and never edited, a new number supersedes it with `supersedes` on the new file and `superseded_by` plus a superseded status on the old, and numbers are never reused, because a citation written last year has to keep resolving to the same decision.
 Criterion: WHEN the plan lists decisions, THE PLAN SHALL contain tasks that write ADR files with flip point and blast radius fields, the task Acceptance lines SHALL be grep-verifiable against those fields, no task outside this module SHALL write a file under the ADR path, and any task that replaces an accepted ADR SHALL mint a new number carrying supersedes and superseded_by rather than editing the original.
 
 R-ARCH-15 PLAN.mdx plans version-controlled text diagrams: a mermaid component diagram with trust boundaries (C4 Level 1 equivalent) in the plan itself, and a Level 2 container diagram task with every arrow labeled with protocol and purpose before build starts; maximum 15 boxes per diagram; every element backed by a decision; no image exports, no cloud-vendor icon diagrams.
@@ -83,7 +83,7 @@ Criterion: WHEN the final phase is written, THE PLAN SHALL contain a drift-audit
 R-ARCH-19 The architecture section of PLAN.mdx stays under three pages of prose (tables, diagrams, and ADR tasks excluded, the capacity tables among them) and survives the substitution test: swap the domain nouns (orders for tickets) or the storage shape and the text must become false, or it is decoration and gets cut.
 Criterion: WHEN the architecture section is drafted, THE PLAN SHALL contain no paragraph that reads equally true for an unrelated product; any such paragraph SHALL be deleted or made specific.
 
-R-ARCH-20 When the system exposes an API or service surface, PLAN.mdx settles the API contract: the API style (REST, GraphQL, or RPC) and why; a versioning strategy that does not break existing consumers; a machine-readable contract (an OpenAPI document or a GraphQL schema) as a planned artifact; consistent resource and URI modeling for REST; a single error envelope (RFC 7807 Problem Details or a documented equivalent); and the interaction-safety postures, an idempotency key on retryable unsafe operations and connection authentication plus resource bounds on any real-time (WebSocket or SSE) surface.
+R-ARCH-20 When the system exposes an API or service surface, PLAN.mdx settles the API contract: the API style (REST, GraphQL, or RPC) and why; a versioning strategy that does not break existing consumers; a machine-readable contract (an OpenAPI document or a GraphQL schema) as a planned artifact, whose generated reference is the `build.api-reference` row; consistent resource and URI modeling for REST; a single error envelope (RFC 7807 Problem Details or a documented equivalent); and the interaction-safety postures, an idempotency key on retryable unsafe operations and connection authentication plus resource bounds on any real-time (WebSocket or SSE) surface.
 Criterion: WHEN an API surface is planned THE PLAN SHALL name the API style, the versioning strategy, the contract artifact, and the error envelope, and SHALL require an idempotency key on retryable create-or-charge endpoints and authenticated, bounded real-time connections, each with a Verify line.
 
 R-ARCH-21 PLAN.mdx settles reads per entity group, where R-ARCH-8 settled only writes: the consistency stance (strong, read-your-writes, bounded staleness with a number in seconds, or eventual), the read paths pinned to the primary (post-write confirmations, money, auth, inventory), and whether the group outgrows one node at the R-ARCH-3 ceiling. Where that arithmetic fails, the partition key and its skew risk are named here; where it holds, the plan records the number and the threshold that reverses it. Product names stay banned per R-ARCH-7; the database section owns the mechanics.
@@ -103,7 +103,7 @@ Criterion: WHEN a throughput ceiling is stated, THE PLAN SHALL give every entry 
 - [ ] GP-xxx Write ADR corpus for shape, storage, and trust boundaries
   - Files: docs/adr/001-system-shape.md, docs/adr/002-storage-shapes.md, docs/adr/003-trust-boundaries.md
   - Acceptance: each file contains the strings "Flip point:" and "Blast radius:" and an "Alternatives rejected" section with at least two entries
-  - Verify: grep -l "Flip point:" docs/adr/00*.md | wc -l | grep -q 3
+  - Verify: test "$(grep -l "Flip point:" docs/adr/00*.md | wc -l)" -ge 3
   - Requirements: R-ARCH-4, R-ARCH-8, R-ARCH-14
 
 - [ ] GP-xxx Author C4 Level 2 container diagram with labeled arrows
@@ -124,10 +124,10 @@ Criterion: WHEN a throughput ceiling is stated, THE PLAN SHALL give every entry 
   - Verify: grep -q "idempotency_key" migrations/*outbox*.sql && grep -rq "outbox" src/shared/outbox/dispatcher.ts
   - Requirements: R-ARCH-8, R-ARCH-9
 
-- [ ] GP-xxx Enforce tenant isolation at two independent layers
-  - Files: src/shared/db/scoped-client.ts, migrations/NNN_row_level_security.sql
-  - Acceptance: query layer requires a tenant id on every accessor (no raw-client export); schema layer enforces row-level policies on every tenant-owned table
-  - Verify: grep -q "tenant_id" src/shared/db/scoped-client.ts && grep -qi "row level security" migrations/*row_level*.sql
+- [ ] GP-xxx Enforce tenant isolation in the query layer
+  - Files: src/shared/db/scoped-client.ts
+  - Acceptance: query layer requires a tenant id on every accessor (no raw-client export); the database layer comes from the R-DB-19 roles and RLS task, never a second migration here
+  - Verify: grep -q "tenant_id" src/shared/db/scoped-client.ts
   - Requirements: R-ARCH-13
 
 - [ ] GP-xxx Run NFR probe against the latency and availability budget
@@ -165,7 +165,7 @@ Criterion: WHEN a throughput ceiling is stated, THE PLAN SHALL give every entry 
 - NFR arithmetic (12): latency decomposition, throughput at ceiling, availability chain math, cost envelope at launch and 12 months, zero unresolved banned adjectives.
 - Trust boundaries (13): four boundaries with four attributes each, dual-layer enforcement or acknowledged risk, highest-blast-radius mutation list present and referenced by the security section.
 - Runtime topology, caching, and overload (15): redundancy posture and health-check rule per critical-path component, single points of failure named with downtime numbers, four fields on every cached read path, and a shed/queue/degrade posture with bounded queues on every entry surface. Full marks require zero caches without a staleness number.
-- ADR, diagram, and fitness discipline (9): three or more ADR tasks with flip point and blast radius, labeled-arrow diagrams within the box cap, three named fitness functions with one wired as a task.
+- ADR, diagram, and fitness discipline (9): three or more ADR tasks with flip point and blast radius (one when R-ARCH-2's check fails), labeled-arrow diagrams within the box cap, three named fitness functions with one wired as a task.
 - Handoff and lifecycle (4): stack/roadmap/database/build passes need no re-interview; drift audit scheduled in the final phase.
 
 ## Anti-patterns refused

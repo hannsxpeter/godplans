@@ -4,7 +4,7 @@ Plans the AGENTS.md loader plus the agents/ pillar tree the project ships at sca
 
 ## Lineage
 
-Descends from the Pillars standard (github.com/hannsxpeter/pillars, spec v1.1.0) and its three operational skills: pillars-init (archetype detection, AGENTS.md drop, local catalog, stub creation, exclusion defaults), pillars-author (evidence-based drafting of one pillar with approval gates and a no-fabrication rule), and pillars-verify (read-only drift audit of pillar claims against actual code). The discipline that carries over: agent memory is a thin constant-size loader plus per-domain files whose frontmatter routes loading; each concern is present, stubbed, excluded, locally cataloged as absent, or unknown; prescriptive content must earn its keep by being non-inferable from code; nested scopes inherit outer guidance with nearest-scope precedence; and every claim a pillar makes is checkable against the tree, so a plan that states facts the build will not produce creates drift at birth. godplans inverts the verify pass: instead of auditing pillars after the fact, the plan specifies pillars whose claims are true by construction while preserving Pillars 1.0 single-scope behavior.
+Descends from the Pillars standard (github.com/hannsxpeter/pillars, spec v1.2.2) and its three operational skills: pillars-init (archetype detection, AGENTS.md drop, local catalog, stub creation, exclusion defaults), pillars-author (evidence-based drafting of one pillar with approval gates and a no-fabrication rule), and pillars-verify (read-only drift audit of pillar claims against actual code). The discipline that carries over: agent memory is a thin constant-size loader plus per-domain files whose frontmatter routes loading; each concern is present, stubbed, excluded, locally cataloged as absent, or unknown; prescriptive content must earn its keep by being non-inferable from code; nested scopes inherit outer guidance with nearest-scope precedence; and every claim a pillar makes is checkable against the tree, so a plan that states facts the build will not produce creates drift at birth. godplans inverts the verify pass: instead of auditing pillars after the fact, the plan specifies pillars whose claims are true by construction while preserving Pillars 1.0 single-scope behavior.
 
 ## Decisions to force
 
@@ -24,10 +24,10 @@ Descends from the Pillars standard (github.com/hannsxpeter/pillars, spec v1.1.0)
 
 ## Plan requirements
 
-1. R-MEM-1: PLAN.mdx declares the project archetype from the standard 8-archetype table and cites the concrete signals (manifest fields, framework dependencies, directory shape) that will exist once scaffolded. Mapping from the godplans archetype set (SKILL.md Phase 2): cli-tool -> CLI tool, api-service -> internal API service, saas-dashboard -> SaaS dashboard/web app, marketing-site -> marketing site, mobile-app -> mobile app, ml-pipeline -> ML pipeline, library -> OSS library; extension, game, and hybrid map to greenfield/custom.
+1. R-MEM-1: PLAN.mdx declares the project archetype from the standard 8-archetype table and cites the concrete signals (manifest fields, framework dependencies, directory shape) that will exist once scaffolded. Mapping from the godplans archetype set (discovery.md, Archetype detection): cli-tool -> CLI tool, api-service -> internal API service, saas-dashboard -> SaaS dashboard/web app, marketing-site -> marketing site, mobile-app -> mobile app, ml-pipeline -> ML pipeline, library -> OSS library; extension and game map to greenfield/custom, and an `unknown` archetype (below the 0.45 floor) maps to greenfield/custom until the archetype question resolves.
    Criterion: WHEN the archetype is declared, THE PLAN SHALL cite at least two file signals such that pillars-init detection on the finished repo would agree without asking.
 
-2. R-MEM-2: PLAN.mdx schedules AGENTS.md at the repo root in the first commit, containing exactly the canonical elements: reference to Pillars 1.1.0, the 6-step loading protocol, the 5-state missing-pillar table, a structured excluded: yaml block, and nested-scope precedence when nested scopes exist.
+2. R-MEM-2: PLAN.mdx schedules AGENTS.md at the repo root in the first commit, containing exactly the canonical elements: reference to Pillars 1.2.2, the 6-step loading protocol, the 5-state missing-pillar table, a structured excluded: yaml block, and nested-scope precedence when nested scopes exist.
    Criterion: WHEN the AGENTS.md task is specified, THE PLAN SHALL require the first four elements, SHALL add nested-scope precedence when nested scopes exist, and SHALL forbid enumerating pillar names inside AGENTS.md.
 
 3. R-MEM-3: PLAN.mdx resolves all 11 Core and 11 Common identities as present, stubbed, excluded, locally cataloged absent, or unknown; it never silently promotes unknown to absent.
@@ -69,8 +69,8 @@ Descends from the Pillars standard (github.com/hannsxpeter/pillars, spec v1.1.0)
 15. R-MEM-15: PLAN.mdx specifies any CLAUDE.md, .cursorrules, or similar tool file as a one-line redirect to the applicable AGENTS.md and agents/, never a parallel instruction document, and records every root or nested scope. A descendant exclusion suppresses the inherited task-routed identity in that scope; non-conflicting ancestor guidance remains active.
     Criterion: IF a tool-native instruction file is planned, THE PLAN SHALL specify its entire content as a redirect line.
 
-16. R-MEM-16: PLAN.mdx bakes Pillars 1.1.0 conformance into CI from day one: the current validator checks path-derived identities, portable selector collisions, list types and duplicates, hard and soft references, self-references, dependency fan-out, floors, exclusions, optional catalogs, context budgets, and nested scopes; routing fixtures prove deterministic load sets.
-    Criterion: WHEN CI is planned, THE PLAN SHALL include the pinned Pillars 1.1.0 validator with recursive-scope discovery and representative routing fixtures, and SHALL fail on any ERROR or fixture mismatch.
+16. R-MEM-16: PLAN.mdx bakes Pillars 1.2.2 conformance into CI from day one: the current validator checks path-derived identities, portable selector collisions, list types and duplicates, hard and soft references, self-references, dependency fan-out, floors, exclusions, optional catalogs, context budgets, and nested scopes; routing fixtures prove deterministic load sets.
+    Criterion: WHEN CI is planned, THE PLAN SHALL include the pinned Pillars 1.2.2 validator with recursive-scope discovery and representative routing fixtures, and SHALL fail on any ERROR or fixture mismatch.
 
 17. R-MEM-17: PLAN.mdx defines pillar maintenance as part of the delivery workflow: new decisions land in the owning pillar's Decisions, new hard constraints in Rules, incidents produce Watchouts, resolved Gaps entries are removed, and pillars-verify runs are scheduled after each major refactor or milestone with a target of zero drift, zero rule violations, no stale exclusions.
     Criterion: WHEN phases are laid out, THE PLAN SHALL name the pillar-update step in each phase's Must-haves and SHALL schedule a pillars-verify run in the final Verification phase.
@@ -94,14 +94,14 @@ Descends from the Pillars standard (github.com/hannsxpeter/pillars, spec v1.1.0)
 
 - [ ] GP-xxx Write AGENTS.md loader at repo root
   - Files: AGENTS.md
-  - Acceptance: contains Pillars 1.1.0 reference, 6-step loading protocol, 5-state missing-pillar table, structured excluded: yaml block with {name, reason} entries, and nested-scope precedence when applicable; contains no enumeration of present pillar names
+  - Acceptance: contains Pillars 1.2.2 reference, 6-step loading protocol, 5-state missing-pillar table, structured excluded: yaml block with {name, reason} entries, and nested-scope precedence when applicable; contains no enumeration of present pillar names
   - Verify: grep -q 'excluded:' AGENTS.md && grep -qi 'always_load' AGENTS.md && test -d agents
   - Requirements: R-MEM-2, R-MEM-3, R-MEM-4
 
 - [ ] GP-xxx Author floor pillars context.md and repo.md at status present
   - Files: agents/context.md, agents/repo.md
   - Acceptance: both files have YAML frontmatter with pillar matching filename, status: present, always_load: true, covers list; both bodies have the 8 headings in order; context.md carries the domain glossary and product invariants from the plan; repo.md carries the planned file layout and naming conventions
-  - Verify: grep -c 'always_load: true' agents/context.md agents/repo.md | grep -vq ':0'
+  - Verify: grep -q 'always_load: true' agents/context.md && grep -q 'always_load: true' agents/repo.md && grep -q 'status: present' agents/context.md && grep -q 'status: present' agents/repo.md
   - Requirements: R-MEM-5, R-MEM-8, R-MEM-11
 
 - [ ] GP-xxx Author Core pillar set per inventory table
@@ -118,7 +118,7 @@ Descends from the Pillars standard (github.com/hannsxpeter/pillars, spec v1.1.0)
 
 - [ ] GP-xxx Add Pillars structural validation to CI
   - Files: scripts/validate_pillars.py, tests/pillars-routing.yaml, .github/workflows/ci.yml
-  - Acceptance: validator pinned from Pillars v1.1.0; CI enables recursive scopes, catalogs, budgets, and routing fixtures; fixtures cover nested inheritance, nearest-scope override, descendant exclusion, schema-change normalization, and api versus capital
+  - Acceptance: validator pinned from Pillars v1.2.2; CI enables recursive scopes, catalogs, budgets, and routing fixtures; fixtures cover nested inheritance, nearest-scope override, descendant exclusion, schema-change normalization, and api versus capital
   - Verify: python3 scripts/validate_pillars.py --recursive-scopes . && grep -q 'pillars-routing' .github/workflows/ci.yml
   - Requirements: R-MEM-16, R-MEM-20, R-MEM-21, R-MEM-22
 
@@ -143,7 +143,7 @@ Descends from the Pillars standard (github.com/hannsxpeter/pillars, spec v1.1.0)
 ## Self-audit rubric
 
 - Archetype and applicability (15): archetype declared with two or more concrete file signals; all 11 Core and 11 Common identities receive one of the five states without conflating unknown with absent; primary Domain pillar included.
-- Loader conformance (15): AGENTS.md task specifies the Pillars 1.1.0 protocol, five states, local exclusions, and nested precedence where applicable, with no present-pillar enumeration.
+- Loader conformance (15): AGENTS.md task specifies the Pillars 1.2.2 protocol, five states, local exclusions, and nested precedence where applicable, with no present-pillar enumeration.
 - Floor pillars (10): context.md and repo.md planned at status: present, always_load: true, authored from the plan's own glossary, invariants, and layout.
 - Frontmatter and body format (15): every planned pillar has complete frontmatter (leaf name = filename, path-derived identity, covers, recall-oriented triggers, must_read_with <= 3 resolvable in its scope), 8 sections in order, (none) markers, Touchpoints mirroring.
 - Truthfulness discipline (15): Decisions trace to recorded plan rationale, no fabrication; Rules pass earn-your-keep; Watchouts (none) at birth; undecided items in Gaps as ask-the-human entries.

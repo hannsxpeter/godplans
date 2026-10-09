@@ -28,8 +28,15 @@ for (let index = 0; index < args.length; index++) {
     case '--judge': {
       const value = take('--judge', index++);
       const separator = value.indexOf('=');
-      if (separator < 1) throw new Error('--judge uses LABEL=/absolute/runner');
-      judges.push({ label: value.slice(0, separator), runner: path.resolve(value.slice(separator + 1)) });
+      if (separator < 1) throw new Error('--judge uses LABEL=RUNNER, where RUNNER is a relative or absolute path');
+      // The label names the judge's grade directory, so it must be one safe
+      // path segment. A repeated label, or one that differs only in case (the
+      // same directory on a case-insensitive file system), would grade one
+      // judge against itself.
+      const label = value.slice(0, separator);
+      if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(label)) throw new Error(`invalid judge label: ${label}`);
+      if (judges.some((judge) => judge.label.toLowerCase() === label.toLowerCase())) throw new Error(`duplicate judge label: ${label}`);
+      judges.push({ label, runner: path.resolve(value.slice(separator + 1)) });
       break;
     }
     case '-h':
@@ -61,6 +68,9 @@ if (candidates.length < sample) {
 }
 
 const rubric = fs.readFileSync(path.join(root, 'evals', 'external', 'RUBRIC.md'), 'utf8');
+// Every judge reads the grade shape from its packet, so a judge whose CLI
+// cannot enforce a JSON schema gets the same contract as one that can.
+const gradeSchema = fs.readFileSync(path.join(root, 'evals', 'external', 'GRADE.schema.json'), 'utf8');
 const packetDir = path.join(output, 'packets');
 const gradeDir = path.join(output, 'grades');
 fs.mkdirSync(packetDir, { recursive: true });
@@ -82,6 +92,14 @@ for (const caseName of candidates) {
     brief.trim(),
     '',
     rubric.trim(),
+    '',
+    '## Required JSON',
+    '',
+    'Return one JSON object that validates against this schema. The criterion keys are decision_completeness, falsifiability, execution_actionability, risk_targeting, proportionality, and internal_consistency; total is their sum.',
+    '',
+    '```json',
+    gradeSchema.trim(),
+    '```',
     '',
     '## Plan A',
     '',

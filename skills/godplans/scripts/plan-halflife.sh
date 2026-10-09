@@ -5,6 +5,21 @@
 
 set -eu
 
+usage() {
+  echo "Usage: $0 [PLAN.mdx] [OUTPUT.json]" >&2
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) usage; exit 0 ;;
+    -*) usage; echo "Unknown option: $arg" >&2; exit 2 ;;
+  esac
+done
+if [ "$#" -gt 2 ]; then
+  usage
+  exit 2
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLAN_FILE="${1:-.godplans/PLAN.mdx}"
 OUTPUT_FILE="${2:-${PLAN_FILE%.mdx}.metrics.json}"

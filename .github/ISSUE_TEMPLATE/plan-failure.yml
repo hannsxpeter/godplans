@@ -54,5 +54,5 @@ body:
     id: validator
     attributes:
       label: Validator output
-      description: Output of `bash .godplans/validate-plan.sh .godplans/PLAN.mdx`, if you ran it.
+      description: Output of `bash .godplans/validate-plan.sh --allow-planning .godplans/PLAN.mdx` (drop `--allow-planning` if the plan was approved or executing), if you ran it.
       render: shell

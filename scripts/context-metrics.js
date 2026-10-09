@@ -9,7 +9,18 @@ const { execFileSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'evals', 'metrics', 'context-cost.json');
-const check = process.argv.includes('--check');
+const usage = 'Usage: node scripts/context-metrics.js [--check]\n';
+const args = process.argv.slice(2);
+if (args.includes('-h') || args.includes('--help')) {
+  process.stdout.write(usage);
+  process.exit(0);
+}
+const unknown = args.find((arg) => arg !== '--check');
+if (unknown !== undefined) {
+  process.stderr.write(`Unknown argument: ${unknown}\n${usage}`);
+  process.exit(2);
+}
+const check = args.includes('--check');
 const references = path.join(root, 'skills', 'godplans', 'references');
 
 const coreModules = [

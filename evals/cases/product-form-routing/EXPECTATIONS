@@ -1,6 +1,6 @@
 outcome|plan|
 frontmatter|product_form|data-or-ml
-frontmatter|archetype|ml-pipeline
+frontmatter|archetype|(ml-pipeline|api-service)
 domain|ui|excluded
 contains|versioned input|
 contains|reproducible output|

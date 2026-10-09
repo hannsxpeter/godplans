@@ -4,7 +4,10 @@ You are operating under the godplans skill. This slim core includes compliance,
 discovery, the plan contract, the five load-bearing modules (product,
 architecture, stack, database, and security), the quality exemplar, the PLAN
 template, and the portable scripts. It does not preload reversible or
-specialized domains. Before a replan, save the inlined plan half-life script as
+specialized domains. When filesystem tools are available, write the inlined
+validator byte-for-byte to `.godplans/validate-plan.sh` before validation; with
+no installed skill, that inlined copy is the resolved source the `cmp -s` checks
+name. Before a replan, save the inlined plan half-life script as
 `.godplans/plan-halflife.sh`, beside the validator companion it runs.
 
 Before each non-core domain pass, load that module from
@@ -59,7 +62,7 @@ Detect what exists. Look for:
 - Source code (manifests like `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`) -> **brownfield mode**.
 - Neither -> **greenfield mode**.
 
-Record the mode. In replan mode, run `bash .godplans/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json` now, while `.godplans/validate-plan.sh` is still the outgoing plan's own validator. Bind the plan to disk evidence before planning: record the current Git revision when available, list the source and intake evidence used, compute a SHA-256 input digest, and record the UTC validation timestamp. In brownfield mode, fingerprint before planning: read the manifests, entry points, and directory shape, run `python3 scripts/style-stats.py .` for the measured style baseline, then close-read enough representative source to interpret it. The plan must extend what exists, not fight it. This pass is read-only. Record what the fingerprint did not reach as explicitly as what it found; a pass that never ran is not a pass that came back empty.
+Record the mode. In replan mode, run `bash .godplans/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json` now, while `.godplans/validate-plan.sh` is still the outgoing plan's own validator; if no validator can measure the outgoing plan, log `half-life: not measured (<reason>)` in the session log and continue. Bind the plan to disk evidence before planning: record the current Git revision when available, list the source and intake evidence used, compute a SHA-256 input digest, and record the UTC validation timestamp. In brownfield mode, fingerprint before planning: read the manifests, entry points, and directory shape, record the measured style baseline as not run (only a native install has the style-stats script), then close-read enough representative source to interpret it. The plan must extend what exists, not fight it. This pass is read-only. Record what the fingerprint did not reach as explicitly as what it found; a pass that never ran is not a pass that came back empty.
 
 ### Phase 1: Compliance gate
 
@@ -71,11 +74,11 @@ Read the inlined compliance reference and screen the project idea against it bef
 
 The result, one short section, goes into the plan.
 
-For a mitigate or pass result, create `.godplans/` and copy this skill's
-the inlined validator into it immediately, before discovery or plan
-authoring. Make it executable and confirm it is byte-identical to the resolved
-skill source. Create the validator companion before drafting the plan. A hard
-stop creates neither artifact. In replan mode, copy only after the Phase 0
+For a mitigate or pass result, create `.godplans/` and copy
+the inlined validator from this skill into it immediately, before discovery
+or plan authoring. Make it executable and confirm it is byte-identical to the
+resolved skill source. Create the validator companion before drafting the plan.
+A hard stop creates neither artifact. In replan mode, copy only after the Phase 0
 half-life measurement.
 
 ### Phase 2: Intake and applicability
@@ -117,13 +120,13 @@ For each applicable domain, in this order, read its module and author that plan 
 | 18 | Observability | `references/observe.md` | observe-ready |
 | 19 | Launch | `references/launch.md` | launch-ready |
 
-Each module gives you: the decisions to force, plan requirements, task seeds, a self-audit rubric (used in Phase 6), and anti-patterns. Apply them at the selected scale. Satisfy load-bearing requirements and record a compact module-level disposition for requirements excluded by archetype or scale. Do not instantiate a task seed merely because it exists. Weekend plans select only requirements that materially change product behavior, public compatibility, security, or verification within the stated appetite.
+Each module gives you: the decisions to force, plan requirements, task seeds, a self-audit rubric (used in Phase 6), and anti-patterns. Apply them at the selected scale. Satisfy load-bearing requirements and record a compact module-level disposition for requirements dropped by scale, archetype, or form. Do not instantiate a task seed merely because it exists. Weekend plans select only requirements that materially change product behavior, public compatibility, security, or verification within the stated appetite.
 
 Excluded domains get one line in the applicability matrix and nothing else. Deferred domains get a matrix row, a trigger, and a reversibility argument, but no domain section or tasks until the trigger fires.
 
 ### Phase 5: Inversion pass
 
-Walk every applicable module's Plan requirements section and give it one of three dispositions: landed somewhere concrete, deferred with a named trigger (deferrable set only, with the reversibility argument), or excluded with a specific archetype or scale reason in the compact module disposition. A landed requirement appears as a decision, an acceptance criterion on a task, or an entry in Open Questions with a recommended default. Distribute landed requirement IDs (R-PRD-3, R-SEC-12, R-DB-4) onto tasks via their `Requirements:` lines so traceability is grep-able. An applicable requirement with none of the three dispositions is a hole; fix it before Phase 6. Recount phases, tasks, and total appetite against the scale ceiling before continuing.
+Walk every applicable module's Plan requirements section and give each requirement one of two dispositions: landed somewhere concrete, or dropped in the compact module disposition with its dropping layer (`scale`, `archetype`, or `form`) and a specific reason. Deferral applies to a whole domain in the matrix, never to one requirement. A landed requirement appears as a decision, an acceptance criterion on a task, or an entry in Open Questions with a recommended default. Distribute landed requirement IDs (R-PRD-3, R-SEC-12, R-DB-4) onto tasks via their `Requirements:` lines so traceability is grep-able. An applicable requirement with neither disposition is a hole; fix it before Phase 6. Recount phases, tasks, and total appetite against the scale ceiling before continuing.
 
 ### Phase 5b: Prose integrity pass
 
@@ -137,7 +140,7 @@ Run the substitution test and three-label test again after rewriting. Then compa
 
 The author does not grade the author. Run this phase under critic posture, in a turn separate from Phase 4 authoring, and where the harness allows it in an isolated context (a Claude Code subagent, a fresh Codex run, a new Cursor chat) given only the drafted `.godplans/PLAN.mdx` and the rubric text, with nothing carried from the authoring conversation. When no isolated context is available, run it as a distinct turn and record that the critic was not isolated.
 
-**6a. Score.** Read the inlined exemplar reference first; it is the calibration for what full marks mean. Then score the draft against the landed requirement set for every applicable module, 0 to 100 per domain. Score the drafted text only: authoring intent is not evidence, and no section is credited for what it meant to say. Excluded rubric items do not enter the denominator only when their module disposition names a specific archetype or scale reason. Repair nothing while scoring; a critic that edits has become an author again.
+**6a. Score.** Read the inlined exemplar reference first; it is the calibration for what full marks mean. Then score the draft against the landed requirement set for every applicable module, 0 to 100 per domain. Score the drafted text only: authoring intent is not evidence, and no section is credited for what it meant to say. Dropped rubric items stay out of the denominator only when their module disposition names the dropping layer and a specific reason. Repair nothing while scoring; a critic that edits has become an author again.
 
 **6b. Name every deduction.** Each lost point cites the section, quotes the sentence that lost it, names the rubric line, and states the points. A deduction with no quoted text is not a deduction, and those points are restored. Produce the complete scorecard before any revision.
 
@@ -148,7 +151,7 @@ Print the scorecard in chat when done, including whether the critic ran isolated
 ### Phase 7: Emit and hand off
 
 1. Read the inlined plan-format reference and the inlined PLAN template. Assemble `.godplans/PLAN.mdx` per that contract: frontmatter machine state, mermaid visuals where they carry weight, one Documentation set section, phases and waves, GP-numbered checkbox tasks with Files, Depends on, Reuses, Acceptance, Verify, and Requirements lines, one Open Questions section at the bottom, executor rules, session log.
-2. Complete the three-artifact emission gate before any response: re-copy the inlined validator from this skill byte-for-byte to the pre-created `.godplans/validate-plan.sh`, make the companion executable, use `cmp -s` against that same resolved source path, then run `bash .godplans/validate-plan.sh --allow-planning --emit-json .godplans/PLAN.json .godplans/PLAN.mdx`. The emission is incomplete if PLAN.mdx, its executable validator, or PLAN.json is missing. The validator embeds its requirement catalog, validates provenance and conditional public-release gate structure, and must work without access to the installed skill on stock macOS and Linux. It is the machine gate; do not recreate its checks with grep. Fix every failure before presenting. PLAN.json is a generated, derived view; it is never hand-edited, and its `plan_digest` lets consumers detect staleness.
+2. Complete the three-artifact emission gate before any response: re-copy the inlined validator from this skill byte-for-byte to the pre-created `.godplans/validate-plan.sh`, make the companion executable, use `cmp -s` against that same resolved source path, then run `bash .godplans/validate-plan.sh --allow-planning --emit-json .godplans/PLAN.json .godplans/PLAN.mdx`. The emission is incomplete if PLAN.mdx, its executable validator, or PLAN.json is missing. When a planned task runs `.godplans/style-stats.py`, also copy the style-stats script there if a native install is reachable, else record it as not copied, a conditional copy outside the three-artifact gate. The validator embeds its requirement catalog, validates provenance and conditional public-release gate structure, and must work without access to the installed skill on stock macOS and Linux. It is the machine gate; do not recreate its checks with grep. Fix every failure before presenting. PLAN.json is a generated, derived view; it is never hand-edited, and its `plan_digest` lets consumers detect staleness.
 3. Present in chat: the objective, the mode and archetype, the applicability matrix, the scorecard, task and phase counts, the open questions with recommended defaults, and the executor protocol in three lines. Name every task, decision, and question you mention by its title, with the ID in support: "GP-204 wire session middleware into the API router", never a bare "GP-204". IDs are how the machine addresses the plan; a wall of them is how a human loses it. Lead with the result. Omit canned greetings, praise, sycophantic agreement, generic disclaimers, and generic closing lines. First-person voice is allowed when it identifies what the planning agent did or carries an attributed user or founder statement; never invent a collective "we". Presenting the plan is the sign-off request; wait for approval before anyone builds.
 4. After explicit user sign-off, change `status: planning` to `status: approved`, update the date, and run `bash .godplans/validate-plan.sh .godplans/PLAN.mdx`. Do not start application work as part of approval.
 
@@ -158,7 +161,7 @@ Final artifact check: `test -f .godplans/PLAN.mdx && test -x .godplans/validate-
 
 - **Greenfield**: the full method above.
 - **Brownfield**: Phase 0 fingerprints the existing codebase first. The style genome is extracted, not invented; the stack section records what is and plans only deliberate changes; tasks reference real existing files. The plan extends the codebase, never restarts it.
-- **Replan**: `.godplans/PLAN.mdx` exists. Re-derive state from disk: count checked and unchecked tasks, read the session log, and recompute the recorded source and completed-or-imported evidence. If material evidence drifted, treat the plan as stale and return it to `planning` before reconciliation. Completed tasks are never renumbered, reworded, or unchecked. New and changed work gets new task IDs. Superseded unstarted tasks are struck through with a one-line reason, not deleted. The Phase 0 half-life report on the outgoing plan measures cumulative task survival and per-domain supersession rate; a domain struck repeatedly was over-planned at that scale, so shrink its appetite instead of reseeding the same tasks. If the re-copied validator reports a missing domain, the skill gained it after the plan was written: add its matrix row, frontmatter entry, and (when applicable) disposition line on the usual rules, re-point any documentation row whose catalog owner moved, and treat an applicable new domain as material. Refresh provenance, bump the plan version, record the delta in the session log, regenerate PLAN.json, and require fresh approval before execution resumes.
+- **Replan**: `.godplans/PLAN.mdx` exists. Snapshot it to `.godplans/archive/PLAN-v<n>.mdx`, then re-derive state from disk: count checked and unchecked tasks, read the session log, and recompute the recorded source and completed-or-imported evidence. If material evidence drifted, treat the plan as stale and return it to `planning` before reconciliation. Completed tasks are never renumbered, reworded, or unchecked. New and changed work gets new task IDs. Superseded unstarted tasks are struck through with a one-line reason, not deleted. The Phase 0 half-life report on the outgoing plan measures cumulative task survival and per-domain supersession rate; a domain struck repeatedly was over-planned at that scale, so shrink its appetite instead of reseeding the same tasks. If the re-copied validator reports a missing domain, the skill gained it after the plan was written: add its matrix row, frontmatter entry, and (when applicable) disposition line on the usual rules, re-point any documentation row whose catalog owner moved, and treat an applicable new domain as material. Refresh provenance, bump the plan version, record the delta in the session log, regenerate PLAN.json, and require fresh approval before execution resumes.
 
 ## After the plan: execution
 
@@ -177,7 +180,7 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 - **Invented numbers**: an availability target, recovery objective, retention period, or review cadence the plan made up so a section would be complete. Cite it, decide it with a falsifier, or ask it.
 - **Ungated promises**: a marker an executor acts on that nothing verifies. `[P]` promises a task is safe to run beside its wave siblings, and the frontmatter domain lists promise they say what the applicability matrix says. Both are machine-checked, because a promise the machine does not check is a claim the plan makes on the executor's behalf.
 
-## Skill version: 1.14.0
+## Skill version: 1.15.0
 
 
 ---
@@ -259,7 +262,7 @@ Loaded in Phase 2 and Phase 3. Turns a raw idea (or an existing codebase) into t
 - Source manifests exist (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `Gemfile`, `pom.xml`, `mix.exs`, `Package.swift`) -> brownfield.
 - Otherwise -> greenfield.
 
-Brownfield fingerprint, read-only, before any planning: stack and versions from manifests; directory shape and module boundaries; entry points; test and CI setup; the style genome measured with `scripts/style-stats.py` and then close-read across 5 to 10 representative source files; anything under `agents/`, `AGENTS.md`, `CLAUDE.md`, or `.cursor/rules/` that records existing conventions. Record the current Git revision when available, a SHA-256 digest of the stable intake and source evidence, and a UTC validation timestamp. The plan extends what exists; a brownfield plan that reads like a greenfield plan has failed before it ships.
+Brownfield fingerprint, read-only, before any planning: stack and versions from manifests; directory shape and module boundaries; entry points; test and CI setup; the style genome with its measured baseline recorded as not run (only a native install has the style-stats script) and then close-read across 5 to 10 representative source files; anything under `agents/`, `AGENTS.md`, `CLAUDE.md`, or `.cursor/rules/` that records existing conventions. Record the current Git revision when available, a SHA-256 digest of the stable intake and source evidence, and a UTC validation timestamp. The plan extends what exists; a brownfield plan that reads like a greenfield plan has failed before it ships.
 
 Record what the fingerprint did **not** reach as explicitly as what it found. A pass that was never run is not a pass that came back empty, and the applicability matrix below refuses to treat the two the same way.
 
@@ -279,27 +282,28 @@ In brownfield mode, `absent:` is a negative claim about a codebase, and the clai
 So a brownfield `absent:` reason carries a backticked citation: the search that came back empty, or the evidence artifact that recorded the absence.
 
 ```
-| seo | excluded | absent: no HTML template, route table, or static site config under src/ (`rg -l "<html|<!DOCTYPE|createServer" src/` returns nothing); revisit when: any task adds a server-rendered route or a static site config |
+| seo | excluded | absent: no HTML template, route table, or static site config under src/ (`rg -l -e "<html" -e "<!DOCTYPE" -e createServer src/` returns nothing); revisit when: any task adds a server-rendered route or a static site config |
 ```
 
 `by-design:` needs no command. It is the plan deciding, not the plan reporting, and there is nothing to have looked at. This is why greenfield exclusions are almost always `by-design:` and brownfield exclusions are usually not.
 
 ## Evidence states
 
-Every claim the matrix and the documentation set make about this project carries one of five states. The state is what licenses the disposition, so it is recorded before the disposition is chosen.
+Every claim the matrix and the documentation set make about this project carries one of six states. The state is what licenses the disposition, so it is recorded before the disposition is chosen.
 
 | State | What the plan is saying | May it exclude a domain or document? |
 |---|---|---|
 | `present` | this project has the thing, and here is where | no, it selects |
 | `absent` | this was checked and the thing is not there; the reason names what checked | yes |
 | `by-design` | the plan decides this project will not have the thing | yes |
+| `present-elsewhere` | the document lives outside this repository (a wiki, an intranet, a compliance platform), and here is where | a document only |
 | `unknown` | nobody looked, or the answer is not derivable from what the plan has | **no** |
 | `hint` | something matched and it is not enough to decide on | **no** |
 
 `unknown` is not `absent`, and conflating them is the failure this table exists to prevent. Reporting "we did not look" as "we decided this does not apply" produces two sentences that read identically and have opposite consequences a year later.
 
 - **Greenfield**: the honest state for anything the plan settles is `by-design`. There is nothing to inspect, and the plan is the decision. `llm | excluded | by-design: the product answers from indexed text with no model call` is a decision. `llm | excluded | no model calls` is a claim about a codebase that does not exist yet.
-- **Brownfield**: `absent` requires that something actually looked, and the reason names it with a backticked command or evidence artifact. `absent: no HTML template, route table, or static site config under src/ (`rg -l "<html|<!DOCTYPE" src/` returns nothing)` is checkable. A bare "no public pages" is not.
+- **Brownfield**: `absent` requires that something actually looked, and the reason names it with a backticked command or evidence artifact. An `absent:` reason citing `rg -l -e "<html" -e "<!DOCTYPE" src/` returning nothing is checkable. A bare "no public pages" is not.
 - **`unknown` and `hint` never exclude.** A domain whose state is either becomes applicable, or its question goes to `## Open Questions` with a recommended default. One confidently false exclusion costs more trust than ten honest unknowns, because the unknowns advertise themselves and the false exclusion does not.
 
 ## Product-form routing
@@ -347,7 +351,7 @@ A weighted sum, not a decision tree. A tree returns one answer, no runner-up, an
 4. **Floor is 0.45.** Below it the archetype is `unknown`, the archetype question takes a slot in the interview batch, and no default may be taken for it.
 5. **Confidence** is `high` only at a margin of 15 points or more **and** a primary score of 0.70 or more. Exactly one of the two gives `medium`. Neither gives `low`.
 
-Confidence is arithmetic, not a feeling. The validator recomputes the margin from the two scores and the confidence from the margin and the primary score, and refuses a plan whose stated confidence does not follow from its own numbers.
+Confidence is arithmetic, not a feeling, and the validator recomputes it.
 
 ### What low confidence costs
 
@@ -371,7 +375,7 @@ Every plan records what changes if the runner-up is right, priced in the same un
 - Confidence: high
 - Vetoes applied: none
 - Overlays: none
-- If the runner-up is right: +2 tasks and +0 phases; the ui and seo rows flip to excluded, GP-210 through GP-212 drop, and the contract-test task in Phase 3 grows a consumer fixture
+- If the runner-up is right: -3 tasks and +0 phases; the ui and seo rows flip to excluded, GP-210 through GP-212 drop, and the contract-test task in Phase 3 grows a consumer fixture
 ```
 
 Hybrids are not a merge. A project that scores close on two archetypes has one primary and, where the second thing is real, an overlay. Merging two matrices and letting one win conflicts forces a false choice at the top of the tree and produces the wrong set for exactly the project that is both.
@@ -392,7 +396,7 @@ An archetype answers what this thing is. An overlay answers what extra obligatio
 
 **Overlays raise and never lower.** An overlay moves its domains up the lattice `excluded < deferred < applicable`; nothing an overlay does may push a domain down it. Concretely, an overlay forbids `excluded` for its domains. Deferral stays available wherever the deferrable set already allows it, so `public-ui` on a project whose visual system genuinely comes later still defers `ui` with its trigger. What it cannot do is deny that `ui` exists.
 
-This is the same monotonic rule the module disposition enforces one level down, applied to the matrix itself. Without it, an overlay written to add obligations could be read as a license to trim, which is the failure mode that makes a selection engine worse than no engine.
+This is the same monotonic rule the module disposition enforces one level down, applied to the matrix itself.
 
 Record overlays in frontmatter as `overlays: [ai-system, regulated-data]`, or `overlays: []` when none fire. An empty list is a finding like an empty hard-to-reverse-bets list: it says each overlay was considered and none applied, not that nobody looked.
 
@@ -443,7 +447,7 @@ Never deferrable: product, business, architecture, stack, database, security, ll
 | Domain | Status | Reason |
 |---|---|---|
 | product | applicable | |
-| business | excluded | by-design: one household, no charge, no analytics; revisit when: any task adds a price, a checkout, an uninvited sign-up route, or an analytics SDK |
+| business | excluded | by-design: one invite-only household, no charge, no analytics; revisit when: any task adds a price, a checkout, an uninvited sign-up route, or an analytics SDK |
 | architecture | applicable | |
 | stack | applicable | |
 | database | applicable | |
@@ -470,7 +474,7 @@ Hard rules: security, code-quality, style-genome, repo, roadmap are never exclud
 After the table, the compact module disposition records what each applicable module's requirements did. Its grammar is one line per module:
 
 ```
-- security: landed R-SEC-1, R-SEC-4, R-SEC-12; dropped-by scale R-SEC-22, R-SEC-27 (side-project: no SOC 2 program and no dedicated security review board)
+- security: landed R-SEC-1, R-SEC-4, R-SEC-12; dropped-by archetype R-SEC-22 (D3: managed-platform deploy, no containers, Kubernetes, or IaC planned)
 - ui: landed R-UI-2, R-UI-9; dropped-by archetype R-UI-14 (no design system to publish; the app uses stock primitives)
 ```
 
@@ -557,7 +561,7 @@ Loaded first in the domain-pass order for every archetype: every project needs a
 
 ## Lineage
 
-Descends from aihxp prd-ready, the top of the ready-suite planning tier. prd-ready exists to refuse the AI-slop PRD (every section filled, nothing decided) and enforces one core discipline: every sentence is exactly one of three things, a decision with rationale, a flagged hypothesis with a validation plan, or a named open question with an owner and a due date. godplans inverts prd-ready's audit checks (substitution test, MoSCoW caps, sourced metrics, ten-dimension NFRs, separate risk registers, downstream handoff pre-fill) into plan-time obligations, so the product content of PLAN.mdx is born already passing them.
+Descends from prd-ready, the top of the hannsxpeter/ready-suite planning tier. prd-ready exists to refuse the AI-slop PRD (every section filled, nothing decided) and enforces one core discipline: every sentence is exactly one of three things, a decision with rationale, a flagged hypothesis with a validation plan, or a named open question with an owner and a due date. godplans inverts prd-ready's audit checks (substitution test, MoSCoW caps, sourced metrics, ten-dimension NFRs, separate risk registers, downstream handoff pre-fill) into plan-time obligations, so the product content of PLAN.mdx is born already passing them.
 
 ## Decisions to force
 
@@ -566,9 +570,9 @@ Hardest to reverse first. Each must land in the plan's Decisions section as a gr
 1. Who the single primary user is. Question: which one role, in which workday moment, under which constraint, is this for? Why hard to reverse: architecture entities, permission models, UI flows, and launch positioning all key off this identity; changing it mid-build is a pivot, not an edit. Options: (a) one named primary user, secondary users demoted to non-goals; (b) two co-primary users with an explicit conflict-resolution rule. Default: (a). Refuse "everyone who X" as a user definition.
 2. What the problem is, stated without the solution. Question: what do users do today manually, how long does it take, what does it cost? Why hard to reverse: the problem statement is the scope boundary every later cut decision appeals to; a solution-shaped problem locks in the first idea. Options: (a) friction stated in the user's vocabulary against a named workaround (usually a spreadsheet or Notion page, not a rival product); (b) friction stated against a named competitor product. Default: (a); either way it must survive the substitution test against two named competitors.
 3. How success is measured and where the numbers come from. Question: which at-most-5 metrics, with what targets, deadlines, and named instrumentation sources? Why hard to reverse: instrumentation must ship in the first build wave; redefining a metric mid-flight destroys the baseline and makes the 30-day retro unanswerable. Options: (a) one leading plus one lagging indicator with named events; (b) a fuller set up to 5. Default: (a) minimum, (b) allowed. Vanity metrics (raw signups, pageviews, downloads) are refused as primary metrics.
-4. Appetite as a duration, not an estimate. Question: how much time is this worth (e.g. 6 weeks), after which scope gets cut rather than time extended? Why hard to reverse: appetite is the axiom the roadmap's cut decisions derive from; converting it to an estimate later flips the whole plan from scope-flexes to deadline-slips. Options: fixed appetite with scope flex (Shape Up) vs estimated timeline. Default: fixed appetite; a >50% appetite delta later forks a new plan.
+4. Appetite as a duration, not an estimate. Question: how much time is this worth (e.g. 6 weeks), after which scope gets cut rather than time extended? Why hard to reverse: appetite is the axiom the roadmap's cut decisions derive from; converting it to an estimate later flips the whole plan from scope-flexes to deadline-slips. Options: fixed appetite with scope flex (Shape Up) vs estimated timeline. Default: fixed appetite; a >50% appetite delta later triggers a replan.
 5. The Must cap. Question: which requirements are genuinely Must? Why hard to reverse: the Must set defines the first release gate; an inflated Must tier silently converts the plan into a laundry list nobody can cut from. Options: cap Must at 50% of ranked requirements (hard cap 7 Musts) vs no cap. Default: the cap, with Should and Could tiers populated and Won't cross-linked to out-of-scope.
-6. Change control and the fork threshold. Question: what lifecycle state does the plan start in, where are edits logged, and what triggers a fork? Why hard to reverse: without a declared rule, the first silent post-approval edit creates a moving-target plan and every later dispute is unadjudicable. Options: Draft -> Living with changelog plus broadcast on every edit, vs Soft-frozen with PM sign-off per change. Default: Living with mandatory changelog entry and broadcast; new user, new problem, new metric, or >50% appetite delta forks a new plan.
+6. Change control and the fork threshold. Question: which post-approval edits replan, where are they broadcast, and what forces a rewrite rather than a patch? Why hard to reverse: without a declared rule, the first silent post-approval edit creates a moving-target plan and every later dispute is unadjudicable. Options: broadcast every replan, or only threshold breaches. Default: broadcast every replan; new user, new problem, new metric, or >50% appetite delta rewrites the product decisions.
 7. What the product explicitly refuses to own. Question: which adjacent problems, user groups, and integrations does this plan permanently not serve? Why hard to reverse: non-ownership statements are commitments that downstream architecture (trust boundaries, integration points) and launch positioning build on; retracting one later reopens every scope debate at once. Options: (a) a written non-ownership register with reconsider conditions; (b) implicit scope by omission. Default: (a); omission is not a decision, it is a future argument.
 
 ## Plan requirements
@@ -603,11 +607,11 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
     Criterion: WHEN the product pass finishes THE PLAN SHALL contain a handoff block per downstream pass with no empty sub-section; every gap says "deferred to <pass>" with a reason.
 14. R-PRD-14 A sign-off roster is named with what each role attests to (PM: problem and scope; eng lead: feasibility and dependencies; design lead: user and flows; QA where present: acceptance criteria testability), never blanket "approved", and the attestations are scheduled as plan milestones. Solo builders name themselves per role explicitly.
     Criterion: WHEN sign-off is planned THE PLAN SHALL list each signer with a specific attestation and a milestone task for it.
-15. R-PRD-15 The change-control lifecycle is declared upfront: state (Draft, Living, Soft-frozen, or Archived), the changelog rule for every post-approval edit, the broadcast channel, and the fork threshold (new user, new problem, new metric, or >50% appetite delta forks a new plan). Clarifications stay; scope adjustments need sign-off.
-    Criterion: WHEN the plan is emitted THE PLAN SHALL state its lifecycle state, changelog rule, broadcast channel, and fork threshold in the product section.
+15. R-PRD-15 Change control is declared upfront against the status lifecycle: a post-approval change to scope, users, or metrics returns status to planning and increments plan_version, broadcast on a named channel; past the fork threshold (new user, new problem, new metric, or >50% appetite delta) the replan rewrites the product decisions instead of patching them. Clarifications changing no commitment keep the status.
+    Criterion: WHEN the plan is emitted THE PLAN SHALL state its change-control rule, broadcast channel, and fork threshold against the status lifecycle and SHALL NOT declare a second lifecycle state.
 16. R-PRD-16 The visual-identity direction is named in one phrase (e.g. "fintech-serious", "playful-utilitarian") for the build and launch passes to inherit.
     Criterion: WHEN the product section is complete THE PLAN SHALL contain exactly one visual-identity direction phrase.
-17. R-PRD-17 Post-launch closure is scheduled inside the plan: a 30-day retrospective task against the success criteria, a support runbook task covering the top 5 expected failure modes, and a one-paragraph rollback statement.
+17. R-PRD-17 Post-launch closure is scheduled inside the plan: a 30-day retrospective task against the success criteria, a support runbook task covering the top 5 expected failure modes, and a one-paragraph rollback statement linking the R-DEPLOY-17 rollback doc when deploy lands.
     Criterion: WHEN phases are laid out THE PLAN SHALL contain tasks for the 30-day retro, the top-5 support runbook, and a rollback statement.
 
 ## Task seeds
@@ -634,7 +638,7 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
   - Requirements: R-PRD-17
 - [ ] GP-xxx Snapshot metric baselines and schedule the 30-day retrospective
   - Files: docs/retro-30d.md
-  - Acceptance: baseline value recorded per success metric at launch; retro date set 30 days after launch; template sections for each Tier 1 criterion
+  - Acceptance: baseline value recorded per success metric at launch; retro date set 30 days after launch; template sections for each success metric
   - Verify: grep -q "Baseline:" docs/retro-30d.md && grep -q "Retro date:" docs/retro-30d.md
   - Requirements: R-PRD-5, R-PRD-17
 - [ ] GP-xxx Compile the prior-art dossier
@@ -650,7 +654,7 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
 - [ ] GP-xxx Audit the plan's product section for banned language and unowned questions
   - Files: .godplans/PLAN.mdx
   - Acceptance: zero banned marketing phrases; zero TBD/TODO without owner and date; every Open Questions entry has owner, due date, blocking flag, and default
-  - Verify: ! grep -qiE "seamless|best-in-class|world-class|cutting-edge|game-chang|revolutionary|industry-leading|enterprise-grade|AI-powered" .godplans/PLAN.mdx && ! grep -iE "TBD|TODO" .godplans/PLAN.mdx | grep -qvi "owner"
+  - Verify: ! awk '/^## /{s=1;p=/^## (Sc|Req|Op)/}p||!s' .godplans/PLAN.mdx | grep -iE "TBD|TODO|seamless|best-in-class|world-class|cutting-edge|game-chang|revolutionary|industry-leading|enterprise-grade|AI-powered" | grep -qvi owner
   - Requirements: R-PRD-11, R-PRD-10
 
 ## Self-audit rubric
@@ -665,7 +669,7 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
 - Scope negative space (10): 3+ reasoned no-gos with reconsider conditions; deferral and non-ownership entries present; rabbit hole named with smallest-version alternative; out-of-scope longer than the Won't tier.
 - Registers and question hygiene (10): risks and assumptions in separate complete registers; every open question routed to the single Open Questions section with owner, due date, blocking flag, and default; three-label test holds sentence by sentence.
 - Downstream pre-fill and traceability (10): handoff inputs for architecture, roadmap, stack, and build passes filled or explicitly deferred with reason; every R-PRD requirement traceable to at least one task's Requirements: line.
-- Lifecycle and closure (5): lifecycle state, changelog rule, broadcast channel, and fork threshold declared; sign-off attestations scheduled; retro, runbook, and rollback tasks present; prior art and visual-identity phrase included.
+- Lifecycle and closure (5): change-control rule, broadcast channel, and fork threshold declared; sign-off attestations scheduled; retro, runbook, and rollback tasks present; prior art and visual-identity phrase included.
 
 ## Anti-patterns refused
 
@@ -677,7 +681,7 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
 - Fabricated personas: narrative fiction paragraphs, demographics with no research citation. Refusal: five bullets max, citation or a flagged research-gap question.
 - Vanity-metric success: raw signups, pageviews, downloads, or "ship feature X" as success. Refusal: outcome-framed metrics with numbers, deadlines, and named sources only.
 - Silent or invented NFRs: no security/compliance statement, or "99.99%" with no basis. Refusal: address all ten dimensions; every number cites its basis or becomes an owned question.
-- Moving-target PRD: post-approval edits with no changelog entry or broadcast. Refusal: declare lifecycle, changelog rule, and broadcast channel in the plan before approval; fork on threshold breaches.
+- Moving-target PRD: post-approval edits with no replan or broadcast. Refusal: declare the change-control rule and broadcast channel before approval; replan on every commitment change.
 - Marketing-adjective creep: seamlessly, best-in-class, enterprise-grade, AI-powered on a non-AI product. Refusal: banned-phrase grep in the final Verification phase; the plan does not ship containing them.
 - Rubber-stamp sign-off: signers listed with a blanket "approved" and no named attestation, or tiers left unsigned. Refusal: each signer attests to a specific thing (problem, feasibility, flows, testability) and each attestation is a scheduled milestone; an unsigned roster blocks the plan from status approved.
 - One-prompt PRD: emitting a full product section from a single-sentence idea with no mode declaration or pre-flight. Refusal: run intake and discovery first; unanswered pre-flight questions become written assumptions, never invented answers.
@@ -689,11 +693,11 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
 
 # Architecture planning module
 
-Turns audit-time architecture discipline into plan-time obligations: the orchestrator loads this module during the architecture domain pass for every archetype except pure marketing-site plans with a single static deployable, where the load-bearing check below usually excludes it with a stated reason.
+Turns audit-time architecture discipline into plan-time obligations: the orchestrator loads this module during the architecture domain pass for every archetype; a plan that fails the load-bearing check below still gets R-ARCH-2's one-page shape statement and ADR-001, because `decide.adr` is an always-owed documentation row this module owns.
 
 ## Lineage
 
-Descends from architecture-ready (aihxp ready-suite, consolidated in arc-ready), the planning-tier skill that produces system shape and why before any code or tool choice. What carries over: every box, arrow, and decision must have a named flip point and blast radius or it is decoration and gets deleted; storage shape precedes database name; NFR claims are arithmetic, not adjectives; trust boundaries are written to be copied verbatim into the threat model; and the skill refuses itself when architecture is not load-bearing. godplans inverts the audit: instead of scoring an ARCH.md after the fact, PLAN.mdx must satisfy every check before a line of code exists.
+Descends from architecture-ready (hannsxpeter/ready-suite, consolidated in hannsxpeter/arc-ready), the planning-tier skill that produces system shape and why before any code or tool choice. What carries over: every box, arrow, and decision must have a named flip point and blast radius or it is decoration and gets deleted; storage shape precedes database name; NFR claims are arithmetic, not adjectives; trust boundaries are written to be copied verbatim into the threat model; and the skill refuses itself when architecture is not load-bearing. godplans inverts the audit: instead of scoring an ARCH.md after the fact, PLAN.mdx must satisfy every check before a line of code exists.
 
 ## Decisions to force
 
@@ -703,7 +707,7 @@ Ordered hardest-to-reverse first. Each must land in the plan's Decisions section
 2. Data ownership and tenancy. Per entity: one writer, tenancy model (shared-schema, per-tenant-schema, per-tenant-DB), lifecycle (immutable, append-only, mutable, soft-delete), retention. Hard to reverse because tenancy migration means live data migration under uptime pressure. Default: shared-schema with a tenant_id column and single-writer components, unless compliance demands isolation.
 3. Storage shape per entity group. Relational, document, key-value, time-series, event log, search, graph, object store; chosen before any product name. Hard to reverse because access patterns calcify around the shape. Naming Postgres at this stage is stackitecture; the pick belongs to the stack pass. Default: relational for entities with cross-entity invariants, object store for blobs.
 4. Read-consistency stance and partition key per entity group. Which reads need strong consistency, read-your-writes, bounded staleness with a stated number, or eventual; and whether any group outgrows one node at the 12-month ceiling, which fixes the partition key. Hard to reverse because the stance leaks into every read call site, and a key chosen late means re-keying live data while every query that assumed one node is rewritten. Default: read-your-writes for the writer's own session, bounded staleness elsewhere with the number written down, one node until the arithmetic says otherwise.
-5. Trust boundary placement. Where network edge, authentication, authorization, and tenant isolation sit, and how each is enforced. Hard to reverse because retrofitting a boundary means auditing every existing call path. Default: authn at the edge, authz in the domain layer, tenant isolation enforced in both query layer and schema (two independent layers).
+5. Trust boundary placement. Where network edge, authentication, authorization, and tenant isolation sit, and how each is enforced. Hard to reverse because retrofitting a boundary means auditing every existing call path. Default: authn at the edge, authz in the domain layer, tenant isolation enforced in two independent layers: the query layer and the database, in R-DB-19's form.
 6. Integration posture per external dependency. Sync vs async, transport, idempotency key and retry policy, failure blast radius. Hard to reverse because callers grow to depend on the timing and delivery semantics. Default: sync for request-path reads, async with at-least-once delivery plus idempotent receivers for mutations; exactly-once is never assumed.
 7. Distributed-transaction stance. Adopt cross-service transactions (almost never) or plan the outbox pattern with reconciliation. Hard to reverse because invariant enforcement points spread through the codebase. Default: single-writer boundaries plus outbox; reject two-phase commit.
 8. Wire formats and public interface style. What crosses component boundaries and how it versions. Hard to reverse because external consumers freeze it on first use. Default: JSON over HTTP for sync, versioned event payloads for async, with an explicit compatibility rule.
@@ -719,7 +723,7 @@ R-ARCH-1 PLAN.mdx grounds architecture in the product section: the architecture 
 Criterion: WHEN the architecture section makes a claim, THE PLAN SHALL trace it to a product requirement or a labeled assumption, and SHALL NOT contain architecture invented without either.
 
 R-ARCH-2 PLAN.mdx records the load-bearing check verbatim: more than one persistence layer, more than one deployable, a load-bearing third-party integration, an NFR that constrains shape, team over 2 and growing, or lifespan over 12 months maintained by others. If none hold, the architecture section is a one-page shape statement (one service, one database, sync calls, one trust boundary) and stops.
-Criterion: IF no load-bearing trigger holds, THE PLAN SHALL cap the architecture section at one page and SHALL NOT add ADRs beyond ADR-001.
+Criterion: IF no load-bearing trigger holds, THE PLAN SHALL cap the architecture section at one page with ADR-001 as its only ADR, and SHALL record each skipped requirement as dropped-by scale.
 
 R-ARCH-3 PLAN.mdx answers the 8 pre-flight questions in writing: purpose, appetite, honest 12-month scale ceiling, binding NFRs, team shape, incumbent stack, external integrations with their failure modes, and the product section's explicit deferrals to architecture.
 Criterion: WHEN the architecture section opens, THE PLAN SHALL contain all 8 answers, including a numeric 12-month scale ceiling and at least one named failure mode per external integration.
@@ -754,7 +758,7 @@ Criterion: WHEN the plan is emitted, a grep for the banned adjective list in the
 R-ARCH-13 PLAN.mdx names the four trust boundaries (network edge, authentication, authorization, tenant/data isolation), each with location, what it protects, what an attacker gains if it falls, and enforcement (two independent layers for load-bearing boundaries, or an acknowledged single-layer risk). It also lists the highest-blast-radius mutations: cross-tenant delete, admin impersonation, billing modification, password reset, API key rotation, export-all endpoints. This section is written to be consumed verbatim by the security module's threat model.
 Criterion: WHEN trust boundaries are declared, THE PLAN SHALL cover all four with all four attributes each, and the security section SHALL reference this list rather than restate it.
 
-R-ARCH-14 PLAN.mdx commits to ADR discipline as tasks: at minimum ADR-001 (shape), ADR-002 (storage), ADR-003 (trust boundaries), plus one per non-obvious decision; every ADR includes flip point and blast radius fields; ADRs live in-repo at a stated path. This module owns `decide.adr` in the documentation set, so no other pass plans an ADR-writing task; the repo module records the row and defers here (repo.md R-REPO-14 and R-REPO-23). ADRs are immutable: a superseded ADR is never deleted and never edited, a new number supersedes it with `supersedes` on the new file and `superseded_by` plus a superseded status on the old, and numbers are never reused, because a citation written last year has to keep resolving to the same decision.
+R-ARCH-14 PLAN.mdx commits to ADR discipline as tasks: at minimum ADR-001 (shape), and when R-ARCH-2's check holds ADR-002 (storage), ADR-003 (trust boundaries), and one per non-obvious decision; every ADR includes flip point and blast radius fields; ADRs live in-repo at a stated path. This module owns `decide.adr` in the documentation set, so no other pass plans an ADR-writing task; the repo module records the row and defers here (repo.md R-REPO-14 and R-REPO-23). ADRs are immutable: a superseded ADR is never deleted and never edited, a new number supersedes it with `supersedes` on the new file and `superseded_by` plus a superseded status on the old, and numbers are never reused, because a citation written last year has to keep resolving to the same decision.
 Criterion: WHEN the plan lists decisions, THE PLAN SHALL contain tasks that write ADR files with flip point and blast radius fields, the task Acceptance lines SHALL be grep-verifiable against those fields, no task outside this module SHALL write a file under the ADR path, and any task that replaces an accepted ADR SHALL mint a new number carrying supersedes and superseded_by rather than editing the original.
 
 R-ARCH-15 PLAN.mdx plans version-controlled text diagrams: a mermaid component diagram with trust boundaries (C4 Level 1 equivalent) in the plan itself, and a Level 2 container diagram task with every arrow labeled with protocol and purpose before build starts; maximum 15 boxes per diagram; every element backed by a decision; no image exports, no cloud-vendor icon diagrams.
@@ -772,7 +776,7 @@ Criterion: WHEN the final phase is written, THE PLAN SHALL contain a drift-audit
 R-ARCH-19 The architecture section of PLAN.mdx stays under three pages of prose (tables, diagrams, and ADR tasks excluded, the capacity tables among them) and survives the substitution test: swap the domain nouns (orders for tickets) or the storage shape and the text must become false, or it is decoration and gets cut.
 Criterion: WHEN the architecture section is drafted, THE PLAN SHALL contain no paragraph that reads equally true for an unrelated product; any such paragraph SHALL be deleted or made specific.
 
-R-ARCH-20 When the system exposes an API or service surface, PLAN.mdx settles the API contract: the API style (REST, GraphQL, or RPC) and why; a versioning strategy that does not break existing consumers; a machine-readable contract (an OpenAPI document or a GraphQL schema) as a planned artifact; consistent resource and URI modeling for REST; a single error envelope (RFC 7807 Problem Details or a documented equivalent); and the interaction-safety postures, an idempotency key on retryable unsafe operations and connection authentication plus resource bounds on any real-time (WebSocket or SSE) surface.
+R-ARCH-20 When the system exposes an API or service surface, PLAN.mdx settles the API contract: the API style (REST, GraphQL, or RPC) and why; a versioning strategy that does not break existing consumers; a machine-readable contract (an OpenAPI document or a GraphQL schema) as a planned artifact, whose generated reference is the `build.api-reference` row; consistent resource and URI modeling for REST; a single error envelope (RFC 7807 Problem Details or a documented equivalent); and the interaction-safety postures, an idempotency key on retryable unsafe operations and connection authentication plus resource bounds on any real-time (WebSocket or SSE) surface.
 Criterion: WHEN an API surface is planned THE PLAN SHALL name the API style, the versioning strategy, the contract artifact, and the error envelope, and SHALL require an idempotency key on retryable create-or-charge endpoints and authenticated, bounded real-time connections, each with a Verify line.
 
 R-ARCH-21 PLAN.mdx settles reads per entity group, where R-ARCH-8 settled only writes: the consistency stance (strong, read-your-writes, bounded staleness with a number in seconds, or eventual), the read paths pinned to the primary (post-write confirmations, money, auth, inventory), and whether the group outgrows one node at the R-ARCH-3 ceiling. Where that arithmetic fails, the partition key and its skew risk are named here; where it holds, the plan records the number and the threshold that reverses it. Product names stay banned per R-ARCH-7; the database section owns the mechanics.
@@ -792,7 +796,7 @@ Criterion: WHEN a throughput ceiling is stated, THE PLAN SHALL give every entry 
 - [ ] GP-xxx Write ADR corpus for shape, storage, and trust boundaries
   - Files: docs/adr/001-system-shape.md, docs/adr/002-storage-shapes.md, docs/adr/003-trust-boundaries.md
   - Acceptance: each file contains the strings "Flip point:" and "Blast radius:" and an "Alternatives rejected" section with at least two entries
-  - Verify: grep -l "Flip point:" docs/adr/00*.md | wc -l | grep -q 3
+  - Verify: test "$(grep -l "Flip point:" docs/adr/00*.md | wc -l)" -ge 3
   - Requirements: R-ARCH-4, R-ARCH-8, R-ARCH-14
 
 - [ ] GP-xxx Author C4 Level 2 container diagram with labeled arrows
@@ -813,10 +817,10 @@ Criterion: WHEN a throughput ceiling is stated, THE PLAN SHALL give every entry 
   - Verify: grep -q "idempotency_key" migrations/*outbox*.sql && grep -rq "outbox" src/shared/outbox/dispatcher.ts
   - Requirements: R-ARCH-8, R-ARCH-9
 
-- [ ] GP-xxx Enforce tenant isolation at two independent layers
-  - Files: src/shared/db/scoped-client.ts, migrations/NNN_row_level_security.sql
-  - Acceptance: query layer requires a tenant id on every accessor (no raw-client export); schema layer enforces row-level policies on every tenant-owned table
-  - Verify: grep -q "tenant_id" src/shared/db/scoped-client.ts && grep -qi "row level security" migrations/*row_level*.sql
+- [ ] GP-xxx Enforce tenant isolation in the query layer
+  - Files: src/shared/db/scoped-client.ts
+  - Acceptance: query layer requires a tenant id on every accessor (no raw-client export); the database layer comes from the R-DB-19 roles and RLS task, never a second migration here
+  - Verify: grep -q "tenant_id" src/shared/db/scoped-client.ts
   - Requirements: R-ARCH-13
 
 - [ ] GP-xxx Run NFR probe against the latency and availability budget
@@ -854,7 +858,7 @@ Criterion: WHEN a throughput ceiling is stated, THE PLAN SHALL give every entry 
 - NFR arithmetic (12): latency decomposition, throughput at ceiling, availability chain math, cost envelope at launch and 12 months, zero unresolved banned adjectives.
 - Trust boundaries (13): four boundaries with four attributes each, dual-layer enforcement or acknowledged risk, highest-blast-radius mutation list present and referenced by the security section.
 - Runtime topology, caching, and overload (15): redundancy posture and health-check rule per critical-path component, single points of failure named with downtime numbers, four fields on every cached read path, and a shed/queue/degrade posture with bounded queues on every entry surface. Full marks require zero caches without a staleness number.
-- ADR, diagram, and fitness discipline (9): three or more ADR tasks with flip point and blast radius, labeled-arrow diagrams within the box cap, three named fitness functions with one wired as a task.
+- ADR, diagram, and fitness discipline (9): three or more ADR tasks with flip point and blast radius (one when R-ARCH-2's check fails), labeled-arrow diagrams within the box cap, three named fitness functions with one wired as a task.
 - Handoff and lifecycle (4): stack/roadmap/database/build passes need no re-interview; drift audit scheduled in the final phase.
 
 ## Anti-patterns refused
@@ -896,10 +900,10 @@ Ordered by reversal cost. Each is answered in the plan's Decisions section as a 
 
 1. **Database engine and data model shape.** Question: relational, document, or specialized store, and which engine? Hard to reverse because data outlives code: switching engines means dual-write, backfill, reconciliation, and a cutover window measured in engineer-weeks, and every query in the codebase is written against the old shape. Options: Postgres (default for anything with relations or future analytics), SQLite/libSQL (single-node tools, local-first), a document store only when the access pattern is genuinely key-shaped. Default: Postgres unless a hard constraint (offline, embedded, edge) rules it out.
 2. **Language and runtime.** Question: which language does the team write every file in? Hard to reverse because it touches 100 percent of the code and the hiring pool. Options: match the team's deepest language competence from pre-flight; a language the team does not know is a hypothesis, not a decision. Default: the team's strongest language with an actively maintained runtime.
-3. **Auth provider and identity ownership.** Question: managed auth, framework-native auth, or self-rolled sessions, and who owns the user table? Hard to reverse because user identities, password hashes, and sessions migrate poorly; an auth swap forces every user through re-verification or a risky hash import. Options: managed (Clerk, Auth0, Supabase Auth, WorkOS for enterprise SSO), library (Auth.js, Lucia-style), platform-native. Default: managed for SaaS with compliance needs, library when the user table must live in the app database.
+3. **Auth provider and identity ownership.** Question: managed auth, framework-native auth, or self-rolled sessions, and who owns the user table? Hard to reverse because user identities, password hashes, and sessions migrate poorly; an auth swap forces every user through re-verification or a risky hash import. Options: managed (Clerk, Auth0, Supabase Auth, WorkOS for enterprise SSO), library (Better Auth, Lucia-style), platform-native. Default: managed for SaaS with compliance needs, library when the user table must live in the app database.
 4. **Hosting posture and residency.** Question: managed platform, containers on a cloud, or self-host, and in which region? Hard to reverse because deploy pipelines, networking, secrets, and data residency contracts all bind to it. Options: managed PaaS (fastest to ship), containerized cloud (portable, more ops), self-host (only with named ops capacity). Default: managed PaaS unless a residency, self-host, or cost hard constraint eliminates it.
 5. **Framework.** Question: which application framework carries routing, rendering, and the request lifecycle? Hard to reverse because component and handler idioms permeate the codebase, though less deeply than language or data. Default: the consensus framework for the domain profile with 12+ months of dominance, not the newest entrant.
-6. **Payments provider.** Question: who processes money, if anyone? Hard to reverse because billing records, subscription state, and PCI scope accrue from day one. Default: Stripe-class processor with published compliance documentation; defer integration but not the choice.
+6. **Payments provider.** Recorded from business decision 4 (billing system of record, merchant of record, tax) with its open merchant-of-record question; never re-decided here. When business is excluded or its decision 2 is no charge, R-STACK-4 records payments as not needed, citing that row or decision, whose revisit when: predicate reopens it.
 7. **Background jobs and queues.** Question: where does async work run? Semi-reversible, but job semantics (retries, idempotency, scheduling) leak into application code. Default: the queue native to the chosen hosting posture; exactly one.
 8. **ORM and client data layer.** Question: which single ORM and which single client cache/fetching layer? The most reversible of the forced bets, forced anyway because duplicates here are the most common coherence failure. Default: one ORM matched to the database, one client data layer matched to the framework.
 
@@ -939,9 +943,9 @@ Instantiate with real paths, real tool names, and wave/parallel markers; replace
   - Verify: test $(grep -cE '^\| (framework|language|database|orm|auth|ui|client-data|hosting|observability|payments|email|jobs) ' docs/stack/inventory.md) -eq 12
   - Requirements: R-STACK-1, R-STACK-4
 - [ ] GP-xxx Scaffold the project with the pinned stack manifest
-  - Files: package.json (or the runtime's manifest), .tool-versions
-  - Acceptance: every dependency in the plan's stack table appears at its exact pinned version; no dependency introduces a second ORM, auth provider, design system, client cache, or job queue; runtime version matches the plan
-  - Verify: node scripts/check-stack.mjs (diffs manifest deps against the plan's stack table; exit 1 on drift or duplicate-category dep)
+  - Files: package.json (or the runtime's manifest), .tool-versions, scripts/check-stack.mjs
+  - Acceptance: every dependency in the plan's stack table appears at its exact pinned version; no dependency introduces a second ORM, auth provider, design system, client cache, or job queue; runtime version matches the plan; the check script exits 1 on drift or a duplicate
+  - Verify: node scripts/check-stack.mjs
   - Requirements: R-STACK-4, R-STACK-8, R-STACK-14
 - [ ] GP-xxx Emit .stack-ready/DECISION.md from the plan's stack section
   - Files: .stack-ready/DECISION.md
@@ -1027,7 +1031,7 @@ Plans the data layer so checks a database auditor would perform later become req
 
 ## Lineage
 
-Descends from aihxp dbauditor, the read-only after-the-fact audit of schema, relationships, indexing, queries, transactions, migrations, data protection, search, and scale. dbauditor grades shipped DDL, never the ORM's promise, and hunts paper controls (FK NOT VALID never VALIDATEd, RLS ENABLEd but not FORCEd, inert @Transactional). This module inverts every one of its checks into a plan-time obligation: the discipline that carries over is evidence over assertion, the substitution test on every sentence, one owning dimension per defect class, and the rule that a control which does not bind in the database does not count.
+Descends from dbauditor (hannsxpeter/auditor-suite), the read-only after-the-fact audit of schema, relationships, indexing, queries, transactions, migrations, data protection, search, and scale. dbauditor grades shipped DDL, never the ORM's promise, and hunts paper controls (FK NOT VALID never VALIDATEd, RLS ENABLEd but not FORCEd, inert @Transactional). This module inverts every one of its checks into a plan-time obligation: the discipline that carries over is evidence over assertion, the substitution test on every sentence, one owning dimension per defect class, and the rule that a control which does not bind in the database does not count.
 
 ## Decisions to force
 
@@ -1044,7 +1048,7 @@ Descends from aihxp dbauditor, the read-only after-the-fact audit of schema, rel
 3. Tenancy isolation model.
    - Question: shared schema with RLS FORCEd, schema-per-tenant, or database-per-tenant?
    - Why locked in: retrofitting isolation onto a shared schema means touching every table, every query, and every index.
-   - Options: shared schema with tenant_id plus Postgres RLS FORCEd (fits most SaaS), schema-per-tenant (few large tenants). App-layer WHERE alone is not an option; dbauditor scores it a hard Critical.
+   - Options: shared schema with tenant_id plus Postgres RLS FORCEd (fits most SaaS), schema- or database-per-tenant (few large or regulated tenants). App-layer WHERE alone is not an option; dbauditor scores it a hard Critical.
    - Default: shared schema, tenant_id NOT NULL on every tenant-owned table, RLS FORCEd with policies that survive pooled connections.
 4. Money representation.
    - Question: integer minor units or NUMERIC(p,s), and where does currency live?
@@ -1100,8 +1104,8 @@ Descends from aihxp dbauditor, the read-only after-the-fact audit of schema, rel
    Criterion: WHEN the plan introduces migration tooling THE PLAN SHALL include a CI gate task that lints migrations and round-trips up-then-down, and IF a migration is destructive THE PLAN SHALL require a backup gate before it runs.
 18. R-DB-18 Access is parameterized queries only, with an allowlist for dynamic sort and table identifiers; the app connects as a least-privilege role with DML only on its tables; a separate migration identity owns DDL; secrets live in env or vault, never in the repo (rotation required on any historical exposure); TLS is verify-full; encryption at rest is declared in IaC; the database binds to a private network only.
    Criterion: WHEN the plan defines database access THE PLAN SHALL specify parameterized queries, the two-role split (app DML vs migration DDL), verify-full TLS, and private binding, and SHALL NOT place a connection string in any committed file.
-19. R-DB-19 Data protection is DB-enforced: multi-tenant isolation via RLS FORCEd (never app WHERE alone) with policies that survive pooled connections; column-level encryption or tokenization for PII/PHI; passwords under argon2id or bcrypt; CVV never stored; an audit trail on sensitive tables; views over PII scoped and security_invoker.
-   Criterion: IF the system is multi-tenant THE PLAN SHALL enforce isolation with FORCEd RLS at the database, and IF PII/PHI/financial data is stored THE PLAN SHALL name the column-level protection per sensitive column.
+19. R-DB-19 Data protection is DB-enforced: multi-tenant isolation in the database (never app WHERE alone), any RLS policy pooler-safe; column-level encryption or tokenization for PII/PHI; passwords hashed with the KDF R-SEC-6 names (argon2id by default); CVV never stored; an audit trail on sensitive tables; views over PII scoped and security_invoker.
+   Criterion: IF the system is multi-tenant THE PLAN SHALL enforce isolation at the database: FORCEd RLS on a shared schema, else a per-tenant schema or database bound through the connection's role (the only option without RLS), and IF PII/PHI/financial data is stored THE PLAN SHALL name the column-level protection per sensitive column.
 20. R-DB-20 If a search surface exists, the plan picks the primitive per feature up front: pg_trgm GIN for substring and fuzzy, tsvector plus GIN with a matching config for FTS, relevance ranking always specified; external engines sync via transactional outbox plus CDC with delete propagation and a documented reindex path (handler dual-write banned); vector columns get an ANN index whose operator class matches the query's distance operator, built after load; tenant and ACL filtering is enforced in the source of truth.
    Criterion: WHEN the plan includes a search feature THE PLAN SHALL name the index primitive and ranking function per feature, and IF an external engine is used THE PLAN SHALL specify outbox-plus-CDC sync with delete propagation.
 21. R-DB-21 Every growth-bearing table (events, logs, audit, sessions, outbox) gets a retention or TTL policy with an automated reaper or partition drop; large append-only tables get declarative range partitioning with automated partition management; hot single-row counters become sharded counters or append-and-aggregate ledgers; partitioning and read routing implement the key and per-entity read stances set by R-ARCH-21, and post-write reads on money, auth, or inventory get read-your-writes routing; slow-query observability (pg_stat_statements or equivalent), backup/PITR posture, and any materialized-view refresh (scheduled, CONCURRENT) are stated.
@@ -1116,37 +1120,37 @@ Descends from aihxp dbauditor, the read-only after-the-fact audit of schema, rel
 - [ ] GP-xxx Author initial schema migration with DDL-enforced invariants
   - Files: db/migrations/0001_init.sql, docs/data-model.md
   - Acceptance: every CREATE TABLE has a PRIMARY KEY; every *_id column has REFERENCES with an explicit ON DELETE; money columns are BIGINT or NUMERIC with a currency column; instants are TIMESTAMPTZ; natural keys carry UNIQUE; required columns carry NOT NULL
-  - Verify: grep -nE "FLOAT|DOUBLE|REAL" db/migrations/0001_init.sql | grep -iv comment; exit 1 expected, and grep -c "REFERENCES" db/migrations/0001_init.sql matches the relationship count in docs/data-model.md
+  - Verify: ! grep -niwE 'float|double|real' db/migrations/0001_init.sql && test "$(grep -c REFERENCES db/migrations/0001_init.sql)" -eq <relationship-count>
   - Requirements: R-DB-2, R-DB-4, R-DB-5, R-DB-6, R-DB-8
 - [ ] GP-xxx Build the query-to-index map and index migration
   - Files: docs/index-map.md, db/migrations/0002_indexes.sql
   - Acceptance: docs/index-map.md is a table mapping every list endpoint, join, and auth lookup to one index DDL line; every FK child column appears; composites are equality-first-range-last; CREATE INDEX uses CONCURRENTLY
-  - Verify: grep -c "CREATE INDEX CONCURRENTLY" db/migrations/0002_indexes.sql equals the row count of docs/index-map.md minus header
+  - Verify: test "$(grep -c 'CREATE INDEX CONCURRENTLY' db/migrations/0002_indexes.sql)" -eq "$(($(grep -c '^|' docs/index-map.md) - 2))"
   - Requirements: R-DB-10, R-DB-11
 - [ ] GP-xxx Implement transaction and concurrency policy on write paths
   - Files: src/db/tx.ts, src/services/payments.ts, docs/concurrency.md
   - Acceptance: multi-statement writes go through one withTransaction helper with try/finally; balance updates are atomic SET or version-checked UPDATE with rowcount asserted; no HTTP client import inside a transaction body; idempotency key insert shares the effect's transaction
-  - Verify: grep -n "fetch\|axios\|http" src/db/tx.ts src/services/payments.ts returns no hit inside withTransaction blocks; grep -c "FOR UPDATE\|SET .* = .* +\|version =" src/services/payments.ts >= 1
+  - Verify: grep -q withTransaction src/db/tx.ts && ! grep -nE 'fetch|axios|http' src/db/tx.ts && grep -qE 'FOR UPDATE|SET .* = .* \+|version =' src/services/payments.ts
   - Requirements: R-DB-9, R-DB-14, R-DB-15
 - [ ] GP-xxx Wire the migration CI safety gate
   - Files: .github/workflows/migrations.yml, db/README.md
   - Acceptance: CI job lints migrations (squawk or strong_migrations), asserts a single migration head, and round-trips up-then-down against a disposable database; destructive ops require an explicit allow marker with justification
-  - Verify: grep -c "squawk\|strong_migrations" .github/workflows/migrations.yml >= 1 and grep -c "down" .github/workflows/migrations.yml >= 1
+  - Verify: grep -qE 'squawk|strong_migrations' .github/workflows/migrations.yml && grep -q down .github/workflows/migrations.yml
   - Requirements: R-DB-16, R-DB-17
 - [ ] GP-xxx Establish DB security baseline: roles, RLS, TLS, binding
   - Files: db/migrations/0003_roles_rls.sql, infra/db.tf, .env.example
   - Acceptance: app role has DML only, migration role owns DDL; every tenant-owned table has ALTER TABLE ... FORCE ROW LEVEL SECURITY and a tenant policy; infra declares private binding, TLS verify-full, encryption at rest; .env.example carries placeholders only
-  - Verify: grep -c "FORCE ROW LEVEL SECURITY" db/migrations/0003_roles_rls.sql equals the tenant-owned table count; grep -n "postgres://" -r . --include="*.ts" --include="*.yml" returns nothing outside .env.example
+  - Verify: test "$(grep -c 'FORCE ROW LEVEL SECURITY' db/migrations/0003_roles_rls.sql)" -eq <tenant-owned-table-count> && ! grep -rn --include='*.ts' --include='*.yml' --exclude-dir=node_modules 'postgres://' .
   - Requirements: R-DB-18, R-DB-19
 - [ ] GP-xxx Add retention, partitioning, and observability posture
   - Files: db/migrations/0004_partitions.sql, jobs/reaper.ts, docs/db-operations.md
   - Acceptance: every table listed as growth-bearing in the plan has a partition-drop schedule or reaper job; pg_stat_statements enabled; statement, lock, and idle-in-transaction timeouts set at role level; backup/PITR posture documented
-  - Verify: grep -c "PARTITION BY RANGE\|DROP PARTITION\|delete_before" db/migrations/0004_partitions.sql jobs/reaper.ts >= growth-bearing table count; grep -c "statement_timeout" db/migrations/0004_partitions.sql >= 1
+  - Verify: test "$(cat db/migrations/0004_partitions.sql jobs/reaper.ts | grep -cE 'PARTITION BY RANGE|DROP PARTITION|delete_before')" -ge <growth-table-count> && grep -q statement_timeout db/migrations/0004_partitions.sql
   - Requirements: R-DB-13, R-DB-21
 - [ ] GP-xxx Implement search primitives per the plan's search table
   - Files: db/migrations/0005_search.sql, src/search/query.ts
   - Acceptance: each search feature uses its planned primitive (pg_trgm GIN, tsvector GIN, or ANN index) with the index expression matching the query expression; ranking function present; no LIKE '%term%' without a trigram index
-  - Verify: grep -c "USING GIN\|USING gist\|USING hnsw" db/migrations/0005_search.sql >= search feature count; grep -n "LIKE '%" src/search/query.ts returns nothing unindexed
+  - Verify: test "$(grep -ciE 'USING (gin|gist|hnsw)' db/migrations/0005_search.sql)" -ge <search-feature-count> && { ! grep -qi "LIKE '%" src/search/query.ts || grep -q gin_trgm_ops db/migrations/0005_search.sql; }
   - Requirements: R-DB-20
 
 ## Self-audit rubric
@@ -1156,7 +1160,7 @@ Base weights mirror dbauditor; drop N/A dimensions and re-normalize to 100, neve
 - Referential integrity (14): every relationship has a DDL FK with a justified ON DELETE, matched types both sides, NOT NULL where mandatory; soft-delete and cross-service policies stated; no cascade path reaches financial or audit data.
 - Indexing (13): the query-to-index map exists and is total over hot paths; FK children indexed; composite order and index types justified per pattern; no planned redundancy.
 - Query layer (12): eager-loading named per relation, keyset pagination with caps on every list path, sargable typed predicates, batch reads, a COUNT strategy, timeouts and pool arithmetic that survive the pooler.
-- DB security (12): parameterized-only access, two-role split, verify-full TLS, private binding, secrets never committed, FORCEd RLS for tenancy, per-column PII protection, erasure reach traced.
+- DB security (12): parameterized-only access, two-role split, verify-full TLS, private binding, secrets never committed, DB-enforced tenancy, per-column PII protection, erasure reach traced.
 - Schema design (11): PKs everywhere, junction tables for M:N, constrained state columns, exclusive-arc polymorphism, declared naming convention, denormalization paired with maintenance.
 - Constraints (10): NOT NULL, DEFAULTs, CHECKs, tenant-scoped and natural-key UNIQUEs, idempotency keys, nullable-UNIQUE semantics all decided in DDL terms.
 - Transactions (9, if write path): transaction boundaries, concurrency mechanism per mutable value, lock ordering, no I/O in transactions, outbox and saga coverage, isolation with retry.
@@ -1186,7 +1190,7 @@ Full marks require the criterion of every requirement in that dimension to be ch
 
 # Security and hardening planning module
 
-Plans the Security and hardening sections of PLAN.mdx by moving secauditor controls into explicit requirements, tasks, and reproduced-attack checks before implementation. The finished project still requires runtime verification and an independent audit. The orchestrator loads this module for every archetype with any network surface, auth, persistent data, secrets, CI/CD, containers, or LLM calls; only a fully offline library with none of these may exclude it, with the reason recorded in the applicability matrix.
+Plans the Security and hardening sections of PLAN.mdx by moving secauditor controls into explicit requirements, tasks, and reproduced-attack checks before implementation. The finished project still requires runtime verification and an independent audit. The orchestrator loads this module for every archetype and never excludes or defers it: a fully offline library with no network surface, auth, persistent data, secrets, CI/CD, containers, or LLM calls scales it down, declaring each absent surface under R-SEC-2.
 
 ## Lineage
 
@@ -1194,7 +1198,7 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
 
 ## Decisions to force
 
-1. Authorization model and ownership boundary. What single mechanism decides who may touch which record, and where does it live? Hard to reverse because retrofitting ownership means rewriting every query and handler after data exists, and IDOR is the highest-weighted audit dimension (AUTHZ, 18%). Options: central deny-by-default policy middleware with ownership predicates inside the query (default); database row-level security (default for multi-tenant on Postgres or Supabase); scattered per-route checks (refused: new handlers silently bypass a blocklist). Multi-tenant designs must also pick the tenant-scoping mechanism now: RLS or a mandatory ORM filter deriving tenant id from the session, never a client-supplied header.
+1. Authorization model and ownership boundary. What single mechanism decides who may touch which record, and where does it live? Hard to reverse because retrofitting ownership means rewriting every query and handler after data exists, and IDOR is the highest-weighted audit dimension (AUTHZ, 18%). Options: central deny-by-default policy middleware with ownership predicates inside the query (default); database row-level security (default for multi-tenant on Postgres or Supabase); scattered per-route checks (refused: new handlers silently bypass a blocklist). Multi-tenant designs must also pick the tenant-scoping mechanism now: R-DB-19 owns the isolation form; an ORM filter on the session's tenant id is defense in depth, never the only control, and tenant id never comes from a client-supplied header.
 2. Identity architecture. Server-side sessions, self-managed JWTs, or a hosted identity provider, and which password KDF? Hard to reverse because token formats leak into every client and stored hashes cannot be migrated without a login-time upgrade path. Options: hosted OIDC provider with Authorization Code + PKCE (default when the budget allows); server-side sessions with CSPRNG ids (default for classic web apps); self-managed JWT with a strict algorithm allowlist (only with a stated reason). KDF: argon2id default; scrypt, bcrypt, or PBKDF2-HMAC-SHA256 at current cost floors acceptable; anything faster is an automatic Critical.
 3. Secrets sourcing and rotation. Where do secrets live, and how do they rotate? Hard to reverse because anything ever committed is permanent in git history and must be rotated, not deleted. Options: cloud secrets manager with the SDK wiring named in the plan (default for deployed apps); platform-injected env vars (acceptable for small deployments); committed dotfiles (refused). Decide the CI credential mode now: OIDC federation over long-lived static cloud keys.
 4. Data classification and encryption-at-rest scope. Which fields are sensitive or regulated, and does the deletion story reach backups, caches, indexes, and logs? Hard to reverse because retrofitting encryption and erasure onto populated stores and shipped backups is a migration project. Options: classify at schema-design time and pick the regime from the data, PCI, GDPR, HIPAA, or SOC 2 (default when regulated data exists); an explicit "no regulated data" declaration with reason (acceptable).
@@ -1202,10 +1206,10 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
 
 ## Plan requirements
 
-1. R-SEC-1: The plan contains a threat-model subsection mirroring secauditor Phase 1: entry points (routes, webhooks, uploads, queue consumers, LLM inputs, CLI/env), trust boundaries with their enforcement mechanism, sensitive assets, and principals/roles with what each may and may not do, plus a STRIDE pass per important boundary.
+1. R-SEC-1: The plan contains a threat-model subsection mirroring secauditor Phase 1: entry points (routes, webhooks, uploads, queue consumers, LLM inputs, CLI/env), trust boundaries (R-ARCH-13 when landed, else listed here) with their enforcement mechanism, sensitive assets, and principals/roles with what each may and may not do, plus a STRIDE pass per important boundary.
    Criterion: WHEN the security section is emitted THE PLAN SHALL enumerate entry points, enforced trust boundaries, sensitive assets, and principals, and SHALL declare deployment context (internet-facing, internal, local) and data sensitivity.
 2. R-SEC-2: The plan declares every conditional security surface (web/API, auth, DB, uploads, outbound fetches, containers/IaC, CI/CD, AI/LLM, regulated data) as present or absent so conditional control sets are planned, never discovered missing.
-   Criterion: IF a surface is declared absent THE PLAN SHALL record the reason in the applicability matrix; IF present THE PLAN SHALL carry that surface's requirements onto tasks.
+   Criterion: IF a surface is declared absent THE PLAN SHALL state the reason here and drop requirements only it needs in the module disposition (`dropped-by archetype`); IF present THE PLAN SHALL carry that surface's requirements onto tasks.
 3. R-SEC-3: The plan specifies a central deny-by-default authorization layer every route passes through, and object-level authorization binding each load and mutation to the current user or tenant inside the query itself (findOne({id, ownerId}) pattern or RLS), explicitly covering PUT/PATCH/DELETE, list, search, and export endpoints, plus a cross-tenant isolation test for multi-tenant designs.
    Criterion: WHEN any resource endpoint is planned THE PLAN SHALL name the ownership predicate in the query and the middleware it mounts behind, and SHALL include a task whose test proves a cross-user request returns 403 or 404.
 4. R-SEC-4: The plan specifies server-side role checks on every admin or privileged route with mutating verbs guarded identically to their GET siblings, bans request-settable role/isAdmin/scope/tenant/plan/price fields, and mandates allowlist DTO binding for all writes (create and update) plus explicit response DTOs for all reads (no raw ORM objects, no fields='__all__').
@@ -1284,13 +1288,13 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
   - Requirements: R-SEC-15
 - [ ] GP-xxx Secret hygiene: gitignore, scanning, CI references
   - Files: .gitignore, .pre-commit-config.yaml, .github/workflows/ci.yml
-  - Acceptance: .env*, *.pem, and credential file patterns ignored before first commit; gitleaks runs in pre-commit and CI over full history; workflow contains no continue-on-error on scan steps and references secrets.* only
-  - Verify: gitleaks detect --no-banner && ! grep -n "continue-on-error" .github/workflows/ci.yml
+  - Acceptance: .env*, *.pem, and credential file patterns ignored before first commit; gitleaks scans full history in pre-commit and CI, run by the R-REPO-15 agent-safety task when it lands (no second step here); workflow contains no continue-on-error on scan steps and references secrets.* only
+  - Verify: gitleaks detect --no-banner && test -f .github/workflows/ci.yml && ! grep -n "continue-on-error" .github/workflows/ci.yml
   - Requirements: R-SEC-13, R-SEC-14
 - [ ] GP-xxx Supply chain pinning and SCA gate
   - Files: package-lock.json, .github/workflows/ci.yml, .npmrc
-  - Acceptance: CI installs with npm ci; every third-party action pinned to a 40-char commit SHA; audit step gates on high with no || true; SBOM generated at build
-  - Verify: grep -Ec "uses: .*@[0-9a-f]{40}" .github/workflows/ci.yml && grep -c "npm ci" .github/workflows/ci.yml
+  - Acceptance: CI installs with npm ci; every third-party action pinned to a 40-char commit SHA; audit step gates on high with no || true; SBOM generated at build (when `public_release` is true or scale is enterprise, this is the R-REPO-14 dependency-inventory task's generator, not a second one)
+  - Verify: grep -q "npm ci" .github/workflows/ci.yml && ! grep -hE "^[ -]*uses:" .github/workflows/*.yml | grep -vE "@[0-9a-f]{40}|uses: *\./"
   - Requirements: R-SEC-17, R-SEC-18
 - [ ] GP-xxx Security event logging with formatter-level redaction
   - Files: src/logging/logger.ts, src/logging/redact.ts, tests/security/logging.test.ts
@@ -1305,8 +1309,8 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
 
 - [ ] GP-xxx Seal hardening evidence for prepublication verification
   - Files: docs/security/HARDENING.md
-  - Acceptance: every Critical records status; permitted acceptances include owner, justification, accepted_at, and expires_at; file records its content hash or immutable revision and regulated hard-gate policy; later changes require a new prepublication check
-  - Verify: git hash-object docs/security/HARDENING.md
+  - Acceptance: every Critical records status; permitted acceptances include owner, justification, accepted_at, and expires_at; file records the regulated hard-gate policy; its content hash or immutable revision lives in the R-ROAD-21 gate; later changes require a new prepublication check
+  - Verify: grep -q '^policy:' docs/security/HARDENING.md && git hash-object docs/security/HARDENING.md
   - Requirements: R-SEC-25, R-SEC-26
 
 ## Self-audit rubric
@@ -1320,7 +1324,7 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
 - Misconfiguration and resource controls (8): header set with presence test, exact-match CORS, production hardening list, per-endpoint-class rate limits and caps, upload handling.
 - Supply chain and CI/CD (8): integrity installs, SHA-pinned actions, digest-pinned images, SCA gate without soft-fail, SBOM, least-privilege tokens, environment gates, no PPE patterns.
 - Logging, privacy, and API residue (6): event enumeration, formatter-level redaction, alerting to a monitored channel; regulated-data controls mapped to code paths; API Top 10 residue covered where applicable.
-- Conditional surfaces (4): IaC and LLM requirements carried onto tasks when present, or excluded with a stated reason; never silently omitted.
+- Conditional surfaces (4): IaC and LLM requirements carried onto tasks when present, or dropped with a stated reason; never silently omitted.
 - Anti-paper-control and verification handoff (6): every control has a mount point and firing test; automatic-Critical conditions are designed out; public release gets sealed hardening evidence and complete risk records for a fresh downstream check.
 
 Total: 100. Any plan scoring below 85 on this rubric gets revised before emission.
@@ -1335,7 +1339,7 @@ Total: 100. Any plan scoring below 85 on this rubric gets revised before emissio
 - Hardening-as-ritual (harden-ready): an annual pen test with nothing between. Refusal: the plan declares a continuous cadence with a next execution date.
 - Shallow-audit trap (harden-ready): findings a third party cannot reproduce. Refusal: every security acceptance condition is grep-verifiable or request-reproducible with the exact command in the Verify line.
 - Vague-recommendation ban (secauditor): "validate input", "harden the config", "improve security". Refusal: every requirement names the safe pattern, the file it lands in, and the command that confirms it.
-- Silent surface exclusion (secauditor conditional dimensions): skipping uploads, IaC, or LLM controls because nobody declared the surface. Refusal: the applicability matrix records every surface as present or absent with a reason before any section is written.
+- Silent surface exclusion (secauditor conditional dimensions): skipping uploads, IaC, or LLM controls because nobody declared the surface. Refusal: the R-SEC-2 declaration records every surface as present or absent with a reason before any section is written.
 - Automatic-Critical blindness (secauditor): shipping a design where one condition caps the audit at 79. Refusal: the R-SEC-24 design-out list is checked against the draft plan before emission, and any hit forces a revision.
 - Late-Critical race: launch preparation finishes, hardening changes, and publication trusts the old pass. Refusal: seal current evidence, invalidate stale passes on any change, and require the fresh prepublication task only when a public release surface exists.
 - Primary-path-only authorization: a control proven on the interactive session while an API key, a pre-MFA token, or a raw exported function reaches the same resource ungated. Refusal: every privileged operation lists its caller paths and carries an identical gate on each, tested through the non-primary path (R-SEC-27).
@@ -1348,7 +1352,7 @@ Total: 100. Any plan scoring below 85 on this rubric gets revised before emissio
 
 # Exemplar module: the quality bar, worked
 
-Loaded before the Phase 5b prose-integrity pass and again before Phase 6 scoring. Five plan elements are shown twice: the version that fails and the version that ships. The difference is always the same difference: the bad version survives substitution into any other project; the good version could only belong to this one.
+Loaded before the Phase 5b prose-integrity pass and again before Phase 6 scoring. Six plan elements are shown as the version that fails and the version that ships. The difference is always the same difference: the bad version survives substitution into any other project; the good version could only belong to this one.
 
 The prose-integrity gate in section 6 adapts ideas from [cursor/pstack unslop](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md) (MIT, Lauren Tan): preserve meaning while removing model-like filler, then check the result again. The wording and project-specific gate below are original to godplans; no source text or catalog is copied.
 
@@ -1382,9 +1386,11 @@ Falsifier:
 - Signal: p95 read latency on the largest workspace and active workspace count
 - Failure boundary: p95 exceeds 250 ms for seven days, or active workspaces exceed 5,000 before Phase 5
 - Replan action: return to planning and evaluate the rejected schema-per-tenant migration
-Hypothesis flagged: Neon cold-start latency under 500ms on the free
-tier is acceptable for the beta. Validation: GP-105 measures p95
-connect latency; if over 500ms, move to a warm instance before Phase 3.
+
+### Assumptions ledger
+- A1: Neon cold-start connect latency stays under 500 ms on the free tier during the beta (assumed; no latency budget was stated)
+  - Blast radius: wrong costs +1 task and +0 phases; a warm instance replaces the free tier before Phase 3
+  - Validated by: GP-105
 ```
 
 ## 2. A task
@@ -1637,13 +1643,13 @@ progress:
 ---
 ```
 
-Allowed modes are `greenfield`, `brownfield`, and `replan`. Frontmatter is the digest, not the truth. The truth is the checkboxes; `progress` counters are derived from them and updated in the same edit that flips a box. `tasks_total` and `tasks_done` count active task definition header lines. `phases_total` counts numbered phase headings, and a phase contributes to `phases_done` only when every active task in it is checked. If counters disagree, recount from the task definitions. The three domain lists are an index into the applicability matrix, so each carries bare domain names in a single inline list and nothing else: the trigger and the reversibility reason live in the matrix row, which is the one place a domain's disposition is decided. The validator recomputes all three lists from the matrix and fails on any disagreement, the same parity it already enforces between the provenance block and its frontmatter values. A summary that can drift from the row it summarizes is a second source of truth waiting to contradict the first.
+Allowed modes are `greenfield`, `brownfield`, and `replan`. Frontmatter is the digest, not the truth. The truth is the checkboxes; `progress` counters are derived from them and updated in the same edit that flips a box. `tasks_total` and `tasks_done` count active task definition header lines. `phases_total` counts numbered phase headings, and a phase contributes to `phases_done` only when every active task in it is checked. If counters disagree, recount from the task definitions. The three domain lists are an index into the applicability matrix, so each carries bare domain names in a single inline list and nothing else: the trigger and the reversibility reason live in the matrix row, which is the one place a domain's disposition is decided. The validator recomputes all three lists from the matrix and fails on any disagreement.
 
 Allowed product forms are `web-application`, `api-or-service`, `cli-or-sdk`, `mobile-or-desktop`, `data-or-ml`, and `infrastructure-or-iac`. `public_release` is `true` only when execution can activate a public site, service, package, store artifact, model, or infrastructure surface. Internal and local-only projects set it to `false`; they do not inherit a public-activation gate.
 
-`archetype_confidence` is `high`, `medium`, or `low`, and it is derived, not asserted: the validator recomputes it from the scores in the `### Archetype confidence` block and fails any disagreement. `overlays` is an inline list from the fixed set in `discovery.md` (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`, `monetized`), or `[]`. Overlays raise and never lower: a domain any listed overlay covers is never `excluded`; it is `applicable`, or `deferred` where the deferrable set allows, and the validator enforces that against the matrix.
+`archetype` is one of the nine archetypes `discovery.md` scores (`cli-tool`, `library`, `api-service`, `saas-dashboard`, `marketing-site`, `mobile-app`, `ml-pipeline`, `extension`, `game`) or `unknown`; the block's `Primary` and any `Runner-up` name one of the nine, and the validator refuses anything else. `archetype_confidence` is `high`, `medium`, or `low`, and it is derived, not asserted: the validator recomputes it from the scores in the `### Archetype confidence` block and fails any disagreement. `overlays` is an inline list from the fixed set in `discovery.md` (`ai-system`, `public-ui`, `shipped-artifact`, `operated-by-others`, `regulated-data`, `agent-skill-package`, `monetized`), or `[]`. Overlays raise and never lower: a domain any listed overlay covers is never `excluded`; it is `applicable`, or `deferred` where the deferrable set allows, and the validator enforces that against the matrix.
 
-`source_revision` is the full Git commit used for planning, or `none` when no revision exists. `validated_at` is a UTC ISO-8601 timestamp. The `## Plan provenance` values repeat those frontmatter values exactly, with no trailing punctuation. Its machine-readable inventory contains one or more lines shaped ``- `<label>` = `sha256:<64-lowercase-hex>` ``. Prefix a stable file artifact with `[recheck]` when phase-boundary drift checks must recompute it: ``- [recheck] `path/to/artifact` = `sha256:<64-lowercase-hex>` ``. A recheck label is a repository-relative file path, not an alias. Labels use only ASCII letters, digits, `.`, `_`, `/`, and `-`; labels are unique; and exactly one label is `intake`. Hash normalized intake text for `intake`, and hash raw file bytes for file entries. To derive `input_digest`, sort entries lexicographically by label, concatenate each as `<label><TAB><64-lowercase-hex><LF>`, hash the UTF-8 bytes with SHA-256, and prefix the result with `sha256:`. The `[recheck]` marker does not enter the digest. Inventory display order does not affect the aggregate. These values bind the plan to its inputs; they are not claims that later execution leaves the repository unchanged.
+`source_revision` is the full Git commit used for planning, or `none` when no revision exists. `validated_at` is a UTC ISO-8601 timestamp. The `## Plan provenance` values repeat those frontmatter values exactly, with no trailing punctuation. Its machine-readable inventory contains one or more lines shaped ``- `<label>` = `sha256:<64-lowercase-hex>` ``. Prefix a stable file artifact with `[recheck]` when phase-boundary drift checks must recompute it: ``- [recheck] `path/to/artifact` = `sha256:<64-lowercase-hex>` ``. A recheck label is a repository-relative file path, not an alias. Labels use only ASCII letters, digits, `.`, `_`, `/`, and `-`, may start with `.` or `_` (a dotfile path such as `.godaudits/EVIDENCE.json` is a valid recheck label), and never contain a `..` segment; labels are unique; and exactly one label is `intake`. Hash normalized intake text for `intake`, and hash raw file bytes for file entries. To derive `input_digest`, sort entries lexicographically by label, concatenate each as `<label><TAB><64-lowercase-hex><LF>`, hash the UTF-8 bytes with SHA-256, and prefix the result with `sha256:`. The `[recheck]` marker does not enter the digest. Inventory display order does not affect the aggregate. These values bind the plan to its inputs; they are not claims that later execution leaves the repository unchanged.
 
 The status lifecycle is `planning -> approved -> executing -> done`:
 
@@ -1670,10 +1676,10 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
    - Confidence: high
    - Vetoes applied: none
    - Overlays: public-ui, regulated-data
-   - If the runner-up is right: +2 tasks and +0 phases; the ui and seo rows flip to excluded and GP-210 through GP-212 drop
+   - If the runner-up is right: -3 tasks and +0 phases; the public-ui overlay no longer fires, the ui and seo rows flip to excluded, and GP-210 through GP-212 drop
    ```
 
-   Scores are two decimals from `0.00` to `1.00`. `Primary` repeats the frontmatter `archetype`. `Runner-up` is another archetype with its score, or `none` when nothing else scored above zero. `Margin` is `(primary - runner-up) * 100` rounded to an integer, and the validator recomputes it. `Confidence` is `high` at a margin of 15 or more and a primary score of 0.70 or more, `medium` with exactly one of those, `low` with neither, and the validator recomputes that too, so a confidence that does not follow from the plan's own arithmetic fails. `Overlays` repeats the frontmatter list or reads `none`. `If the runner-up is right:` is priced in tasks and phases on the same bar as a blast radius; adjectives are refused. A `low` confidence archetype additionally appears in `## Open Questions`, and no `assure`-stage documentation-set row may be `not-applicable` while it stands.
+   Scores are two decimals from `0.00` to `1.00`. `Primary` names the top scorer and repeats the frontmatter `archetype`, except below the 0.45 floor, where the frontmatter reads `unknown`. `Runner-up` is another archetype with its score, or `none` when nothing else scored above zero. `Margin` is `(primary - runner-up) * 100` rounded to an integer, and the validator recomputes it. `Confidence` is `high` at a margin of 15 or more and a primary score of 0.70 or more, `medium` with exactly one of those, `low` with neither, and the validator recomputes that too, so a confidence that does not follow from the plan's own arithmetic fails. `Overlays` repeats the frontmatter list or reads `none`. `If the runner-up is right:` is priced in tasks and phases on the same bar as a blast radius; adjectives are refused. A `low` confidence or below-floor archetype additionally appears in `## Open Questions`, and no `assure`-stage documentation-set row may be `not-applicable` while it stands.
 5. `## Compliance gate`. One short section: pass, or the mitigations injected (with task IDs).
 6. `## Applicability matrix`. The full table: every domain marked applicable, deferred, or excluded. Deferred is reserved for the deferrable set named in `discovery.md` (seo, launch, observe, ui, deploy): the row names the trigger, an observable event that forces the domain pass, and argues why the decision is reversible until the trigger fires. Excluded rows carry three things in one cell, in this order: an evidence state (`absent:` for something checked, `by-design:` for something the plan settles; `unknown:` and `hint:` are refused because neither licenses an exclusion), a project-specific reason, and a `revisit when:` predicate that is observable on the same bar as a deferral trigger. An exclusion without a tripwire is permanent by accident. After the table, add the compact module disposition described below.
 
@@ -1684,7 +1690,7 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
    Two constraints ride on the exclusion cell. A domain covered by any declared overlay may not be excluded at all, because overlays raise and never lower. And in `brownfield` or `replan` mode an `absent:` reason carries a backticked command or evidence artifact, since `absent:` is a negative claim about existing code and the claims-and-evidence rule above already refuses those without a search:
 
    ```markdown
-   | seo | excluded | absent: no HTML template, route table, or static site config under src/ (`rg -l "<html|<!DOCTYPE" src/` returns nothing); revisit when: any task adds a server-rendered route or a static site config |
+   | seo | excluded | absent: no HTML template, route table, or static site config under src/ (`rg -l -e "<html" -e "<!DOCTYPE" src/` returns nothing); revisit when: any task adds a server-rendered route or a static site config |
    ```
 
    `by-design:` needs no command in any mode. It records a decision rather than an observation, and there is nothing yet to have looked at.
@@ -1693,11 +1699,11 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
 
    ```markdown
    ### Module disposition
-   - security: landed R-SEC-1, R-SEC-4, R-SEC-12; dropped-by scale R-SEC-22 (side-project: no SOC 2 program)
+   - security: landed R-SEC-1, R-SEC-4, R-SEC-12; dropped-by archetype R-SEC-22 (no containers, Kubernetes, or IaC planned)
    - ui: landed R-UI-2, R-UI-9; dropped-by archetype R-UI-14 (stock primitives, no design system to publish)
    ```
 
-   `dropped-by` takes exactly one of `scale`, `archetype`, or `form`, and carries a parenthetical reason. A requirement listed as dropped may not appear on any task's `Requirements:` line, and the two lists in one module line may not overlap. Naming the dropping layer is what separates a decision from an oversight: without it, a requirement cut to fit a weekend appetite is indistinguishable from one nobody considered.
+   `dropped-by` takes exactly one of `scale`, `archetype`, or `form`, and carries a parenthetical reason. A requirement listed as dropped may not appear on any task's `Requirements:` line, and the two lists in one module line may not overlap.
 7. `## Decisions`. Hard-to-reverse bets first: wire formats, public identifiers, data-model shape, auth and ownership boundaries. Each entry is a decision with rationale, a hypothesis with a validation plan, or a pointer to Open Questions. The only `###` headings under `## Decisions` are `### D<n>: <title>` entries and `### Assumptions ledger`; hypotheses live in the ledger and pointers to Open Questions sit in a D<n> body. Where options were weighed, show the comparison in a small table. Every `### D<n>` decision entry carries this structured falsifier:
 
    ```markdown
@@ -1719,6 +1725,9 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
    `Blast radius` is counted in tasks and phases the plan would gain or lose, never in adjectives. "Significant rework" is refused. `+0 tasks` is a legitimate and useful answer: it tells the user which assumptions to stop worrying about.
 8. `## Requirements`. Numbered user stories with EARS acceptance criteria: `R-1.1: WHEN <trigger> THE SYSTEM SHALL <observable behavior>`. A compact table is also valid when the requirement ID is the first cell of each row. Task `Requirements:` lines point here and at module IDs (R-SEC-4 style).
 9. `## Architecture`. The mermaid visuals (see Visual layer) plus the prose that the diagrams support.
+
+Each other applicable domain whose pass writes prose gets one `## <Domain>` section between `## Requirements` and `## Documentation set`, named and ordered as in the Phase 4 table. Product prose lives in the objective, `## Scope and non-goals`, and `## Requirements`, roadmap prose in `## Phases`; they and deferred or excluded domains get none.
+
 10. `## Style genome`. Naming, idioms, structure conventions the first commit must already follow.
 11. `## Agent memory`. The AGENTS.md and pillar files the scaffold phase will emit.
 12. `## Documentation set`. Exactly one such section. The manifest of documents this project owes, what it does not owe, and what would reverse each of those answers. See Documentation set grammar below and `doc-set.md` for the catalog and the selection rules.
@@ -1796,7 +1805,7 @@ Must-haves:
 Grammar rules:
 
 - **IDs**: `GP-<phase><two digits>`, zero-padded, unique, stable forever. Never renumber. Uniqueness applies to checkbox task definition headers; dependency references do not create duplicate definitions.
-- **`[P]`**: parallel-safe. Only when the task touches files disjoint from every other unchecked task in the same wave. The validator enforces this: a `[P]` task sharing a path with another unchecked task in its wave fails, because the marker is a promise an executor acts on by running the two at once. R-ROAD-8 and the fictional-parallelism refusal in `roadmap.md` state the same rule; this is where it is gated.
+- **`[P]`**: parallel-safe. Only when the task touches files disjoint from every other unchecked task in the same wave. The validator enforces this: a `[P]` task sharing a path with another unchecked task in its wave fails, because the marker is a promise an executor acts on by running the two at once.
 - **`[W<phase>.<wave>]`**: the wave tag. Waves within a phase run in order; tasks within a wave marked `[P]` may run concurrently.
 - **Files**: exact paths. Brownfield plans name real existing files.
 - **Depends on**: task IDs or `none`. No reflexive chains; a dependency exists because the work cannot start without it, not because the tasks are neighbors.
@@ -1820,7 +1829,7 @@ they do, and what happens if nobody does.
 
 ### Q1: Can a board be shared outside its workspace?
 - Owner: product lead (the answer is theirs to give; the plan must not invent it)
-- Blocks: build, from the start of Phase 4
+- Blocks: nothing, because the default (b) is additive; it would block build from the start of Phase 4 if the default were structural
 - Decide by: 2026-08-14, the Phase 4 wave boundary
 - Why it matters: a yes replaces workspace-scoped RLS with per-object ACLs, rewriting GP-201 and every Phase 4 query.
 - Options: (a) no sharing outside the workspace; (b) read-only links with unguessable tokens; (c) full cross-workspace membership; (d) export a read-only snapshot, which moves sharing out of the permission model entirely.
@@ -1841,7 +1850,7 @@ Grammar rules:
 
 ## Conditional public-release gate
 
-When `public_release: true`, mark the latest hardening evidence task with `R-SEC-26`, exactly one prepublication gate task with `R-ROAD-21`, and exactly one first public activation task with `R-LAUNCH-22`. Keep those role markers on distinct tasks. The gate follows and depends on the latest hardening task. The activation task follows the gate immediately and depends on it. The gate records `checked_at`, `hardening_revision` (a content hash or immutable revision), `finding_counts`, `policy`, and `verdict`. `checked_at` must be later than the latest hardening evidence. Its acceptance states that a later hardening change `invalidates` the pass and forces the task to run again.
+When `public_release: true`, mark the latest hardening evidence task with `R-SEC-26`, exactly one prepublication gate task with `R-ROAD-21`, and exactly one first public activation task with `R-LAUNCH-22`. Keep those role markers on distinct tasks. The gate follows and depends on the latest hardening task. The activation task follows the gate immediately and depends on it. The gate records `checked_at`, `hardening_revision` (a content hash or immutable revision), `finding_counts`, `policy`, and `verdict`. `checked_at` must be later than the latest hardening evidence. Its acceptance states that a later hardening change `invalidates` the pass and forces the task to run again. That `Acceptance:` line names all ten tokens literally, these six and the four below, even when no Critical risk is accepted.
 
 Every permitted Critical risk acceptance names `owner`, `justification`, `accepted_at`, and `expires_at`. Missing or expired fields block public activation. Projects with `public_release: false` state why no public surface exists and do not receive this task.
 
@@ -1872,7 +1881,7 @@ This block is copied verbatim into every emitted plan, under `## Rules for execu
 > 4. Run the task's Verify command. Only after it passes, flip [ ] to [x] and update the frontmatter counters and `updated:` date in the same edit. Never batch check-offs. Regenerate the sidecar in the same batch: `bash .godplans/validate-plan.sh --allow-planning --emit-json .godplans/PLAN.json .godplans/PLAN.mdx`.
 > 5. If Verify fails: the box stays unchecked. Append a `- Note (YYYY-MM-DD):` line under the task, indented two spaces like its fields, saying what happened.
 > 6. Phase-boundary gate: before the first task of a new phase, run `bash .godplans/validate-plan.sh --drift-check N .godplans/PLAN.mdx`, replacing N with the completed phase. The command recomputes `[recheck]` provenance files, reruns a deterministic sample of up to three completed task Verify commands, and reruns the phase's Checkpoint verify command. Any failure returns status to `planning` and stops execution for replan.
-> 7. If a deferred domain's trigger fires mid-execution (its named event occurs), return status to `planning` and run that domain's pass before continuing.
+> 7. If a deferred domain's trigger fires, or the `revisit when:` predicate of an excluded domain or a not-applicable document row comes true (a task would add what it names), return status to `planning` and run that domain's pass or reselect that document before continuing.
 > 8. Scope changes are not improvised. Return status to `planning`, patch the plan (new task IDs, struck-through superseded tasks with a reason), increment `plan_version`, and obtain fresh approval before more execution.
 > 9. Never renumber, reword, or uncheck a completed task.
 > 10. At session end: append one line to `## Session log`: date, tasks completed, where you stopped, what is next.
@@ -1888,7 +1897,7 @@ The emitted companion is the only machine-check entry point. Copy it byte-for-by
 bash .godplans/validate-plan.sh --allow-planning .godplans/PLAN.mdx
 ```
 
-The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan; without it, the validator is also an execution gate and accepts only `approved` or `executing`, and `done` requires every task and phase checked. It checks frontmatter (lifecycle, product form, overlays, and domain lists that match the matrix), provenance and its aggregate input digest, the archetype-confidence arithmetic, and the conditional public-release gate structure; task grammar (sequential phases and wave tags, unique GP IDs, every required field including wrapped continuation lines, two-space Note lines, dependencies that come earlier and in no later wave, catalog-resolved requirements that cite no excluded or deferred module, and `[P]` tasks that share no file and no dependency with a wave sibling); the applicability-matrix and module-disposition rules above, with every landed requirement appearing in the plan body; a `Falsifier:` block on every `### D<n>` decision; documentation-set rows, including which states each mode may claim; phase checkpoints and a final Verification phase; exactly one of each required section; real calendar dates, strict UTF-8, and banned Unicode. Fenced code is not structure. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
+The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan; without it, the validator is also an execution gate and accepts only `approved` or `executing`, and `done` requires every task and phase checked. It checks frontmatter (lifecycle, product form, overlays, and domain lists that match the matrix), provenance and its aggregate input digest, the archetype-confidence arithmetic, and the conditional public-release gate structure; task grammar (sequential phases, wave tags that match their phase and never go backwards, unique GP IDs, every required field including wrapped continuation lines, dependencies that come earlier and in no later wave, catalog-resolved requirements that cite no excluded or deferred module, and `[P]` tasks that share no file and no dependency with a wave sibling); the applicability-matrix and module-disposition rules above, with every landed requirement appearing in the plan body; a `Falsifier:` block on every `### D<n>` decision; documentation-set rows, including which states each mode may claim; phase checkpoints and a final Verification phase; exactly one of each numbered `##` skeleton section (Architecture and Agent memory only when that domain is applicable), with the executor rules keeping their `> [!IMPORTANT]` alert; real calendar dates, strict UTF-8, and banned Unicode. Fenced code is not structure. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
 
 ## Machine-readable sidecar
 
@@ -1908,9 +1917,9 @@ The plan is re-read every session; bloat is a tax on every future turn. Budgets:
 
 ## Replan protocol
 
-When PLAN.mdx already exists: read it fully, recount progress from checkboxes, read the session log, and recompute the source evidence recorded under `## Plan provenance`. Recheck every artifact recorded as completed or imported. If its content, revision, or existence changed materially, mark the plan stale by returning `status` to `planning` before applying the delta; do not trust the chat or old validation timestamp. Completed work is history and never altered. New work gets fresh IDs continuing the sequence. Superseded unstarted tasks are not deleted. Strike only the heading (`~~- [ ] GP-310 [W3.1] Old work~~`), then retain `  - Superseded: <one-line reason>` and `  - Requirements: <original ids>` so the audit trail and domain metric survive. A plan written by an older godplans may fail the re-copied validator on rules added since; each message names its fix. Add a domain the skill gained (its matrix row, frontmatter entry, and disposition line when applicable), re-point a documentation row whose catalog owner moved (a required `frame.business-case` row makes business applicable), retitle Decisions headings, and move a task block, completed or not, to restore wave order: none of these rewords completed work. Refresh the evidence inventory, `input_digest`, and `validated_at`; bump `plan_version`; log the delta in the session log; and re-run the Phase 6 audit on any section that changed.
+When PLAN.mdx already exists: read it fully, copy it unedited to `.godplans/archive/PLAN-v<n>.mdx`, `<n>` being its `plan_version`; recount progress from checkboxes, read the session log, and recompute the source evidence recorded under `## Plan provenance`. Recheck every artifact recorded as completed or imported. If its content, revision, or existence changed materially, mark the plan stale by returning `status` to `planning` before applying the delta; do not trust the chat or old validation timestamp. Completed work is history and never altered. New work gets fresh IDs continuing the sequence. Superseded unstarted tasks are not deleted. Strike only the heading (`~~- [ ] GP-310 [W3.1] Old work~~`), then retain `  - Superseded: <one-line reason>` and `  - Requirements: <original ids>` so the audit trail and domain metric survive. A plan written by an older godplans may fail the re-copied validator on rules added since; each message names its fix. Add a domain the skill gained (its matrix row, frontmatter entry, and disposition line when applicable), re-point a documentation row whose catalog owner moved (a required `frame.business-case` row makes business applicable), retitle Decisions headings, and move a task block, completed or not, to restore wave order: none of these rewords completed work. Refresh the evidence inventory, `input_digest`, and `validated_at`; bump `plan_version`; log the delta in the session log; and re-run the Phase 6 audit on any section that changed.
 
-Measure the outgoing plan first, in Phase 0, before the compliance gate re-copies the companion: run `bash .godplans/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json`. It uses `GODPLANS_VALIDATOR` when set, else the plan's own `.godplans/validate-plan.sh`; a newer validator may reject the outgoing plan. The report records active, superseded, and historical tasks, plus cumulative supersession and survival rates overall and per requirement domain. A domain whose tasks are struck repeatedly was over-planned at that scale; shrink its appetite on the next pass instead of reseeding the same tasks.
+Measure the outgoing plan first, in Phase 0, before the compliance gate re-copies the companion: run `bash .godplans/plan-halflife.sh .godplans/PLAN.mdx .godplans/PLAN.metrics.json`. It uses `GODPLANS_VALIDATOR` when set, else the plan's own `.godplans/validate-plan.sh`; a newer validator may reject the outgoing plan. If none can measure it (no companion, or one that predates `--emit-json`), record `half-life: not measured (<reason>)` in the session log and continue; the measurement never blocks a replan. The report records active, superseded, and historical tasks, plus cumulative supersession and survival rates overall and the supersession rate per requirement domain. A domain whose tasks are struck repeatedly was over-planned at that scale; shrink its appetite on the next pass instead of reseeding the same tasks.
 
 Re-evaluate every tripwire on the way in, before anything else. An excluded domain whose `revisit when` predicate has become true, and a not-applicable documentation row whose predicate has become true, are the reason to replan at all, so they lead the delta rather than trailing it. A predicate that is true now is reported; one that is merely being watched is not.
 
@@ -1985,9 +1994,10 @@ Secondary form: none, unless it has its own user, contract, distribution path, d
 
 Margin is (primary - runner-up) * 100 rounded. Confidence is high at margin 15
 or more and score 0.70 or more, medium with exactly one, low with neither; the
-validator recomputes both. A low-confidence archetype also appears in Open
-Questions, and no assure-stage documentation row may be not-applicable while it
-stands.
+validator recomputes both. Below a primary score of 0.45 the frontmatter
+archetype is unknown. A low-confidence or below-floor archetype also appears in
+Open Questions, and no assure-stage documentation row may be not-applicable
+while it stands.
 
 ## Compliance gate
 
@@ -2071,6 +2081,11 @@ phases, and pointed at the task that validates it.
 R-1.1: WHEN (trigger) THE SYSTEM SHALL (observable behavior).
 R-1.2: IF (condition) WHEN (trigger) THE SYSTEM SHALL (observable behavior).
 
+Other applicable domains whose pass writes prose get `## <Domain>` sections in
+Phase 4 table order: Business before Architecture, Stack through Code quality
+before Style genome, and Repository, Application build, Deployment,
+Observability, and Launch after Agent memory.
+
 ## Architecture
 
 Prose plus the diagrams that carry decisions (mermaid: graph TD with trust
@@ -2095,7 +2110,8 @@ present-elsewhere and are not planned here.
 
 Catalog ids, stages, owners, and selection rules come from doc-set.md. Required
 and recommended rows name the task that writes them. Not-applicable rows carry
-an evidence state (absent or by-design), a reason, and a revisit-when predicate.
+an evidence state (absent, by-design, or present-elsewhere), a reason, and a
+revisit-when predicate.
 
 | Document | Stage | Verdict | Owner | Selected by, or reason and revisit when |
 |---|---|---|---|---|
@@ -2173,7 +2189,7 @@ with an R-ROAD-7 validation task scheduled ahead of it, not a question. Write
 > 4. Run the task's Verify command. Only after it passes, flip [ ] to [x] and update the frontmatter counters and `updated:` date in the same edit. Never batch check-offs. Regenerate the sidecar in the same batch: `bash .godplans/validate-plan.sh --allow-planning --emit-json .godplans/PLAN.json .godplans/PLAN.mdx`.
 > 5. If Verify fails: the box stays unchecked. Append a `- Note (YYYY-MM-DD):` line under the task, indented two spaces like its fields, saying what happened.
 > 6. Phase-boundary gate: before the first task of a new phase, run `bash .godplans/validate-plan.sh --drift-check N .godplans/PLAN.mdx`, replacing N with the completed phase. The command recomputes `[recheck]` provenance files, reruns a deterministic sample of up to three completed task Verify commands, and reruns the phase's Checkpoint verify command. Any failure returns status to `planning` and stops execution for replan.
-> 7. If a deferred domain's trigger fires mid-execution (its named event occurs), return status to `planning` and run that domain's pass before continuing.
+> 7. If a deferred domain's trigger fires, or the `revisit when:` predicate of an excluded domain or a not-applicable document row comes true (a task would add what it names), return status to `planning` and run that domain's pass or reselect that document before continuing.
 > 8. Scope changes are not improvised. Return status to `planning`, patch the plan (new task IDs, struck-through superseded tasks with a reason), increment `plan_version`, and obtain fresh approval before more execution.
 > 9. Never renumber, reword, or uncheck a completed task.
 > 10. At session end: append one line to `## Session log`: date, tasks completed, where you stopped, what is next.
@@ -2182,7 +2198,7 @@ with an R-ROAD-7 validation task scheduled ahead of it, not a question. Write
 
 ## Session log
 
-- YYYY-MM-DD plan created (godplans v1.14.0)
+- YYYY-MM-DD plan created (godplans v1.15.0)
 
 
 ---
@@ -2328,7 +2344,7 @@ sub task_depends_on {
 }
 
 open my $plan_fh, '<:raw', $plan_file
-    or die "FAIL $plan_file: cannot read: $!\n";
+    or bail("cannot read: $!");
 my $plan_bytes = do { local $/; <$plan_fh> };
 close $plan_fh;
 # Decode strictly: a lenient read carries substituted text into the sidecar.
@@ -2340,7 +2356,8 @@ if (!defined $plan_text) {
 fail('plan starts with a UTF-8 byte order mark; save it without one')
     if $plan_text =~ s/^\x{FEFF}//;
 my @lines = split /\n/, $plan_text;
-s/\r$// for @lines;
+# Markdown ignores trailing whitespace, so headings and labels do too.
+s/[ \t\r]+$// for @lines;
 
 for my $index (0 .. $#lines) {
     fail('banned Unicode on line ' . ($index + 1))
@@ -2391,6 +2408,12 @@ sub section {
         push @body, $index if $inside;
     }
     return @body;
+}
+
+sub section_count {
+    my $count = grep { $_ eq "## $_[0]" } @lines;
+    fail("expected exactly one ## $_[0] section, found $count") if $count != 1;
+    return $count;
 }
 
 my %frontmatter;
@@ -2450,6 +2473,12 @@ my %allowed_product_form = map { $_ => 1 } qw(web-application api-or-service cli
 if (exists $frontmatter{product_form} && !$allowed_product_form{$frontmatter{product_form}}) {
     fail("invalid product_form '$frontmatter{product_form}'; expected web-application, api-or-service, cli-or-sdk, mobile-or-desktop, data-or-ml, or infrastructure-or-iac");
 }
+
+# The nine archetypes discovery.md scores; a merged hybrid is not one of them.
+my @archetypes = qw(cli-tool library api-service saas-dashboard marketing-site mobile-app ml-pipeline extension game);
+my %allowed_archetype = map { $_ => 1 } @archetypes;
+fail("invalid archetype '$frontmatter{archetype}'; expected unknown or one of " . join(', ', @archetypes))
+    if ($frontmatter{archetype} || 'unknown') ne 'unknown' && !$allowed_archetype{$frontmatter{archetype}};
 
 my %allowed_confidence = map { $_ => 1 } qw(high medium low);
 if (exists $frontmatter{archetype_confidence}
@@ -2585,12 +2614,12 @@ my %doc_catalog = (
     'assure.scanning-index' => 'repo|evidence',
     'assure.threat-model' => 'security|durable',
     'build.agent-memory' => 'agent-memory|durable',
-    'build.api-reference' => 'build|durable',
+    'build.api-reference' => 'architecture|durable',
     'build.codebase-map' => 'agent-memory|durable',
     'build.config-reference' => 'stack|durable',
     'build.contributing' => 'repo|durable',
-    'build.dev-setup' => 'build|durable',
-    'build.feature-flags' => 'build|durable',
+    'build.dev-setup' => 'repo|durable',
+    'build.feature-flags' => 'deploy|durable',
     'build.llms-txt' => 'seo|durable',
     'build.readme' => 'repo|durable',
     'build.style-genome' => 'style-genome|durable',
@@ -2977,28 +3006,23 @@ for my $key (qw(phases_total phases_done tasks_total tasks_done)) {
 fail("status done requires every task checked, found $tasks_done of $tasks_total")
     if ($frontmatter{status} || '') eq 'done' && $tasks_done != $tasks_total;
 
-my $open_questions_count = scalar grep { $_ eq '## Open Questions' } @lines;
-fail("expected exactly one ## Open Questions section, found $open_questions_count")
-    if $open_questions_count != 1;
+section_count('Open Questions');
 my %open_question = map { $lines[$_] =~ /^### (Q[1-9][0-9]*):/ ? ($1 => $lines[$_]) : () }
     section('## Open Questions');
 
-my $provenance_count = scalar grep { $_ eq '## Plan provenance' } @lines;
-fail("expected exactly one ## Plan provenance section, found $provenance_count")
-    if $provenance_count != 1;
-
-my $product_form_count = scalar grep { $_ eq '## Product form' } @lines;
-fail("expected exactly one ## Product form section, found $product_form_count")
-    if $product_form_count != 1;
+my $provenance_count = section_count('Plan provenance');
+section_count('Product form');
 
 # Archetype confidence is arithmetic, not a feeling. The plan states its own
 # scores; everything downstream of them is recomputed here, so a confident
 # label that does not follow from the plan's own numbers cannot ship.
-my $archetype_low = 0;
+my $archetype_low = '';
 my %archetype_block;
 my $archetype_count = scalar grep { $_ eq '### Archetype confidence' } @lines;
 fail("expected exactly one ### Archetype confidence block, found $archetype_count")
     if $archetype_count != 1;
+fail('### Archetype confidence must sit under ## Product form')
+    if $archetype_count == 1 && !grep { $lines[$_] eq '### Archetype confidence' } section('## Product form');
 
 if ($archetype_count == 1) {
     for my $index (section('### Archetype confidence')) {
@@ -3032,6 +3056,9 @@ if ($archetype_count == 1) {
             fail("archetype confidence Runner-up must read '<archetype> (score 0.NN)' or 'none'");
         }
     }
+    for my $name (grep { defined $_ && !$allowed_archetype{$_} } $primary_name, $runner_name) {
+        fail("archetype confidence names $name, which is not one of " . join(', ', @archetypes));
+    }
 
     if (defined $primary_score) {
         fail("archetype confidence Primary score exceeds 1.00") if $primary_score > 1;
@@ -3043,8 +3070,8 @@ if ($archetype_count == 1) {
         # Below the floor the archetype is not decided, and a named archetype
         # would license matrix defaults and a document set nothing supports.
         if ($primary_score < 0.45) {
-            $archetype_low = 1;
-            fail("archetype confidence Primary score $primary_score is below the 0.45 floor, so frontmatter archetype must be unknown")
+            $archetype_low = 'the archetype Primary score is below the 0.45 floor';
+            fail('archetype confidence Primary score ' . sprintf('%.2f', $primary_score) . ' is below the 0.45 floor, so frontmatter archetype must be unknown')
                 if exists $frontmatter{archetype} && $frontmatter{archetype} ne 'unknown';
         }
     }
@@ -3067,7 +3094,7 @@ if ($archetype_count == 1) {
             ($expected_margin >= 15 && $primary_score >= 0.70) ? 'high'
             : ($expected_margin >= 15 || $primary_score >= 0.70) ? 'medium'
             : 'low';
-        $archetype_low = 1 if $expected_confidence eq 'low';
+        $archetype_low = 'archetype confidence is low' if $expected_confidence eq 'low';
         if (defined $archetype_block{Confidence}) {
             my $stated = lc $archetype_block{Confidence};
             if (!$allowed_confidence{$stated}) {
@@ -3107,9 +3134,10 @@ if ($archetype_count == 1) {
     }
 }
 
-# Low confidence is not a disclaimer. It withholds the archetype as a settled
-# fact until a human confirms it, so the question has to be on the page.
-fail("archetype confidence is low, so the archetype belongs in ## Open Questions as a ### Q<n>: entry naming it")
+# Low confidence, or a Primary below the floor, is not a disclaimer. It withholds
+# the archetype as a settled fact until a human confirms it, so the question has
+# to be on the page.
+fail("$archetype_low, so the archetype belongs in ## Open Questions as a ### Q<n>: entry naming it")
     if $archetype_low && !grep { /archetype/i } values %open_question;
 
 if ($provenance_count == 1) {
@@ -3144,10 +3172,14 @@ if ($provenance_count == 1) {
             next;
         }
         if ($inventory_started
-                && $line =~ /^- (\[recheck\] )?`([A-Za-z0-9][A-Za-z0-9._\/-]*)` = `sha256:([0-9a-f]{64})`$/) {
+                && $line =~ /^- (\[recheck\] )?`([A-Za-z0-9._][A-Za-z0-9._\/-]*)` = `sha256:([0-9a-f]{64})`$/) {
             my ($recheck, $label, $digest) = ($1, $2, $3);
             $inventory_count++;
-            if (exists $inventory{$label}) {
+            # A dotfile path is a repository-relative path; a .. segment is not.
+            if ($label =~ m{(?:^|/)\.\.(?:/|$)}) {
+                fail("Plan provenance inventory label $label must not contain a .. segment");
+                $inventory_valid = 0;
+            } elsif (exists $inventory{$label}) {
                 fail("duplicate Plan provenance inventory label: $label");
                 $inventory_valid = 0;
             } else {
@@ -3208,9 +3240,7 @@ my %never_excludable = map { $_ => 1 } qw(security code-quality style-genome rep
 my $vague_predicate = qr/^(?:later|eventually|when ready|post-mvp|future|tbd)\b/;
 my %domain_evidence_state;
 my %domain_revisit_when;
-my $matrix_count = scalar grep { $_ eq '## Applicability matrix' } @lines;
-fail("expected exactly one ## Applicability matrix section, found $matrix_count")
-    if $matrix_count != 1;
+my $matrix_count = section_count('Applicability matrix');
 
 if ($matrix_count == 1) {
     my %seen_domain;
@@ -3283,6 +3313,13 @@ if ($matrix_count == 1) {
     }
 }
 
+# The rest of the skeleton; Architecture and Agent memory while applicable.
+section_count($_) for 'Scope and non-goals', 'Compliance gate', 'Requirements', 'Style genome',
+    'Phases', 'Rules for executing agents', 'Session log',
+    grep { ($domain_disposition{lc($_) =~ tr/ /-/r} || '') eq 'applicable' } 'Architecture', 'Agent memory';
+fail('executor rules lack > [!IMPORTANT]')
+    unless grep { $lines[$_] eq '> [!IMPORTANT]' } section('## Rules for executing agents');
+
 # The module disposition is the only place a module requirement may leave the
 # plan. Precedence alone does not save it: a later layer is not a more correct
 # layer, only a later one, so the line names which layer dropped what. Without
@@ -3317,6 +3354,7 @@ if (%domain_disposition) {
     }
 
     my $found = grep { $_ eq '### Module disposition' } @lines;
+    my $inside = grep { $lines[$_] eq '### Module disposition' } section('## Applicability matrix');
     my %disposition_line = map { ($_ + 1 => $lines[$_]) }
         grep { $lines[$_] =~ /\S/ } section('### Module disposition');
 
@@ -3329,8 +3367,9 @@ if (%domain_disposition) {
         $reference_lines{$_}++ for keys %seen;
     }
 
-    if (!$found) {
-        fail("expected a ### Module disposition block under ## Applicability matrix");
+    if ($found != 1 || $inside != 1) {
+        fail("expected exactly one ### Module disposition block under ## Applicability matrix, found $inside"
+            . ($found > $inside ? ' there and ' . ($found - $inside) . ' elsewhere' : ''));
     }
 
     my %seen_module;
@@ -3487,9 +3526,7 @@ if (%domain_disposition) {
 # is the one outcome this section exists to make structurally hard.
 my %doc_verdict = map { $_ => 1 } qw(required recommended optional not-applicable);
 my @json_documents;
-my $docset_count = scalar grep { $_ eq '## Documentation set' } @lines;
-fail("expected exactly one ## Documentation set section, found $docset_count")
-    if $docset_count != 1;
+my $docset_count = section_count('Documentation set');
 
 if ($docset_count == 1) {
     my $boundary = 0;
@@ -3544,7 +3581,7 @@ if ($docset_count == 1) {
             # A misread archetype deletes assure-stage rows silently, and those
             # are the threat models and compliance records. Withhold them until
             # the archetype is confirmed.
-            fail("documentation set marks the assure-stage row $id not-applicable while archetype confidence is low; confirm the archetype first")
+            fail("documentation set marks the assure-stage row $id not-applicable while $archetype_low; confirm the archetype first")
                 if $archetype_low && $stage eq 'assure';
             my ($predicate) = $detail =~ /revisit when[ \t]*:[ \t]*(.*)$/i;
             $predicate = defined $predicate ? $predicate : '';
@@ -3555,7 +3592,7 @@ if ($docset_count == 1) {
                     unless grep { $open_question{$_} } $detail =~ /\b(Q[1-9][0-9]*)\b/g;
             } else {
                 if ($state eq 'unknown' || $state eq 'hint') {
-                    fail("documentation set excludes $id on evidence state '$state'; only absent or by-design may exclude");
+                    fail("documentation set excludes $id on evidence state '$state'; only absent, by-design, or present-elsewhere may exclude");
                 } elsif ($state !~ /^(?:absent|by-design|present-elsewhere)$/) {
                     fail("documentation set excludes $id without an evidence state; the cell must open with 'absent:', 'by-design:', or 'present-elsewhere:'");
                 }
@@ -3584,9 +3621,7 @@ if ($docset_count == 1) {
         unless $boundary;
 }
 
-my $decisions_count = scalar grep { $_ eq '## Decisions' } @lines;
-fail("expected exactly one ## Decisions section, found $decisions_count")
-    if $decisions_count != 1;
+my $decisions_count = section_count('Decisions');
 
 if ($decisions_count == 1) {
     my $current_decision;
@@ -3636,16 +3671,18 @@ if ($decisions_count == 1) {
                 unless exists $falsifier_field{$decision}{$field};
         }
         if (exists $falsifier_field{$decision}{Signal}) {
-            my $signal = lc $falsifier_field{$decision}{Signal};
+            (my $signal = lc $falsifier_field{$decision}{Signal}) =~ s/^[(\[]+//;
             fail("decision $decision Signal is too vague to observe")
                 if length($signal) < 12
                     || $signal =~ /^(?:metric|event|signal|performance|usage|something|tbd)\b/;
         }
         if (exists $falsifier_field{$decision}{'Failure boundary'}) {
             my $boundary = lc $falsifier_field{$decision}{'Failure boundary'};
+            # An id such as D1, R-1.1, R-SEC-4, or GP-101 is not a threshold.
+            (my $scan = $boundary) =~ s/\b(?:[da][1-9][0-9]*|gp-[0-9]+|r-[a-z0-9.-]*[0-9])\b//g;
             fail("decision $decision Failure boundary lacks an observable event or numeric threshold")
                 if length($boundary) < 12
-                    || $boundary !~ /(?:[0-9]|exceed|below|above|unavailable|removed|reject|prohibit|deprecat|ship|cannot|breach|change|timeout|error)/;
+                    || $scan !~ /(?:[0-9]|exceed|below|above|unavailable|removed|reject|prohibit|deprecat|ship|cannot|breach|change|timeout|error)/;
         }
         if (exists $falsifier_field{$decision}{'Replan action'}) {
             my $action = lc $falsifier_field{$decision}{'Replan action'};
@@ -3681,29 +3718,35 @@ if (@errors) {
     exit 1;
 }
 
+# Every FAIL exits 1, drift and I/O included; 2 stays the usage code.
+sub bail {
+    print STDERR "FAIL $plan_file: $_[0]\n";
+    exit 1;
+}
+
+# A signal, or a shell that never started, is not an exit status.
+sub rerun {
+    my ($what, $command) = @_;
+    system('sh', '-c', $command);
+    bail("$what " . ($? == -1 ? "could not start: $!"
+        : $? & 127 ? 'was killed by signal ' . ($? & 127) : 'exited ' . ($? >> 8))) if $?;
+}
+
 if ($drift_phase ne '') {
     my ($phase) = grep { $_->{number} == $drift_phase } @phases;
-    if (!defined $phase) {
-        die "FAIL $plan_file: drift phase $drift_phase does not exist\n";
-    }
+    bail("drift phase $drift_phase does not exist") unless defined $phase;
     my @completed = grep { $tasks[$_]{done} } @{$phase->{tasks}};
-    if (@completed != @{$phase->{tasks}}) {
-        die "FAIL $plan_file: drift phase $drift_phase is not complete\n";
-    }
+    bail("drift phase $drift_phase is not complete") if @completed != @{$phase->{tasks}};
 
     for my $label (sort keys %recheck_inventory) {
-        if ($label eq 'intake') {
-            die "FAIL $plan_file: recheck inventory label intake is not a file path\n";
-        }
+        bail('recheck inventory label intake is not a file path') if $label eq 'intake';
         open my $evidence_fh, '<:raw', $label
-            or die "FAIL $plan_file: recheck evidence $label cannot be read: $!\n";
+            or bail("recheck evidence $label cannot be read: $!");
         local $/;
         my $bytes = <$evidence_fh>;
         close $evidence_fh;
-        my $actual = sha256_hex($bytes);
-        if ($actual ne $recheck_inventory{$label}) {
-            die "FAIL $plan_file: recheck evidence drifted: $label\n";
-        }
+        bail("recheck evidence drifted: $label")
+            if sha256_hex($bytes) ne $recheck_inventory{$label};
         print "recheck evidence ok: $label\n";
     }
 
@@ -3713,22 +3756,18 @@ if ($drift_phase ne '') {
     } else {
         @sample_positions = (0, int($#completed / 2), $#completed);
     }
-    my %sample_seen;
     for my $position (@sample_positions) {
         my $task = $tasks[$completed[$position]];
-        next if $sample_seen{$task->{id}}++;
         my ($command) = $task->{fields}{Verify}[0] =~ /^`(.*)`$/;
         print "drift sample $task->{id}: $command\n";
-        system('sh', '-c', $command);
-        die "FAIL $plan_file: drift sample $task->{id} exited " . ($? >> 8) . "\n" if $?;
+        rerun("drift sample $task->{id}", $command);
     }
 
     # A phase of superseded tasks did no work, so it has no outcome to reprove.
     if (@completed) {
         my $checkpoint = $phase->{checkpoint_verify};
         print "checkpoint Phase $drift_phase: $checkpoint\n";
-        system('sh', '-c', $checkpoint);
-        die "FAIL $plan_file: Phase $drift_phase checkpoint exited " . ($? >> 8) . "\n" if $?;
+        rerun("Phase $drift_phase checkpoint", $checkpoint);
     }
 }
 
@@ -3866,11 +3905,11 @@ if ($emit_json ne '') {
     my $json = JSON::PP->new->utf8->canonical(1)->pretty->encode(\%document);
     my $json_tmp = "$emit_json.tmp.$$";
     open my $json_fh, '>:raw', $json_tmp
-        or die "FAIL $json_tmp: cannot write: $!\n";
+        or bail("cannot write $json_tmp: $!");
     print {$json_fh} $json;
     close $json_fh;
     rename $json_tmp, $emit_json
-        or die "FAIL $emit_json: cannot replace atomically: $!\n";
+        or bail("cannot replace $emit_json atomically: $!");
 }
 
 print "ok   $plan_file\n";
@@ -3891,6 +3930,21 @@ PERL
 # Bash 3.2, Perl, and a copy of validate-plan.sh are sufficient.
 
 set -eu
+
+usage() {
+  echo "Usage: $0 [PLAN.mdx] [OUTPUT.json]" >&2
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) usage; exit 0 ;;
+    -*) usage; echo "Unknown option: $arg" >&2; exit 2 ;;
+  esac
+done
+if [ "$#" -gt 2 ]; then
+  usage
+  exit 2
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLAN_FILE="${1:-.godplans/PLAN.mdx}"

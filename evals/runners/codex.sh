@@ -24,9 +24,10 @@ command -v codex >/dev/null 2>&1 || { echo "codex CLI not found" >&2; exit 2; }
 # $CODEX_HOME/skills and $HOME/.agents/skills as well as the project, so on a
 # machine with godplans (or its sibling skills) installed globally, both arms
 # would silently load them and the comparison would measure nothing. Both
-# runners isolate identically; the only difference between arms is the
-# project-local skill link below. Auth and settings are copied so the arms
-# share one model and one reasoning effort.
+# runners isolate identically; the only isolation difference between arms is
+# the project-local skill link below (the control also reads the neutral
+# REQUEST.baseline.md). Auth and settings are copied so the arms share one
+# model and one reasoning effort.
 REAL_CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 mkdir -p "$ISO_CODEX_HOME"
 [ -f "$REAL_CODEX_HOME/auth.json" ] && cp "$REAL_CODEX_HOME/auth.json" "$ISO_CODEX_HOME/auth.json"

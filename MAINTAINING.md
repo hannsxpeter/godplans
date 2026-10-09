@@ -30,7 +30,7 @@ Two checks hold the surfaces together:
 
 Never hand-edit a version string, including the badge. `install.sh` reads the version from SKILL.md when it runs, so it needs no edit.
 
-Semver, as practiced so far: patch releases carry documentation, CI, or correctness fixes (1.11.1, 1.12.1, 1.12.2, 1.12.3). Minor releases add requirements, phases, domains, or validator checks (1.12.0, 1.13.0, 1.14.0). There has been no major release since 1.0.0.
+Semver, as practiced so far: patch releases carry documentation, CI, or correctness fixes (1.11.1, 1.12.1, 1.12.2, 1.12.3). Minor releases add requirements, phases, domains, or validator checks (1.12.0, 1.13.0, 1.14.0, 1.15.0). There has been no major release since 1.0.0.
 
 ## Ritual: adding a domain module
 
@@ -52,7 +52,7 @@ Semver, as practiced so far: patch releases carry documentation, CI, or correctn
    - the "core move" sentence and the lineage paragraph, when the module inverts an auditor or descends from a new source (no check);
    - the File map count, "N domain modules" (no check);
    - the Phase 2 overlay list, when you add an overlay (no check).
-7. **Plugin metadata.** Copy the new SKILL.md description verbatim into `plugins/godplans/.claude-plugin/plugin.json` and the godplans entry of `.claude-plugin/marketplace.json` (`description-parity`). Change SKILL.md first, then copy.
+7. **Plugin metadata.** Copy the new SKILL.md description verbatim into `plugins/godplans/.claude-plugin/plugin.json` and the godplans entry of `.claude-plugin/marketplace.json` (`description-parity`). Change SKILL.md first, then copy. The marketplace tagline, `metadata.description`, copies the package.json `description` instead, so it changes only when that does (`description-parity` too).
 8. **Discovery and plan format** (no check). In `references/discovery.md`, update:
    - the deferrable set or the "Never deferrable" list;
    - the "Hard rules" line, when the domain has its own applicability rule;
@@ -78,12 +78,13 @@ Semver, as practiced so far: patch releases carry documentation, CI, or correctn
     - Add expectations to existing cases whose disposition is certain. 1.14.0 expects business applicable in greenfield-saas and excluded in weekend-library.
     - Add the case to the table in `evals/README.md` (no check).
 
-    Leave `evals/cases/replan-preserves-history/INPUT/.godplans/PLAN.mdx` alone. It is an old-format plan whose matrix lists only security and database, so a replan run has to add every missing row, business included, as a delta.
+    Leave `evals/cases/replan-preserves-history/INPUT/.godplans/PLAN.mdx` alone. It is an old-format plan whose matrix lists only security and database, so a replan run has to add every missing row, business included, as a delta. It ships no companion and predates `--emit-json`, so it also exercises the Phase 0 path where the half-life measurement cannot run.
 16. **Replan.** A plan written before the domain fails the new validator with "applicability matrix is missing domain <name>". SKILL.md (Modes, Replan) already tells the agent to add the matrix row, the frontmatter entry, and (when applicable) the disposition line, to re-point any documentation row whose catalog owner moved, and to treat an applicable new domain as material. Confirm the message still matches that rule, and say in the CHANGELOG that existing plans need a replan.
-17. **Counts in prose** (no check). Update:
-    - in README.md: the "planning domains" badge, the domain-pass node in the How it works diagram and the sentence that lists the passes, the repository map's module count, and the lineage table and source count when the module inverts a new source;
+17. **Counts and lists in prose** (no check). Update:
+    - in README.md: the "planning domains" badge, the domain-pass node in the How it works diagram and the sentence that lists the passes, the slim-core paragraph (its core list for a core module, or "The other fourteen domain modules" for a lazy one), the repository map's module count, and the lineage table and source count when the module inverts a new source;
     - the counts in docs/ABOUT.md;
-    - the "N domain modules" ground rule in CONTRIBUTING.md.
+    - the "N domain modules" ground rule in CONTRIBUTING.md and the "N domain modules" bullet in AGENTS.md;
+    - in docs/ARCHITECTURE.md: the "Domain modules (N)" row, the core and lazy lists and, for a core module, the "five load-bearing domains" count under "Core and lazy modules", and the `%deferrable_domain`, `%never_excludable`, and `%overlay_domains` rows when step 2 changed them.
 18. **Generate and check.** Run `npm run generate`, then `npm run check`. Release it as a minor version, as 1.14.0 was.
 
 ## The portable-core budget
@@ -111,7 +112,7 @@ npm run metrics:context
 node -e 'const m=require("./evals/metrics/context-cost.json"); const [name, s]=Object.entries(m.core_modules).sort((a,b)=>a[1].bytes-b[1].bytes)[0]; console.log("portable core:", m.portable_core.bytes, "bytes; smallest core module:", name, s.bytes, "bytes")'
 ```
 
-The headroom is the budget minus the portable core. It must stay below the smallest core module (compliance today), so a module-sized addition trips the gate.
+The headroom is the budget minus the portable core. It must stay below the smallest core module (compliance today), so a module-sized addition trips the gate. `tests/portable-prompt.test.sh` enforces both bounds, reading module sizes from the source files, and names the highest budget that keeps the lower bound.
 
 ## Ritual: refresh dated facts
 
@@ -121,8 +122,10 @@ Some modules cite facts that expire. Review them at least every six months, and 
 - `references/ux.md`, decision 7 (consent and cancellation symmetry): the FTC click-to-cancel rule was vacated on 8 July 2025 and is not cited as law.
 - `references/compliance.md`: the Anthropic Usage Policy version it names (effective 2025-09-15), the Consumer Terms, and the support article it cites. The module itself tells planners to re-check those URLs on compliance-sensitive projects.
 - `references/security.md`, its Lineage: the standards editions secauditor anchors to (OWASP 2025 and 2021, the API Top 10 2023).
+- `references/agent-memory.md`: the Pillars release it pins (1.2.2, released 2026-08-04) in its Lineage, R-MEM-2, R-MEM-16, two task seeds, and the rubric. Compare with https://github.com/hannsxpeter/pillars/releases and the newest tag's canonical AGENTS.md; from 1.1.0 to 1.2.2 only its version references changed.
+- `references/seo.md`, decisions 2, 4, and 5, R-SEO-13, R-SEO-14, and the score caps: AI crawler names and purposes, the llms.txt status, the FAQ, HowTo, and sitelinks search box changes, and seoauditor's floor of 69, taken from seoauditor's `references/facts.md` and SKILL.md in hannsxpeter/auditor-suite (facts reviewed 2026-09-26).
 
-To refresh: check each fact against its source, then update the review date in business.md. When productauditor's `facts.md` has a newer "Last reviewed" date, compare the two first. Then run `npm run generate`. business.md and ux.md are lazy, so editing them changes only the context metrics. compliance.md and security.md are inlined in the portable core, so editing them also changes PROMPT.md and counts against the budget. Record the review in the CHANGELOG.
+To refresh: check each fact against its source, then update the review date where the module records one: the business.md Lineage and seo.md's R-SEO-14 (agent-memory.md pins a version, not a date). When productauditor's or seoauditor's `facts.md` has a newer "Last reviewed" date, compare it with the module first. Then run `npm run generate`. business.md, ux.md, seo.md, and agent-memory.md are lazy, so editing them changes only the context metrics. compliance.md and security.md are inlined in the portable core, so editing them also changes PROMPT.md and counts against the budget. Record the review in the CHANGELOG.
 
 In the same pass, confirm that the lineage links resolve: the README Lineage table, the "descends from" paragraph in SKILL.md, docs/ABOUT.md, and each module's Lineage section. No check follows links. The seven standalone auditor repositories were deleted on 2026-07-14, when they were folded into hannsxpeter/auditor-suite, and their links went dead without any failure.
 
@@ -156,4 +159,10 @@ The README's head-to-head build-outcome result measured godplans 1.9.0 on 2026-0
 
 ## Vendored code
 
-`skills/godplans/scripts/style-stats.py` is vendored by copy from hannsxpeter/codedna (`skill/scripts/codedna_stats.py`, MIT). Neither repository depends on the other at run time. A fix travels between them as an edit to the file, never as a reference. `tests/style-stats.sh` covers the copy here.
+`skills/godplans/scripts/style-stats.py` is vendored by copy from hannsxpeter/codedna (`skill/scripts/codedna_stats.py`, MIT). The base is codedna v1.0.4 (tag commit `645ea5a`; at that tag the file had last changed in `4f75a6a`), and the script's docstring records the base and the local fixes. Neither repository depends on the other at run time. A fix travels between them as an edit to the file, never as a reference. When either copy changes, diff the two files and port fixes in both directions, then run `bash tests/style-stats.sh`, which covers the copy here.
+
+Where the copies stand against codedna v1.1.1 (`f2953c8`):
+
+- Local fixes codedna lacks: bodyless declarations and `.d.ts` files are not measured as functions, the boolean-prefix share counts distinct names, and a Python comparison is not an assignment (1.14.0); wrapped Python signatures, the docstring after one, and arrow functions whose parameters wrap are measured; languages with equal file counts sort by name. codedna fixes identifiers counted under two kinds its own way.
+- Taken from codedna v1.1.1: sorted file paths, sampled evenly above the 800-file per-language cap.
+- Not taken from codedna: the git-aware file listing, the `.mts`, `.cts`, `.cc`, `.cxx`, `.hpp`, and `.kts` extensions, quote counts that skip comments, docstrings, and regex literals, and the v1.1.0 comment-voice and error-message-voice statistics.

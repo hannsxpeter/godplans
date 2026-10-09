@@ -138,8 +138,11 @@ let cost = null;
 if (provider === 'claude') {
   result = doc.result || '';
   const usage = doc.usage || {};
-  input = Number(usage.input_tokens || 0);
+  // Anthropic's input_tokens excludes cache reads and cache writes. Codex
+  // counts cached input inside input_tokens, so add both to compare totals.
   cached = Number(usage.cache_read_input_tokens || 0);
+  const created = Number(usage.cache_creation_input_tokens || 0);
+  input = Number(usage.input_tokens || 0) + cached + created;
   output = Number(usage.output_tokens || 0);
   cost = doc.total_cost_usd ?? null;
 } else {
@@ -167,8 +170,10 @@ NODE
 
 if [ "$ARM" = "skill" ]; then
   prompt_kind="skill-request"
-else
+elif [ "$PROMPT_SOURCE" = "$CASE_DIR/REQUEST.baseline.md" ]; then
   prompt_kind="neutral-baseline-request"
+else
+  prompt_kind="fallback-skill-phrased-request-UNFAIR"
 fi
 if [ "$PROVIDER" = "claude" ]; then
   customization_mode="safe-mode"
@@ -186,6 +191,21 @@ printf '%s\n' \
   "reasoning_effort=$EFFORT" \
   > "$OUTPUT_DIR/RUNNER.txt"
 sed -n '1,$p' "$USAGE" >> "$OUTPUT_DIR/RUNNER.txt"
+
+# Print the plan the control wrote, preferring the path the neutral request
+# names (PLAN.md) and never taking an INPUT fixture the control left unchanged
+# (a replan case's prior .godplans/PLAN.mdx) as its own plan.
+control_plan() {
+  for candidate in PLAN.md plan.md PLAN.mdx .godplans/PLAN.mdx; do
+    [ -s "$WORK/$candidate" ] || continue
+    if [ -f "$CASE_DIR/INPUT/$candidate" ] && cmp -s "$WORK/$candidate" "$CASE_DIR/INPUT/$candidate"; then
+      continue
+    fi
+    printf '%s\n' "$WORK/$candidate"
+    return 0
+  done
+  return 1
+}
 
 case "$OUTPUT" in
   */PLAN.mdx)
@@ -211,13 +231,9 @@ case "$OUTPUT" in
       cp "$WORK/.godplans/PLAN.mdx" "$OUTPUT"
       cp "$WORK/.godplans/PLAN.json" "$OUTPUT_DIR/PLAN.json"
       cp "$WORK/.godplans/validate-plan.sh" "$OUTPUT_DIR/validate-plan.sh"
+    elif plan=$(control_plan); then
+      cp "$plan" "$OUTPUT"
     else
-      for candidate in "$WORK/.godplans/PLAN.mdx" "$WORK/PLAN.mdx" "$WORK/PLAN.md" "$WORK/plan.md"; do
-        if [ -s "$candidate" ]; then
-          cp "$candidate" "$OUTPUT"
-          exit 0
-        fi
-      done
       cp "$LAST" "$OUTPUT" 2>/dev/null || : > "$OUTPUT"
     fi
     ;;
@@ -226,7 +242,13 @@ case "$OUTPUT" in
       echo "$PROVIDER emitted a plan for a refusal case" >&2
       exit 1
     fi
-    cp "$LAST" "$OUTPUT" 2>/dev/null || : > "$OUTPUT"
+    if [ "$ARM" = "baseline" ] && plan=$(control_plan); then
+      # The control planned a request it should have refused. Record the plan
+      # so the refusal assertions fail against real evidence.
+      cp "$plan" "$OUTPUT"
+    else
+      cp "$LAST" "$OUTPUT" 2>/dev/null || : > "$OUTPUT"
+    fi
     ;;
   *)
     echo "unsupported output path: $OUTPUT" >&2

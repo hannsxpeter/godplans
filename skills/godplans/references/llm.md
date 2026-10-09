@@ -19,7 +19,7 @@ Descends from llmauditor, the read-only end-to-end audit of LLM integrations tha
 
 ## Plan requirements
 
-The inversion pass distributes these onto tasks via Requirements: lines. De-duplication follows llmauditor's ownership map: each obligation lives in exactly one requirement (injection boundary in R-LLM-1 with construction hygiene in R-LLM-2, schema-validate-before-use in R-LLM-14, loop control in R-LLM-22, cache spend in R-LLM-15, swallowed errors in R-LLM-13, eval gate in R-LLM-17), so a task never satisfies the same check twice under two names. R-LLM-20 through R-LLM-22 apply only when the applicability matrix marks RAG or agents in scope.
+The inversion pass distributes these onto tasks via Requirements: lines. De-duplication follows llmauditor's ownership map: each obligation lives in exactly one requirement (injection boundary in R-LLM-1 with construction hygiene in R-LLM-2, schema-validate-before-use in R-LLM-14, loop control in R-LLM-22, cache spend in R-LLM-15, swallowed errors in R-LLM-13, eval gate in R-LLM-17), so a task never satisfies the same check twice under two names. R-LLM-20 and R-LLM-21 apply only when the plan includes retrieval, and R-LLM-22 only when it includes an agent loop; otherwise the module disposition drops them (`dropped-by archetype`) with the reason.
 
 1. R-LLM-1: PLAN.mdx declares the usage paradigm and exposure profile per LLM feature, and contains a trust-boundary map naming every untrusted content source, every privileged channel, every output sink, and any lethal-trifecta path with its planned mitigation. Criterion: WHEN the plan includes any model call, THE PLAN SHALL contain a trust-boundary map in which each lethal-trifecta path (private data + untrusted content + external action) names a structural mitigation, not a prompt instruction.
 2. R-LLM-2: The plan specifies a central versioned prompt registry with strict role separation: durable instructions in the system or developer role, untrusted values only in the user role, delimited and labeled as data, with delimiters documented as hygiene and never as the security boundary. Criterion: WHEN a task builds a prompt, THE PLAN SHALL route it through the registry and SHALL NOT place user or retrieved content in the system role.
@@ -51,49 +51,49 @@ The inversion pass distributes these onto tasks via Requirements: lines. De-dupl
   - Files: src/llm/models.ts, src/llm/config.ts
   - Depends on: none
   - Acceptance: exactly one file exports model ids; every id is a dated snapshot (no -latest, no bare alias); per-environment selection maps test and dev to a cheap tier; a comment names the deprecation review cadence
-  - Verify: grep -rn "latest" src/llm/models.ts | wc -l returns 0 and grep -c "20[0-9][0-9]" src/llm/models.ts is at least 1
+  - Verify: ! grep -n latest src/llm/models.ts && grep -qE '20[0-9]{2}' src/llm/models.ts
   - Requirements: R-LLM-7, R-LLM-8
 - [ ] GP-xxx Build versioned prompt registry with role separation
   - Files: src/llm/prompts/registry.ts, src/llm/prompts/versions/
   - Depends on: GP-xxx pinned model configuration
   - Acceptance: all prompt templates live in the registry with a version id; system-role templates contain no user or retrieved-content interpolation slot; untrusted values are injected only into user-role slots labeled as data; volatile values serialize after the cache breakpoint
-  - Verify: grep -rn "system" src --include="*.ts" -l | xargs grep -L "registry" | wc -l returns 0 for files constructing system prompts outside the registry
+  - Verify: test -f src/llm/prompts/registry.ts && test -z "$(grep -rlE --include='*.ts' "role: ['\"]system" src | grep -v '^src/llm/prompts/')"
   - Requirements: R-LLM-2, R-LLM-3
 - [ ] GP-xxx Implement validated output layer
   - Files: src/llm/output/schemas.ts, src/llm/output/parse.ts
   - Depends on: none
   - Acceptance: every response parse gates on stop_reason first with named branches for truncation, refusal, and content_filter; every schema sets additionalProperties false and marks all fields required; parse-failure retry feeds the validation error back into the retry prompt
-  - Verify: grep -c "additionalProperties: false" src/llm/output/schemas.ts is at least 1 and grep -c "stop_reason" src/llm/output/parse.ts is at least 1
+  - Verify: grep -q 'additionalProperties: false' src/llm/output/schemas.ts && grep -q stop_reason src/llm/output/parse.ts
   - Requirements: R-LLM-10, R-LLM-14
 - [ ] GP-xxx Wrap all model calls in a reliability and tracing client
   - Files: src/llm/client.ts, src/llm/tracing.ts
   - Depends on: GP-xxx pinned model configuration
   - Acceptance: a single module-scope client with per-call timeout and operation deadline; retry predicate names RateLimitError and 429/529/503 and honors Retry-After; every call records prompt, response, model, latency, outcome, and the usage block under a shared trace id; redaction runs on the logging path
-  - Verify: grep -c "Retry-After" src/llm/client.ts is at least 1 and grep -c "usage" src/llm/tracing.ts is at least 1
+  - Verify: grep -qi retry-after src/llm/client.ts && grep -q usage src/llm/tracing.ts
   - Requirements: R-LLM-12, R-LLM-13, R-LLM-15, R-LLM-19
 - [ ] GP-xxx Enforce trust boundaries at every model-output sink
   - Files: src/llm/boundaries.ts, src/llm/sinks/
   - Depends on: none
   - Acceptance: SQL built from model output is parameterized; shell dispatch uses argv arrays; model-emitted URLs pass an allowlist before fetch; no eval or exec on model output anywhere in src
-  - Verify: grep -rn "eval(" src --include="*.ts" | grep -v "test" | wc -l returns 0
+  - Verify: ! grep -rnE --include='*.ts' --exclude='*.test.ts' '(^|[^A-Za-z0-9_.])eval\(|new Function\(' src
   - Requirements: R-LLM-1, R-LLM-4, R-LLM-5
 - [ ] GP-xxx Stand up eval harness with CI regression gate
   - Files: evals/golden/, evals/run.ts, .github/workflows/evals.yml, evals/baseline.json
   - Depends on: GP-xxx validated output layer
   - Acceptance: golden dataset includes negative, adversarial, and refusal cases; CI invokes the eval script on changes to prompts, few-shots, or model ids; a committed baseline with a regression threshold blocks merge; tests use cassettes with temperature 0, never a live provider
-  - Verify: grep -c "evals/run" .github/workflows/evals.yml is at least 1 and test -f evals/baseline.json
+  - Verify: grep -q evals/run .github/workflows/evals.yml && test -f evals/baseline.json
   - Requirements: R-LLM-17, R-LLM-18
 - [ ] GP-xxx Pin embedding pipeline and query-time ACL filter (RAG projects)
   - Files: src/rag/embeddings.ts, src/rag/query.ts, src/rag/reindex.ts
   - Depends on: GP-xxx pinned model configuration
   - Acceptance: one exported embedding model and dimension constant imported by both ingestion and query; the query builder passes a tenant ACL filter parameter on every search; a reindex script exists and is referenced by a deploy hook or cron entry
-  - Verify: grep -rn "EMBEDDING_MODEL" src/rag | grep -c "import" is at least 2 and grep -c "filter" src/rag/query.ts is at least 1
+  - Verify: test "$(grep -rn EMBEDDING_MODEL src/rag | grep -c import)" -ge 2 && grep -q filter src/rag/query.ts
   - Requirements: R-LLM-20, R-LLM-21
 - [ ] GP-xxx Bound the agent loop and gate destructive tools (agent projects)
   - Files: src/agent/loop.ts, src/agent/tools/, src/agent/approval.ts
   - Depends on: GP-xxx reliability and tracing client
   - Acceptance: the loop enforces max iterations, cumulative token budget, and wall-clock deadline as separate checks; destructive tools call the approval gate default-on with a dry-run mode; tool errors return structured results with an error flag; termination requires the goal predicate, not merely no tool call
-  - Verify: grep -c "maxIterations" src/agent/loop.ts is at least 1 and grep -c "approval" src/agent/tools/*.ts is at least 1
+  - Verify: grep -q maxIterations src/agent/loop.ts && grep -q approval src/agent/tools/*.ts
   - Requirements: R-LLM-22
 
 ## Self-audit rubric

@@ -47,7 +47,7 @@ Descends from launch-ready, the shipping-tier ready-suite skill that puts a depl
 6. R-LAUNCH-6: PLAN.mdx bakes the banned-word audit into copy acceptance: no instance of seamless, powerful, revolutionary, effortless, intelligent, cutting-edge, game-changing, unlock, supercharge, streamline, empower, elevate, robust, best-in-class, leading, enterprise-grade, or world-class above the fold, each replaced with the concrete claim it hides. Criterion: WHEN copy tasks are planned THE PLAN SHALL include a grep-verifiable banned-word check as an acceptance condition on every copy surface.
 7. R-LAUNCH-7: PLAN.mdx enforces copy voice rules: active voice, second person, named subjects, concrete over abstract, and no AI self-reference in the hero unless the product is an AI product and the AI is the differentiator. Criterion: IF the product is not an AI product THE PLAN SHALL forbid AI self-reference in hero acceptance conditions.
 8. R-LAUNCH-8: PLAN.mdx resolves brand tokens: either it references the build section's visual identity or it defines the minimum viable identity (one brand color, two grays, one or two typefaces, a real icon library), so no launch surface ships on library defaults. Criterion: WHEN the landing or OG tasks are planned THE PLAN SHALL name the brand color hex and typefaces they consume.
-9. R-LAUNCH-9: PLAN.mdx plans the 12-item launch-day SEO checklist as verifiable acceptance conditions: exactly one h1, title under 60 characters, meta description under 160, canonical URL, robots.txt, sitemap.xml, complete OG tags, complete Twitter tags, schema.org JSON-LD, HTTPS, Core Web Vitals green, and a grep for leftover template noindex. Criterion: WHEN the SEO task is planned THE PLAN SHALL list all 12 items with a command-checkable condition each, including the noindex grep.
+9. R-LAUNCH-9: PLAN.mdx plans the 12-item launch-day SEO checklist as verifiable acceptance conditions: exactly one h1, title under 60 characters, meta description under 160, canonical URL, robots.txt, sitemap.xml, complete OG tags, complete Twitter tags, schema.org JSON-LD, HTTPS, Core Web Vitals green, and a grep for leftover template noindex on every route the R-SEO-1 matrix marks indexable (the R-SEO-5 environment guard and routes noindexed by design are not leftovers). Criterion: WHEN the SEO task is planned THE PLAN SHALL list all 12 items with a command-checkable condition each, including the noindex grep.
 10. R-LAUNCH-10: PLAN.mdx specifies the OG card to spec: exactly 1200x630, under 300KB, legible at 600x315 half size, brand color plus product name plus a 6-10 word value prop, nothing critical in the outer 40px. Criterion: WHEN the OG card task is planned THE PLAN SHALL state all five spec conditions as acceptance criteria with an image-dimension verify command.
 11. R-LAUNCH-11: PLAN.mdx schedules the five-channel OG preview (X, LinkedIn via Post Inspector, Slack, iMessage, Discord) with screenshots before D-1 and before any link ships, because LinkedIn caches the card for 7 days. Criterion: WHEN the runbook is planned THE PLAN SHALL place the five-channel preview task at or before D-1 and gate all link-sharing tasks on it.
 12. R-LAUNCH-12: PLAN.mdx plans the waitlist as double opt-in: a two-field-max capture form, an inline thank-you state naming the confirmation email, only confirmed addresses on the list, and a welcome email within 5 minutes of confirmation. Criterion: WHEN the waitlist task is planned THE PLAN SHALL require double opt-in and the 5-minute welcome as acceptance conditions.
@@ -60,7 +60,7 @@ Descends from launch-ready, the shipping-tier ready-suite skill that puts a depl
 19. R-LAUNCH-19: PLAN.mdx contains the D-7 to D+7 runbook as a timezone-aware calendar with an owner and a pass criterion per item, a launch-day hour-by-hour schedule, and a retrospective task with targets set before launch so results are measured against a baseline. Criterion: WHEN the runbook is planned THE PLAN SHALL give every row a date, owner, and pass criterion, and the retrospective SHALL reference pre-set numeric targets.
 20. R-LAUNCH-20: PLAN.mdx couples launch to its siblings: the status page is hosted out-of-band from the app infra, no launch date lands atop an in-progress schema migration from the deploy section, and any at-risk SLO from the observability section gets an SLO-watch row in the runbook. Criterion: IF the deploy section schedules a migration THE PLAN SHALL sequence the launch after its contract phase completes; WHEN a status page is planned THE PLAN SHALL host it off the app's infrastructure.
 21. R-LAUNCH-21: PLAN.mdx ends the launch phase with the cold proof test: a stranger on an unfamiliar device describes the product in under 15 seconds, clicks the CTA into a working waitlist, receives confirmation within 5 minutes, sees a correct OG preview from any of the five channels, and appears in analytics under the right UTM source. Criterion: WHEN the launch phase is planned THE PLAN SHALL include the cold proof test as its checkpoint with all five observations as must-haves.
-22. R-LAUNCH-22: For a public release, exactly one task cites this requirement to mark the first public activation action. It immediately follows and depends on the prepublication gate task citing R-ROAD-21, which in turn follows and depends on the latest hardening evidence task citing R-SEC-26. The gate records checked_at, hardening_revision, finding counts, policy, verdict, and validates owner, justification, accepted_at, and expires_at for permitted Critical risks. Any hardening change invalidates it. Criterion: WHEN a link, package, store artifact, service, model, or infrastructure surface will become public THE PLAN SHALL cite R-LAUNCH-22 only on the first activation task and place the R-ROAD-21 gate immediately before it; IF no public surface exists THE PLAN SHALL record `public_release: false` and omit both tasks.
+22. R-LAUNCH-22: For a public release, exactly one task cites this requirement to mark the first public activation action. It immediately follows and depends on the prepublication gate task citing R-ROAD-21, which in turn follows and depends on the latest hardening evidence task citing R-SEC-26. The gate records checked_at, hardening_revision, finding_counts, policy, verdict, and validates owner, justification, accepted_at, and expires_at for permitted Critical risks. Any hardening change invalidates it. Criterion: WHEN a link, package, store artifact, service, model, or infrastructure surface will become public THE PLAN SHALL cite R-LAUNCH-22 only on the first activation task and place the R-ROAD-21 gate immediately before it; IF no public surface exists THE PLAN SHALL record `public_release: false` and omit both tasks.
 
 Banned-word replacement table for R-LAUNCH-6. Each slop word is replaced with the concrete claim it hides, not deleted:
 
@@ -77,6 +77,8 @@ Banned-word replacement table for R-LAUNCH-6. Each slop word is replaced with th
 
 ## Task seeds
 
+Replace each `<...>` placeholder with the plan's real domain or URL; one left in makes its Verify a shell syntax error.
+
 - [ ] GP-xxx Write positioning document with substitution-tested sentences
   - Files: docs/launch/POSITIONING.md
   - Acceptance: four sentences present; each lists >=2 named competitors that fail substitution; three adjectives and three anti-adjectives; founder named
@@ -90,12 +92,12 @@ Banned-word replacement table for R-LAUNCH-6. Each slop word is replaced with th
 - [ ] GP-xxx Run banned-word and voice audit on all launch copy
   - Files: site/index.html, docs/launch/emails/
   - Acceptance: zero banned-word hits above the fold; no AI self-reference in hero; second person and active voice on hero
-  - Verify: ! grep -riE 'seamless|powerful|revolutionary|effortless|\bintelligent\b|cutting-edge|game-changing|\bunlock\b|supercharge|streamline|empower|elevate|robust|best-in-class|\bleading\b|world-class|enterprise-grade' site/index.html
+  - Verify: test -f site/index.html && ! grep -riE 'seamless|powerful|revolutionary|effortless|\bintelligent\b|cutting-edge|game-changing|\bunlock\b|supercharge|streamline|empower|elevate|robust|best-in-class|\bleading\b|world-class|enterprise-grade' site/index.html
   - Requirements: R-LAUNCH-6, R-LAUNCH-7
 - [ ] GP-xxx Ship launch-day SEO head and OG card to spec
   - Files: site/index.html, site/public/og.png, site/public/robots.txt, site/public/sitemap.xml
-  - Acceptance: title <60 chars; meta description <160; canonical, OG, Twitter, JSON-LD tags present; no noindex anywhere; og.png is 1200x630 and under 300KB
-  - Verify: ! grep -ri 'noindex' site/ && identify -format '%wx%h' site/public/og.png | grep -qx '1200x630'
+  - Acceptance: title <60 chars; meta description <160; canonical, OG, Twitter, JSON-LD tags present; no noindex on the indexable landing page (only the R-SEO-5 environment guard and routes noindexed by design emit it); og.png is 1200x630 and under 300KB
+  - Verify: grep -q 'rel="canonical"' site/index.html && ! grep -qi noindex site/index.html && identify -format '%wx%h' site/public/og.png | grep -qx 1200x630
   - Requirements: R-LAUNCH-9, R-LAUNCH-10
 - [ ] GP-xxx Wire double opt-in waitlist and email sequence
   - Files: site/waitlist.html, api/subscribe.ts, docs/launch/emails/sequence.md
@@ -105,7 +107,7 @@ Banned-word replacement table for R-LAUNCH-6. Each slop word is replaced with th
 - [ ] GP-xxx Authenticate sending domain
   - Files: docs/launch/dns-email-auth.md
   - Acceptance: SPF, DKIM, DMARC records documented with values; unsubscribe mechanism named; GDPR consent noted if applicable
-  - Verify: dig +short TXT _dmarc.example.com | grep -q 'v=DMARC1'
+  - Verify: dig +short TXT _dmarc.<domain> | grep -q 'v=DMARC1'
   - Requirements: R-LAUNCH-14
 - [ ] GP-xxx Write per-channel post plans and UTM registry
   - Files: docs/launch/channels.md, docs/launch/utm-registry.md
@@ -121,14 +123,14 @@ Banned-word replacement table for R-LAUNCH-6. Each slop word is replaced with th
   - Files: docs/release/PREPUBLICATION.md
   - Depends on: GP-HARDENING
   - Acceptance: records checked_at later than current hardening evidence, matching hardening_revision, finding_counts, policy, and verdict; validates owner, justification, accepted_at, and expires_at for permitted Critical risks; any later hardening change invalidates the pass
-  - Verify: test "$(git hash-object docs/security/HARDENING.md)" = "$(awk '/^hardening_revision:/ {print $2}' docs/release/PREPUBLICATION.md)" && grep -q '^verdict: pass$' docs/release/PREPUBLICATION.md
+  - Verify: test -f docs/security/HARDENING.md && test "$(git hash-object docs/security/HARDENING.md)" = "$(awk '/^hardening_revision:/ {print $2}' docs/release/PREPUBLICATION.md)" && grep -q '^verdict: pass$' docs/release/PREPUBLICATION.md
   - Requirements: R-ROAD-21
 
 - [ ] GP-xxx Perform the first public activation
   - Files: deployment or publication target for the selected product form
   - Depends on: GP-PREPUBLICATION
-  - Acceptance: the selected link, package, store artifact, service, model, or infrastructure surface becomes public only after the immediately preceding prepublication gate passes
-  - Verify: run the product-form-specific public availability check
+  - Acceptance: the selected link, package, store artifact, service, model, or infrastructure surface becomes public only after the immediately preceding prepublication gate passes; a package, store artifact, or model replaces the Verify probe with its registry or store availability query
+  - Verify: curl -fsS -o /dev/null <public-url>
   - Requirements: R-LAUNCH-22
 
 ## Self-audit rubric

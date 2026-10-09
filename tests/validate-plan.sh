@@ -3,6 +3,9 @@
 set -u
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# The drift fixtures rerun commands such as `test -f package.json`, which name
+# repository paths, so the suite runs from the root wherever it was started.
+cd "$ROOT_DIR" || exit 1
 VALIDATOR="$ROOT_DIR/skills/godplans/scripts/validate-plan.sh"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/godplans-validator.XXXXXX")"
 PASS_COUNT=0
@@ -212,7 +215,8 @@ None.
 
 ## Rules for executing agents
 
-Only approved or executing plans may be executed.
+> [!IMPORTANT]
+> Only approved or executing plans may be executed.
 
 ## Session log
 
@@ -305,13 +309,14 @@ VALIDATOR="$REPOSITORY_VALIDATOR"
 
 ACTUAL_CATALOG="$TMP_DIR/actual-catalog"
 EMBEDDED_CATALOG="$TMP_DIR/embedded-catalog"
+# Only definitions count: an id that starts a line (after an optional list
+# marker and **), the rule scripts/lint-parity.js and build-catalog.js share.
+# An id cited mid-sentence is a cross-reference and defines nothing.
 perl -ne '
   $inside = 1, next if /^## Plan requirements\s*$/;
   $inside = 0 if $inside && /^## /;
-  if ($inside) {
-    while (/(R-([A-Z][A-Z0-9-]*)-([0-9]+))/g) {
-      $seen{$2}{$3} = 1;
-    }
+  if ($inside && /^\s*(?:(?:[0-9]+\.|[-*])\s+)?(?:\*\*)?R-([A-Z][A-Z0-9-]*)-([0-9]+)/) {
+    $seen{$1}{$2} = 1;
   }
   if (eof) {
     $inside = 0;
@@ -434,6 +439,46 @@ new_case
 printf '\n## Open Questions\n\nDuplicate.\n' >> "$CASE_FILE"
 expect_fail "duplicate Open Questions" "expected exactly one ## Open Questions section, found 2" --allow-planning "$CASE_FILE"
 
+# Every skeleton section appears exactly once; Architecture and Agent memory
+# are owed while their domain is applicable, as both are in the fixture.
+for heading in "Scope and non-goals" "Compliance gate" "Requirements" "Architecture" "Style genome" "Agent memory" "Phases" "Rules for executing agents" "Session log"; do
+  new_case
+  HEADING=$heading perl -0pi -e 's/^## \Q$ENV{HEADING}\E$/## Notes on $ENV{HEADING}/m' "$CASE_FILE"
+  expect_fail "missing $heading section" "expected exactly one ## $heading section, found 0" --allow-planning "$CASE_FILE"
+done
+
+new_case
+printf '\n## Rules for executing agents\n\nA second copy.\n' >> "$CASE_FILE"
+expect_fail "duplicate executor rules" "expected exactly one ## Rules for executing agents section, found 2" --allow-planning "$CASE_FILE"
+
+# The executor rules open with the template's GFM alert, inside their own
+# section: the same alert elsewhere in the plan does not stand in for them.
+new_case
+perl -0pi -e 's/^> \[!IMPORTANT\]\n//m' "$CASE_FILE"
+expect_fail "executor rules without the IMPORTANT alert" "executor rules lack > [!IMPORTANT]" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^> \[!IMPORTANT\]\n//m; s/^(In scope: validator behavior\.)/> [!IMPORTANT]\n> $1/m' "$CASE_FILE"
+expect_fail "IMPORTANT alert outside the executor rules" "executor rules lack > [!IMPORTANT]" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^## Style genome$/## Style genome   /m' "$CASE_FILE"
+printf '\n## Style genome\n\nA second copy.\n' >> "$CASE_FILE"
+expect_fail "duplicate section behind trailing spaces" "expected exactly one ## Style genome section, found 2" --allow-planning "$CASE_FILE"
+
+# An excluded domain owes no section of its own.
+NO_MEMORY_PLAN="$TMP_DIR/excluded-agent-memory.mdx"
+cp "$BASE_PLAN" "$NO_MEMORY_PLAN"
+perl -0pi -e '
+  s/^\| agent-memory \| applicable \|[^\n]*\|$/| agent-memory | excluded | by-design: the fixture writes no agent instruction files; revisit when: any task writes an AGENTS.md or a pillar file |/m;
+  s/^(domains_applicable: \[[^\]]*), agent-memory(.*)$/$1$2/m;
+  s/^(domains_excluded: \[)/$1agent-memory, /m;
+  s/^- agent-memory: landed R-MEM-2\n//m;
+  s/, R-MEM-2,/,/;
+  s/^## Agent memory\n\nThe plan remains the source of truth\.\n\n//m
+' "$NO_MEMORY_PLAN"
+expect_pass "excluded agent-memory needs no Agent memory section" --allow-planning "$NO_MEMORY_PLAN"
+
 new_case
 perl -0pi -e 's/## Phase 2: Verification/## Phase 2: Release/' "$CASE_FILE"
 expect_fail "missing final Verification phase" "final phase must be Verification" --allow-planning "$CASE_FILE"
@@ -549,6 +594,18 @@ perl -0pi -e '
   s/- `intake` = `sha256:1111111111111111111111111111111111111111111111111111111111111111`/- `readme` = `sha256:2222222222222222222222222222222222222222222222222222222222222222`\n- `intake` = `sha256:1111111111111111111111111111111111111111111111111111111111111111`/
 ' "$PROVENANCE_PLAN"
 expect_pass "valid provenance inventory aggregate" --allow-planning "$PROVENANCE_PLAN"
+
+# A label is a repository-relative path: it may be a dotfile path, but it may
+# not climb out of the repository or start at the filesystem root.
+for label in '../outside.txt' '..' 'docs/../../etc/passwd'; do
+  new_case
+  LABEL=$label perl -0pi -e 's/(- `intake` = `sha256:[0-9a-f]{64}`)/$1\n- [recheck] `$ENV{LABEL}` = `sha256:2222222222222222222222222222222222222222222222222222222222222222`/' "$CASE_FILE"
+  expect_fail "provenance label $label climbs out" "Plan provenance inventory label $label must not contain a .. segment" --allow-planning "$CASE_FILE"
+done
+
+new_case
+perl -0pi -e 's/(- `intake` = `sha256:[0-9a-f]{64}`)/$1\n- [recheck] `\/etc\/passwd` = `sha256:2222222222222222222222222222222222222222222222222222222222222222`/' "$CASE_FILE"
+expect_fail "absolute provenance label" "malformed Plan provenance inventory item: - [recheck] \`/etc/passwd\`" --allow-planning "$CASE_FILE"
 
 new_case
 perl -0pi -e 's/## Product form\n/## Delivery form\n/' "$CASE_FILE"
@@ -718,6 +775,35 @@ new_case
 perl -0pi -e 's/Failure boundary: any supported platform ships without Perl/Failure boundary: things go badly/' "$CASE_FILE"
 expect_fail "falsifier boundary must be observable" "Failure boundary lacks an observable event or numeric threshold" --allow-planning "$CASE_FILE"
 
+# A cited id is not a number: D1, R-SEC-4, and the template's own placeholder
+# carry digits but no threshold.
+for boundary in "things go badly for D1" "things go badly for R-SEC-4 and GP-101" "(numeric threshold or observable event that kills D1)"; do
+  new_case
+  BOUNDARY=$boundary perl -0pi -e 's/Failure boundary: any supported platform ships without Perl/Failure boundary: $ENV{BOUNDARY}/' "$CASE_FILE"
+  expect_fail "falsifier boundary '$boundary'" "Failure boundary lacks an observable event or numeric threshold" --allow-planning "$CASE_FILE"
+done
+
+# A calendar quarter is a deadline, not an Open Questions id.
+new_case
+perl -0pi -e 's/Failure boundary: any supported platform ships without Perl/Failure boundary: no paying customer by Q2/' "$CASE_FILE"
+expect_pass "a calendar quarter counts as a boundary threshold" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Signal: Perl availability[^\n]*$/- Signal: (metric or event and its evidence source)/m' "$CASE_FILE"
+expect_fail "template Signal placeholder" "decision D1 Signal is too vague to observe" --allow-planning "$CASE_FILE"
+
+# Only the placeholder's opening bracket is stripped: a backticked metric whose
+# first segment is a vague word still names something observable.
+new_case
+perl -0pi -e 's/^- Signal: Perl availability[^\n]*$/- Signal: `usage.daily_active_tenants` from the analytics warehouse/m' "$CASE_FILE"
+expect_pass "a backticked metric name opens a Signal" --allow-planning "$CASE_FILE"
+
+# Trailing whitespace is invisible in Markdown, so it hides no heading or label.
+TRAILING_PLAN="$TMP_DIR/trailing-whitespace.mdx"
+cp "$BASE_PLAN" "$TRAILING_PLAN"
+perl -0pi -e 's/^## Decisions$/## Decisions  /m; s/^Falsifier:$/Falsifier: \t/m; s/^### Module disposition$/### Module disposition /m' "$TRAILING_PLAN"
+expect_pass "trailing whitespace on headings and labels" --allow-planning "$TRAILING_PLAN"
+
 new_case
 perl -0pi -e 's/### D1: portable runtime boundary/### D1 portable runtime boundary/' "$CASE_FILE"
 expect_fail "malformed decision heading" "malformed decision heading" --allow-planning "$CASE_FILE"
@@ -819,6 +905,30 @@ else
   record_fail "plan half-life rejection names GODPLANS_VALIDATOR" "missing hint: $output"
 fi
 
+# Options are refused rather than read as a plan path; usage errors exit 2.
+halflife_status() {
+  output=$("$HALFLIFE" "$@" 2>&1)
+  status=$?
+}
+halflife_status --help
+if [ "$status" -eq 0 ] && printf '%s\n' "$output" | grep -F "Usage:" >/dev/null; then
+  record_pass "plan half-life --help prints usage"
+else
+  record_fail "plan half-life --help prints usage" "status $status: $output"
+fi
+halflife_status --bogus
+if [ "$status" -eq 2 ] && printf '%s\n' "$output" | grep -F "Unknown option: --bogus" >/dev/null; then
+  record_pass "plan half-life refuses an unknown option"
+else
+  record_fail "plan half-life refuses an unknown option" "status $status: $output"
+fi
+halflife_status "$HISTORY_PLAN" "$TMP_DIR/extra.json" extra
+if [ "$status" -eq 2 ] && [ ! -e "$TMP_DIR/extra.json" ] && printf '%s\n' "$output" | grep -F "Usage:" >/dev/null; then
+  record_pass "plan half-life refuses a third argument"
+else
+  record_fail "plan half-life refuses a third argument" "status $status: $output"
+fi
+
 DRIFT_PLAN="$TMP_DIR/drift-check.mdx"
 cp "$BASE_PLAN" "$DRIFT_PLAN"
 perl -0pi -e '
@@ -866,6 +976,39 @@ else
   record_fail "phase-boundary provenance drift fails" "drift was not rejected: $output"
 fi
 
+# Dotfile and underscore paths are ordinary repository paths: a fresh
+# .godaudits/EVIDENCE.json is recorded as a recheck entry and recomputed.
+DOTFILE_DIR="$TMP_DIR/dotfile-repo"
+mkdir -p "$DOTFILE_DIR/.godaudits"
+printf '%s\n' '{"findings":[]}' > "$DOTFILE_DIR/.godaudits/EVIDENCE.json"
+printf '%s\n' 'title: site' > "$DOTFILE_DIR/_config.yml"
+EVIDENCE_DIGEST=$(shasum -a 256 "$DOTFILE_DIR/.godaudits/EVIDENCE.json" | awk '{print $1}')
+CONFIG_DIGEST=$(shasum -a 256 "$DOTFILE_DIR/_config.yml" | awk '{print $1}')
+AGGREGATE_DIGEST=$(node -e '
+  const crypto = require("node:crypto");
+  const entries = {
+    intake: "1111111111111111111111111111111111111111111111111111111111111111",
+    ".godaudits/EVIDENCE.json": process.argv[1],
+    "_config.yml": process.argv[2],
+  };
+  const input = Object.keys(entries).sort().map((key) => `${key}\t${entries[key]}\n`).join("");
+  process.stdout.write(crypto.createHash("sha256").update(input).digest("hex"));
+' "$EVIDENCE_DIGEST" "$CONFIG_DIGEST")
+DOTFILE_PLAN="$TMP_DIR/drift-dotfile.mdx"
+cp "$DRIFT_PLAN" "$DOTFILE_PLAN"
+EVIDENCE_DIGEST="$EVIDENCE_DIGEST" CONFIG_DIGEST="$CONFIG_DIGEST" AGGREGATE_DIGEST="$AGGREGATE_DIGEST" perl -0pi -e '
+  s/1c7ca1006bb3157ad989c1f1dd1cd1d6e8e2a44d9509821ffa43f3be205a12d5/$ENV{AGGREGATE_DIGEST}/g;
+  s/(- `intake` = `sha256:[0-9a-f]{64}`)/$1\n- [recheck] `.godaudits\/EVIDENCE.json` = `sha256:$ENV{EVIDENCE_DIGEST}`\n- `_config.yml` = `sha256:$ENV{CONFIG_DIGEST}`/;
+  s/`test -f package.json`/`test -f _config.yml`/g
+' "$DOTFILE_PLAN"
+expect_pass "dotfile and underscore provenance labels" --allow-planning "$DOTFILE_PLAN"
+output=$(cd "$DOTFILE_DIR" && "$VALIDATOR" --drift-check 1 "$DOTFILE_PLAN" 2>&1) && status=0 || status=$?
+if [ "$status" -eq 0 ] && printf '%s\n' "$output" | grep -F "recheck evidence ok: .godaudits/EVIDENCE.json" >/dev/null; then
+  record_pass "dotfile recheck label is recomputed"
+else
+  record_fail "dotfile recheck label is recomputed" "status $status: $output"
+fi
+
 new_case
 perl -0pi -e 's/^Checkpoint verify:.*\n//m' "$CASE_FILE"
 expect_fail "missing checkpoint verification" "Phase 1 is missing Checkpoint verify" --allow-planning "$CASE_FILE"
@@ -901,7 +1044,21 @@ expect_fail "load-bearing domain cannot be excluded" "applicability matrix canno
 
 new_case
 perl -0pi -e 's/### Module disposition\n/### Module notes\n/' "$CASE_FILE"
-expect_fail "missing module disposition" "expected a ### Module disposition block" --allow-planning "$CASE_FILE"
+expect_fail "missing module disposition" "expected exactly one ### Module disposition block under ## Applicability matrix, found 0" --allow-planning "$CASE_FILE"
+
+# Placement is part of the contract: the disposition follows the matrix table,
+# once, and the archetype block sits under ## Product form.
+new_case
+perl -0pi -e 's/(### Module disposition\n\n(?:- [^\n]*\n)+)//; $block = $1; s/(## Agent memory\n\nThe plan remains the source of truth\.\n)/$1\n$block/' "$CASE_FILE"
+expect_fail "module disposition outside the matrix" "found 0 there and 1 elsewhere" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^(- security: landed R-SEC-1)$/\n### Module disposition\n\n$1/m' "$CASE_FILE"
+expect_fail "module disposition split into two blocks" "expected exactly one ### Module disposition block under ## Applicability matrix, found 2" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/(### Archetype confidence\n\n(?:- [^\n]*\n)+)//; $block = $1; s/(## Agent memory\n\nThe plan remains the source of truth\.\n)/$1\n$block/' "$CASE_FILE"
+expect_fail "archetype confidence outside Product form" "### Archetype confidence must sit under ## Product form" --allow-planning "$CASE_FILE"
 
 new_case
 perl -0pi -e 's/^- roadmap: landed R-ROAD-1\n//m' "$CASE_FILE"
@@ -971,7 +1128,7 @@ expect_fail "excluded document without a tripwire" "documentation set excludes s
 
 new_case
 perl -0pi -e 's/^\| serve\.user-guide \| serve \| not-applicable \| launch \|[^\n]*\|$/| serve.user-guide | serve | not-applicable | launch | unknown: nobody asked who reads this; revisit when: the validator ships to users outside this repository |/m' "$CASE_FILE"
-expect_fail "excluded document on an unknown state" "documentation set excludes serve.user-guide on evidence state 'unknown'" --allow-planning "$CASE_FILE"
+expect_fail "excluded document on an unknown state" "documentation set excludes serve.user-guide on evidence state 'unknown'; only absent, by-design, or present-elsewhere may exclude" --allow-planning "$CASE_FILE"
 
 new_case
 perl -0pi -e 's/^\| serve\.user-guide \| serve \| not-applicable \| launch \|[^\n]*\|$/| serve.user-guide | serve | not-applicable | launch | absent: no external user was named in intake; revisit when: post-MVP |/m' "$CASE_FILE"
@@ -1001,7 +1158,29 @@ expect_fail "archetype block disagrees with frontmatter" "Primary is library but
 
 new_case
 perl -0pi -e 's/^- Primary: cli-tool \(score 0\.86\)$/- Primary: cli-tool (score 0.40)/m; s/^- Runner-up: library \(score 0\.29\)$/- Runner-up: none/m; s/^- Margin: 57 points$/- Margin: 40 points/m; s/^- Confidence: high$/- Confidence: low/m; s/^archetype_confidence: high$/archetype_confidence: low/m' "$CASE_FILE"
-expect_fail "archetype below the floor keeps a named archetype" "below the 0.45 floor, so frontmatter archetype must be unknown" --allow-planning "$CASE_FILE"
+expect_fail "archetype below the floor keeps a named archetype" "Primary score 0.40 is below the 0.45 floor, so frontmatter archetype must be unknown" --allow-planning "$CASE_FILE"
+
+# Below the floor with a medium label: the floor fired, not low confidence.
+new_case
+perl -0pi -e 's/^archetype: cli-tool$/archetype: unknown/m; s/^archetype_confidence: high$/archetype_confidence: medium/m; s/^- Primary: cli-tool \(score 0\.86\)$/- Primary: cli-tool (score 0.40)/m; s/^- Runner-up: library \(score 0\.29\)$/- Runner-up: none/m; s/^- Margin: 57 points$/- Margin: 40 points/m; s/^- Confidence: high$/- Confidence: medium/m' "$CASE_FILE"
+output=$("$VALIDATOR" --allow-planning "$CASE_FILE" 2>&1) && status=0 || status=$?
+if [ "$status" -ne 0 ] &&
+   printf '%s\n' "$output" | grep -F "the archetype Primary score is below the 0.45 floor, so the archetype belongs in ## Open Questions" >/dev/null &&
+   ! printf '%s\n' "$output" | grep -F "confidence is low" >/dev/null; then
+  record_pass "floor below a medium label names the floor"
+else
+  record_fail "floor below a medium label names the floor" "$output"
+fi
+
+# Only the nine scored archetypes exist; a merged hybrid is refused.
+new_case
+perl -0pi -e 's/^archetype: cli-tool$/archetype: hybrid/m; s/^- Primary: cli-tool \(score 0\.86\)$/- Primary: hybrid (score 0.86)/m' "$CASE_FILE"
+expect_fail "hybrid frontmatter archetype" "invalid archetype 'hybrid'; expected unknown or one of cli-tool, library" --allow-planning "$CASE_FILE"
+expect_fail "hybrid Primary archetype" "archetype confidence names hybrid, which is not one of" --allow-planning "$CASE_FILE"
+
+new_case
+perl -0pi -e 's/^- Runner-up: library \(score 0\.29\)$/- Runner-up: monolith (score 0.29)/m' "$CASE_FILE"
+expect_fail "unknown Runner-up archetype" "archetype confidence names monolith, which is not one of" --allow-planning "$CASE_FILE"
 
 new_case
 perl -0pi -e 's/^- If the runner-up is right: [^\n]*$/- If the runner-up is right: some rework in the packaging tasks/m' "$CASE_FILE"
@@ -1165,6 +1344,91 @@ if [ "$status" -ne 0 ] &&
   record_pass "schema checker rejects a nonconforming sidecar"
 else
   record_fail "schema checker rejects a nonconforming sidecar" "$output"
+fi
+
+# The checker walks the whole schema before reading a document, so a keyword
+# it does not implement fails even where no document ever reaches it.
+UNCHECKED_SCHEMA="$TMP_DIR/unchecked-keyword.schema.json"
+printf '%s\n' '{"type":"object","properties":{"x":{"oneOf":[{"type":"string"}]}},"additionalProperties":false}' > "$UNCHECKED_SCHEMA"
+printf '%s\n' '{}' > "$TMP_DIR/empty-document.json"
+output=$(node "$SCHEMA_CHECK" "$UNCHECKED_SCHEMA" "$TMP_DIR/empty-document.json" 2>&1) && status=0 || status=$?
+if [ "$status" -eq 2 ] && printf '%s\n' "$output" | grep -F 'unsupported schema keyword oneOf at $.x' >/dev/null; then
+  record_pass "schema checker refuses an unreached unsupported keyword"
+else
+  record_fail "schema checker refuses an unreached unsupported keyword" "status $status: $output"
+fi
+
+# PLAN.v1.schema.json covers every @1 sidecar, godplans 1.9.0 through 1.13.0:
+# the retained 1.9.0 evaluation sidecar is the oldest shape, a real 1.13.0
+# sidecar the fullest, and the fields 1.9.0 lacks stay typed when present.
+V1_SCHEMA="$ROOT_DIR/skills/godplans/schemas/PLAN.v1.schema.json"
+V1_SIDECAR_1_9="$ROOT_DIR/evals/outcomes/results/2026-07-23-tenant-notes-api-codex/treatment/plan/PLAN.json"
+V1_SIDECAR_1_13="$ROOT_DIR/tests/fixtures/plan-json-v1-1.13.0.json"
+for sidecar in "$V1_SIDECAR_1_9" "$V1_SIDECAR_1_13"; do
+  if output=$(node "$SCHEMA_CHECK" "$V1_SCHEMA" "$sidecar" 2>&1); then
+    record_pass "${sidecar#"$ROOT_DIR"/} conforms to PLAN.v1.schema.json"
+  else
+    record_fail "${sidecar#"$ROOT_DIR"/} conforms to PLAN.v1.schema.json" "$output"
+  fi
+done
+BAD_V1_SIDECAR="$TMP_DIR/bad-v1-sidecar.json"
+node -e '
+  const fs = require("node:fs");
+  const doc = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  doc.overlays = ["monetized"];
+  doc.applicability[0].evidence_state = "unknown";
+  doc.tasks[0].parallel = "yes";
+  fs.writeFileSync(process.argv[2], JSON.stringify(doc));
+' "$V1_SIDECAR_1_13" "$BAD_V1_SIDECAR"
+output=$(node "$SCHEMA_CHECK" "$V1_SCHEMA" "$BAD_V1_SIDECAR" 2>&1) && status=0 || status=$?
+if [ "$status" -ne 0 ] &&
+   printf '%s\n' "$output" | grep -F '$.overlays[0]' >/dev/null &&
+   printf '%s\n' "$output" | grep -F '$.applicability[0].evidence_state' >/dev/null &&
+   printf '%s\n' "$output" | grep -F '$.tasks[0].parallel' >/dev/null; then
+  record_pass "PLAN.v1.schema.json still types its optional fields"
+else
+  record_fail "PLAN.v1.schema.json still types its optional fields" "$output"
+fi
+
+# Plans carry the executor rules verbatim from plan-format.md, and the template
+# is how they get there, so the two copies must match line for line.
+executor_rules() {
+  awk '/^## Rules for executing agents/ { inside = 1; next } inside && /^## / { exit } inside && /^>/ { print }' "$1"
+}
+executor_rules "$ROOT_DIR/skills/godplans/references/plan-format.md" > "$TMP_DIR/rules-format"
+executor_rules "$ROOT_DIR/skills/godplans/templates/PLAN.template.mdx" > "$TMP_DIR/rules-template"
+if [ -s "$TMP_DIR/rules-format" ] && cmp -s "$TMP_DIR/rules-format" "$TMP_DIR/rules-template"; then
+  record_pass "template executor rules match plan-format.md"
+else
+  record_fail "template executor rules match plan-format.md" "$(diff "$TMP_DIR/rules-format" "$TMP_DIR/rules-template" 2>&1)"
+fi
+
+# The archetype list is kept by hand in four places: the discovery.md scoring
+# table, the plan-format.md frontmatter paragraph, @archetypes in the
+# validator, and the PLAN.schema.json enum (plus unknown). An archetype added
+# to one and not the others would make the validator refuse plans that use it.
+archetypes_discovery=$(awk -F'|' '
+  /^## / { inside = ($0 == "## Archetype detection") }
+  inside && /^\| [a-z]/ { gsub(/ /, "", $2); print $2 }
+' "$ROOT_DIR/skills/godplans/references/discovery.md" | sort | tr '\n' ' ')
+archetypes_format=$(perl -ne '
+  next unless /^`archetype` is one of the [a-z]+ archetypes `discovery\.md` scores \(([^)]*)\)/;
+  my $list = $1;
+  print "$_\n" for $list =~ /`([a-z-]+)`/g;
+' "$ROOT_DIR/skills/godplans/references/plan-format.md" | sort | tr '\n' ' ')
+archetypes_validator=$(sed -n 's/^my @archetypes = qw(\(.*\));$/\1/p' "$ROOT_DIR/skills/godplans/scripts/validate-plan.sh" | tr ' ' '\n' | sort | tr '\n' ' ')
+archetypes_schema=$(node -e '
+  const s = require(process.argv[1]);
+  const names = s.properties.archetype.enum.filter((x) => x !== "unknown").sort();
+  console.log(names.join("\n"));
+' "$SCHEMA" | sort | tr '\n' ' ')
+if [ -n "$archetypes_discovery" ] &&
+   [ "$archetypes_discovery" = "$archetypes_format" ] &&
+   [ "$archetypes_discovery" = "$archetypes_validator" ] &&
+   [ "$archetypes_discovery" = "$archetypes_schema" ]; then
+  record_pass "archetype list matches discovery.md"
+else
+  record_fail "archetype list matches discovery.md" "discovery [$archetypes_discovery] plan-format [$archetypes_format] validator [$archetypes_validator] schema [$archetypes_schema]"
 fi
 
 # Encoding: the sidecar is UTF-8 whatever the plan's characters, and the plan
@@ -1338,6 +1602,41 @@ cp "$DRIFT_PLAN" "$DRIFT_FAIL_PLAN"
 perl -0pi -e 's/^- `intake` =/- [recheck] `intake` =/m' "$DRIFT_FAIL_PLAN"
 expect_fail "drift recheck of intake" "recheck inventory label intake is not a file path" --drift-check 1 "$DRIFT_FAIL_PLAN"
 
+# Exit statuses: every FAIL, drift and I/O included, exits 1; only a usage error exits 2.
+expect_status() {
+  name=$1
+  want=$2
+  expected=$3
+  shift 3
+  output=$("$VALIDATOR" "$@" 2>&1)
+  status=$?
+  if [ "$status" -eq "$want" ] && printf '%s\n' "$output" | grep -F -- "$expected" >/dev/null 2>&1; then
+    record_pass "$name"
+  else
+    record_fail "$name" "expected status $want and '$expected', got $status: $output"
+  fi
+}
+
+expect_status "drift sample failure exits 1" 1 "drift sample GP-102 exited 1" --drift-check 1 "$TMP_DIR/drift-sample-fails.mdx"
+expect_status "drift phase missing exits 1" 1 "drift phase 9 does not exist" --drift-check 9 "$DRIFT_PLAN"
+expect_status "drift phase incomplete exits 1" 1 "drift phase 2 is not complete" --drift-check 2 "$DRIFT_PLAN"
+mkdir "$TMP_DIR/no-evidence"
+output=$(cd "$TMP_DIR/no-evidence" && "$VALIDATOR" --drift-check 1 "$RECHECK_PLAN" 2>&1) && status=0 || status=$?
+if [ "$status" -eq 1 ] && printf '%s\n' "$output" | grep -F "recheck evidence recheck.txt cannot be read" >/dev/null; then
+  record_pass "missing recheck file exits 1"
+else
+  record_fail "missing recheck file exits 1" "expected status 1, got $status: $output"
+fi
+
+DRIFT_FAIL_PLAN="$TMP_DIR/drift-sample-signal.mdx"
+cp "$DRIFT_PLAN" "$DRIFT_FAIL_PLAN"
+perl -0pi -e 's/(- \[x\] GP-101.*?  - Verify: )`test -f package\.json`/$1`kill -TERM \$\$`/s' "$DRIFT_FAIL_PLAN"
+expect_status "drift sample killed by a signal" 1 "drift sample GP-101 was killed by signal 15" --drift-check 1 "$DRIFT_FAIL_PLAN"
+
+expect_status "emit-json into a missing directory exits 1" 1 "cannot write $TMP_DIR/no-such-dir/PLAN.json.tmp" --allow-planning --emit-json "$TMP_DIR/no-such-dir/PLAN.json" "$DRIFT_PLAN"
+expect_status "drift phase zero is a usage error" 2 "--drift-check phase must be a positive integer" --drift-check 0 "$DRIFT_PLAN"
+expect_status "unknown option is a usage error" 2 "Unknown option: --bogus" --bogus "$DRIFT_PLAN"
+
 # Superseded history: struck tasks keep their reason and requirements, stay
 # unchecked, and never reuse an ID.
 
@@ -1467,8 +1766,8 @@ perl -0pi -e 's/(## Phase 2: Verification)/## Phase 2: Packaging\n\nGoal: nothin
 expect_fail "phase without tasks" "Phase 2 has no task definitions" --allow-planning "$CASE_FILE"
 
 # Module disposition: a semicolon inside the reason, landed means referenced
-# outside the frontmatter and the session log, and tasks stay out of excluded
-# or deferred modules.
+# outside the frontmatter, the session log, and the disposition block, and tasks
+# stay out of excluded or deferred modules.
 
 DISCOVERY_DROP_PLAN="$TMP_DIR/discovery-drop.mdx"
 cp "$BASE_PLAN" "$DISCOVERY_DROP_PLAN"

@@ -16,8 +16,10 @@ discussions) is expected to:
 ## Enforcement
 
 Violations may result in warnings, locked threads, or bans from the
-repository at the maintainer's discretion. Report conduct issues privately
-to the maintainer via GitHub rather than in public threads.
+repository at the maintainer's discretion. Report conduct issues privately,
+not in public threads, through the repository's private reporting form at
+https://github.com/hannsxpeter/godplans/security/advisories/new with a title
+that starts with `Conduct:`. Only the maintainer sees the report.
 
 ## Attribution
 

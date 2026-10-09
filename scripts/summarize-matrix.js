@@ -5,6 +5,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
+const usage = 'Usage: node scripts/summarize-matrix.js OUTPUT_DIR PROFILE...\n';
+if (process.argv[2] === '-h' || process.argv[2] === '--help') {
+  process.stdout.write(usage);
+  process.exit(0);
+}
+if (!process.argv[2] || process.argv[2].startsWith('-')) {
+  process.stderr.write(usage);
+  process.exit(2);
+}
 const output = path.resolve(process.argv[2]);
 const profiles = process.argv.slice(3);
 // The committed roster, not the directory listing, defines the expected cases,
@@ -15,6 +24,11 @@ const expectedCases = [...new Set(fs.readFileSync(path.join(root, 'evals', 'case
   .map((line) => line.replace(/#.*/, '').trim())
   .filter(Boolean))]
   .sort();
+
+// Only a score counts as an arm. eval.sh also writes marker rows such as
+// `FAIL\trunner`, `FAIL\tartifacts`, and `BASE\trunner-error` for a run that
+// produced nothing to score, and those must read as a missing arm.
+const SCORE = /^[0-9]+\/[0-9]+$/;
 
 function parseEval(file) {
   const cases = {};
@@ -27,6 +41,7 @@ function parseEval(file) {
     }
     if (!expectedCases.includes(fields[0])) continue;
     cases[fields[0]] ||= {};
+    if (!SCORE.test(fields[2] || '')) continue;
     if (fields[1] === 'PASS' || fields[1] === 'FAIL') {
       cases[fields[0]].skill = fields[2];
       cases[fields[0]].status = fields[1];
@@ -53,9 +68,8 @@ for (const profile of profiles) {
   }
   const parsed = parseEval(evalFile);
   for (const caseName of expectedCases) {
-    if (!parsed.cases[caseName]?.skill || !parsed.cases[caseName]?.control) {
-      die(`profile ${profile} is missing both arms for ${caseName}`);
-    }
+    const missing = ['skill', 'control'].filter((arm) => !parsed.cases[caseName]?.[arm]);
+    if (missing.length) die(`profile ${profile} has no scored ${missing.join(' or ')} arm for ${caseName}`);
   }
   results[profile] = {
     ...parsed,

@@ -8,8 +8,8 @@
 
 ## Checklist
 
-- [ ] Edited the canonical files under `skills/godplans/`, not the `.agents/` or `.claude/` symlinks.
-- [ ] Regenerated `PROMPT.md` (`npm run build:prompt`) and the context metrics (`npm run metrics:context`) if SKILL.md, an inlined reference, the PLAN template, or a portable script changed.
+- [ ] Edited the canonical files under `skills/godplans/`, not the `.agents/skills/godplans`, `.claude/skills/godplans`, or `plugins/godplans/skills` symlinks.
+- [ ] After changing SKILL.md, any reference module, the PLAN template, `validate-plan.sh`, or `plan-halflife.sh`: ran `npm run generate` (catalog, prompt, then context metrics), then `npm run check`, and committed what it rewrote.
 - [ ] For a behavior change: a CHANGELOG entry under a new version heading, and `npm run version:sync` after bumping `package.json`.
 
 ## npm run check output

@@ -157,8 +157,9 @@ score_artifact() {
           ;;
       esac
     elif [ "$op" = "not-contains" ]; then
-      # A missing artifact trivially lacks the string. Credit it so an empty
-      # baseline cannot score points for producing nothing at all.
+      # A missing artifact trivially lacks the string, so this line is credited.
+      # Every other operator scores 0 on it, so an empty artifact earns only its
+      # not-contains points (evals/README.md, Expectation grammar).
       ok=1
     fi
 

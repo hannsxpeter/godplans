@@ -16,7 +16,8 @@
 #   - nothing from the skill leaks in: no godplans name, no .godplans path, no
 #     format contract, requirement IDs, validator, phase method, or PLAN.mdx
 #     vocabulary in the preamble
-#   - a missing plan is scored as zero, never hidden as a runner error
+#   - a missing plan file means the final response is scored in its place,
+#     never hidden as a runner error
 
 set -euo pipefail
 
@@ -41,8 +42,8 @@ command -v codex >/dev/null 2>&1 || { echo "codex CLI not found" >&2; exit 2; }
 # skills in $CODEX_HOME/skills and $HOME/.agents/skills, so on a machine where
 # godplans is installed globally (the common case, since a maintainer runs the
 # evals), the control would silently load it and measure godplans against
-# itself. Both arms isolate the same way; the ONLY difference between them is
-# that this runner never links the skill into its workspace.
+# itself. Both arms isolate the same way; the ONLY isolation difference between
+# them is that this runner never links the skill into its workspace.
 REAL_CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 mkdir -p "$ISO_CODEX_HOME"
 [ -f "$REAL_CODEX_HOME/auth.json" ] && cp "$REAL_CODEX_HOME/auth.json" "$ISO_CODEX_HOME/auth.json"
@@ -138,25 +139,37 @@ process.stdout.write(`output_tokens=${output}\n`);
 process.stdout.write(`total_tokens=${input + output}\n`);
 NODE
 
+# Print the plan the control wrote. Accept any plausible path, so the baseline
+# is not penalized for choosing a different one, but prefer the path the
+# neutral request names (PLAN.md), and never take an INPUT fixture the control
+# left unchanged (a replan case's prior .godplans/PLAN.mdx) as its own plan.
+control_plan() {
+  for candidate in PLAN.md plan.md PLAN.mdx .godplans/PLAN.mdx; do
+    [ -s "$WORK/$candidate" ] || continue
+    if [ -f "$CASE_DIR/INPUT/$candidate" ] && cmp -s "$WORK/$candidate" "$CASE_DIR/INPUT/$candidate"; then
+      continue
+    fi
+    printf '%s\n' "$WORK/$candidate"
+    return 0
+  done
+  return 1
+}
+
 case "$OUTPUT" in
   */PLAN.mdx)
-    # Accept a plan written anywhere plausible before falling back, so the
-    # baseline is not penalized for choosing a different path.
-    for candidate in "$WORK/.godplans/PLAN.mdx" "$WORK/PLAN.mdx" "$WORK/PLAN.md" "$WORK/plan.md"; do
-      if [ -s "$candidate" ]; then
-        cp "$candidate" "$OUTPUT"
-        exit 0
-      fi
-    done
+    if plan=$(control_plan); then
+      cp "$plan" "$OUTPUT"
+      exit 0
+    fi
     # No plan file: score the final response instead. It will fail the
     # structural assertions, which is the honest result, not an error.
     cp "$LAST" "$OUTPUT" 2>/dev/null || : > "$OUTPUT"
     ;;
   */RESPONSE.md)
-    if [ -s "$WORK/.godplans/PLAN.mdx" ]; then
+    if plan=$(control_plan); then
       # The baseline planned a request it should have refused. Record the plan
       # so the refusal assertions fail against real evidence.
-      cp "$WORK/.godplans/PLAN.mdx" "$OUTPUT"
+      cp "$plan" "$OUTPUT"
     else
       cp "$LAST" "$OUTPUT" 2>/dev/null || : > "$OUTPUT"
     fi

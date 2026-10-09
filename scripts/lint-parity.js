@@ -7,7 +7,9 @@
 //   node scripts/lint-parity.js description-length
 //     prints the SKILL.md description length in characters.
 //   node scripts/lint-parity.js description-parity
-//     prints one line per plugin manifest whose description differs.
+//     prints one line per plugin manifest whose description differs from
+//     SKILL.md, and one when the marketplace metadata.description differs
+//     from package.json.
 //   node scripts/lint-parity.js domain-parity "CONTRACT MODULES"
 //     prints "domains N M" (N domain modules, M lists compared), then one
 //     "problem TEXT" line per disagreement.
@@ -70,27 +72,38 @@ function description() {
   return '';
 }
 
+// Two sources, each copied by hand: the SKILL.md description goes into both
+// plugin manifests, and the package.json description into the marketplace
+// tagline (metadata.description), which the GitHub About text also carries.
 function descriptionParity(value) {
   const problems = [];
-  const compare = (label, actual) => {
+  const compare = (label, actual, expected, source, short) => {
     if (typeof actual !== 'string') {
       problems.push(`${label} has no description string`);
       return;
     }
-    if (actual === value) return;
+    if (actual === expected) return;
     let at = 0;
-    while (at < actual.length && at < value.length && actual[at] === value[at]) at += 1;
-    problems.push(`${label} description differs from the SKILL.md frontmatter description at character ${at + 1} (${actual.length} vs ${value.length} characters); copy the SKILL.md description into it verbatim`);
+    while (at < actual.length && at < expected.length && actual[at] === expected[at]) at += 1;
+    problems.push(`${label} description differs from the ${source} description at character ${at + 1} (${actual.length} vs ${expected.length} characters); copy the ${short} description into it verbatim`);
   };
+  const fromSkill = (label, actual) => compare(label, actual, value, 'SKILL.md frontmatter', 'SKILL.md');
   const pluginRel = 'plugins/godplans/.claude-plugin/plugin.json';
-  compare(pluginRel, readJson(pluginRel).description);
+  fromSkill(pluginRel, readJson(pluginRel).description);
   const marketRel = '.claude-plugin/marketplace.json';
   const market = readJson(marketRel);
   const entries = Array.isArray(market.plugins) ? market.plugins.filter((entry) => entry && entry.name === 'godplans') : [];
   if (entries.length !== 1) {
     problems.push(`${marketRel} has ${entries.length} plugin entries named godplans; want exactly 1`);
   } else {
-    compare(`${marketRel} godplans plugin entry`, entries[0].description);
+    fromSkill(`${marketRel} godplans plugin entry`, entries[0].description);
+  }
+  const pkgDescription = readJson('package.json').description;
+  if (typeof pkgDescription !== 'string') {
+    problems.push('package.json has no description string');
+  } else {
+    const metadata = market.metadata && typeof market.metadata === 'object' ? market.metadata : {};
+    compare(`${marketRel} metadata`, metadata.description, pkgDescription, 'package.json', 'package.json');
   }
   return problems;
 }
@@ -195,14 +208,10 @@ function domainParity(contractText) {
     words(need(text.match(/%known_domain\s*=\s*map\s*\{[^}]*\}\s*qw\(([^)]*)\)/), 'the %known_domain qw() list')[1]));
   const modulePrefix = extract(`${validatorRel} %module_prefix`, validatorRel, (text) =>
     perlPairs(need(text.match(/%module_prefix\s*=\s*\(([\s\S]*?)\);/), 'the %module_prefix table')[1]));
-  // The way back from a prefix to its module: either derived with reverse, or
-  // a hand-written %requirement_domain table that must be the exact inverse.
-  const requirementDomain = extract(`${validatorRel} prefix-to-module map`, validatorRel, (text) => {
-    if (/%prefix_module\s*=\s*reverse\s+%module_prefix\s*;/.test(text)) return [];
-    const table = text.match(/%requirement_domain\s*=\s*\(([\s\S]*?)\);/);
-    if (!table) throw new Error('cannot find %prefix_module = reverse %module_prefix or a %requirement_domain table');
-    return perlPairs(table[1]);
-  });
+  // The validator derives the prefix-to-module map with reverse, so it is the
+  // exact inverse of %module_prefix by construction; require that line.
+  extract(`${validatorRel} prefix-to-module map`, validatorRel, (text) =>
+    need(text.match(/%prefix_module\s*=\s*reverse\s+%module_prefix\s*;/), '%prefix_module = reverse %module_prefix'));
   const orders = extract(`${buildRel} REFERENCE_ORDER`, buildRel, (text) => {
     const match = need(text.match(/if \[ "\$MODE" = "full" \]; then\s*\n\s*REFERENCE_ORDER="([^"]*)"\s*\nelse\s*\n\s*REFERENCE_ORDER="([^"]*)"/), 'the full and core REFERENCE_ORDER assignments');
     return { full: words(match[1]), core: words(match[2]) };
@@ -249,7 +258,6 @@ function domainParity(contractText) {
   if (phase4) lists.push([`${skillRel} Phase 4 table`, phase4]);
   if (knownDomain) lists.push([`${validatorRel} %known_domain`, knownDomain]);
   if (modulePrefix) lists.push([`${validatorRel} %module_prefix keys`, modulePrefix.map((pair) => pair[0])]);
-  if (requirementDomain && requirementDomain.length) lists.push([`${validatorRel} %requirement_domain values`, requirementDomain.map((pair) => pair[1])]);
   if (orders) lists.push([`${buildRel} full REFERENCE_ORDER`, orders.full]);
   if (metrics) lists.push([`${metricsRel} coreModules + lazyModules`, metrics.core.concat(metrics.lazy)]);
   if (portable) lists.push([`${portableRel} expected_refs + lazy_refs`, portable.core.concat(portable.lazy)]);
@@ -282,25 +290,14 @@ function domainParity(contractText) {
     problems.push(`${buildRel} full-mode header says all ${fullCount} domain modules, but ${refsRel} has ${domains.length}`);
   }
 
-  // Prefixes: one per module, the inverse map agrees, and each module defines
-  // its requirements under its own prefix.
+  // Prefixes: one per module, and each module defines its requirements under
+  // its own prefix.
   if (modulePrefix) {
     const prefixOf = new Map(modulePrefix);
     const owners = new Map();
     for (const [module, prefix] of modulePrefix) owners.set(prefix, (owners.get(prefix) || []).concat(module));
     for (const [prefix, modules] of owners) {
       if (modules.length > 1) problems.push(`${validatorRel} %module_prefix gives the prefix ${prefix} to ${modules.join(' and ')}`);
-    }
-    if (requirementDomain) {
-      for (const [prefix, module] of requirementDomain) {
-        if (prefixOf.get(module) !== prefix) problems.push(`${validatorRel} %requirement_domain maps ${prefix} to ${module}, but %module_prefix gives ${module} the prefix ${prefixOf.get(module) || '(none)'}`);
-      }
-      if (requirementDomain.length) {
-        const mapped = new Set(requirementDomain.map((pair) => pair[0]));
-        for (const [module, prefix] of modulePrefix) {
-          if (!mapped.has(prefix)) problems.push(`${validatorRel} %requirement_domain has no entry for ${prefix}, the %module_prefix prefix of ${module}`);
-        }
-      }
     }
     for (const domain of domains) {
       const own = prefixOf.get(domain);

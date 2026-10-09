@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # The catalog generator is maintainer tooling under scripts/, outside the
-# shipped skill. It must resolve the skill from its own location, and every
-# documentation-set owner must be a domain the validator knows.
+# shipped skill. It must resolve the skill from its own location; count only a
+# requirement id that starts a line as a definition, never a mid-sentence
+# citation; and fail, leaving the validator unwritten, when a documentation-set
+# owner is not a validator domain or the %known_domain table is missing.
 
 set -euo pipefail
 
@@ -27,6 +29,29 @@ VALIDATOR="$REPO/skills/godplans/scripts/validate-plan.sh"
 
 (cd "$TMP" && node "$REPO/scripts/build-catalog.js" --check >/dev/null) ||
   fail "a fresh catalog failed --check when run outside the repository root"
+
+# Only an id that starts a line defines a requirement. A mid-sentence citation
+# of the next SEC number is a cross-reference and must not raise %catalog_max;
+# the same id starting a line in security.md is a definition and must.
+sec_max=$(sed -n 's/^ *SEC => \([0-9][0-9]*\),$/\1/p' "$VALIDATOR")
+[ -n "$sec_max" ] || fail "fixture could not read SEC from %catalog_max"
+next="R-SEC-$((sec_max + 1))"
+REFS="$REPO/skills/godplans/references"
+cp "$REFS/business.md" "$TMP/business.md"
+cp "$REFS/security.md" "$TMP/security.md"
+perl -0pi -e "s/^## Plan requirements\n/## Plan requirements\n\nThis module also relies on $next from security.\n/m" "$REFS/business.md"
+grep -Fq "relies on $next from" "$REFS/business.md" || fail "fixture did not add the cross-reference"
+node "$REPO/scripts/build-catalog.js" --check >"$TMP/xref.out" 2>&1 ||
+  fail "a mid-sentence cross-reference changed the catalog: $(cat "$TMP/xref.out")"
+cp "$TMP/business.md" "$REFS/business.md"
+perl -0pi -e "s/^## Plan requirements\n/## Plan requirements\n\n$((sec_max + 1)). $next: A fixture requirement.\n/m" "$REFS/security.md"
+grep -q "^$((sec_max + 1))\. $next:" "$REFS/security.md" || fail "fixture did not add the defining line"
+if node "$REPO/scripts/build-catalog.js" --check >"$TMP/def.out" 2>&1; then
+  fail "a new defining line did not change the catalog"
+fi
+grep -Fq 'Validator catalog is stale' "$TMP/def.out" ||
+  fail "a new defining line was not reported as stale: $(cat "$TMP/def.out")"
+cp "$TMP/security.md" "$REFS/security.md"
 
 # Reassign the first catalog row to an owner the validator has no domain for.
 DOC_SET="$REPO/skills/godplans/references/doc-set.md"

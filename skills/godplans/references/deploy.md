@@ -1,6 +1,6 @@
 # Deployment planning module
 
-Plans the shipping mechanics of PLAN.mdx: how a known-green build reaches real user-facing environments safely, repeatably, and reversibly. The orchestrator loads this module for any archetype that runs a service users hit (saas-dashboard, api-service, marketing-site with a server, ml-pipeline serving, mobile-app backend). Excluded for library and local-only cli archetypes with the reason "distribution is packaging and release, not deployment". Tool choice belongs to stack.md, monitoring wiring to observe.md, secret vault selection to security.md.
+Plans the shipping mechanics of PLAN.mdx: how a known-green build reaches real user-facing environments safely, repeatably, and reversibly. The orchestrator loads this module for any archetype that runs a service users hit (saas-dashboard, api-service, marketing-site with a server, ml-pipeline serving, mobile-app backend). A library or CLI tool that users install fires the `shipped-artifact` overlay, so deploy is never excluded for it: the matrix row is applicable or defers with the trigger before the first distribution task (discovery.md), and when the pass runs, the requirements that assume a running service (migrations, rollout, readiness probe, cold start, post-deploy verification) drop through the `form` layer while package release mechanics stay with R-REPO-13 and R-REPO-14. Only a local-only tool nobody else installs may exclude the domain, with a `by-design:` reason and a `revisit when:` predicate. Tool choice belongs to stack.md, monitoring wiring to observe.md, secret vault selection to security.md.
 
 ## Lineage
 
@@ -43,8 +43,8 @@ Criterion: WHEN a change is classified THE PLAN SHALL attach the class-matched a
 R-DEPLOY-5. Every data-forward change is decomposed into an expand/contract calendar: expand (additive), migrate (dual-write or backfill), cutover, and contract phases, each its own deploy, with contract in a later wave than expand.
 Criterion: WHEN any schema or data mutation appears THE PLAN SHALL schedule the four phases as separate deploys at distinct calendar points, or mark the change expand-only-by-design with a one-line reason.
 
-R-DEPLOY-6. Migrations against populated tables follow the guardrail forms: add-nullable plus backfill plus CHECK NOT VALID plus validate plus SET NOT NULL instead of single-step NOT NULL; CREATE INDEX CONCURRENTLY; explicit lock_timeout and statement_timeout; backfills outside transactions; no rename of a column still read by running code; destructive DDL only with a restore point and a one-cycle read gap.
-Criterion: IF a planned migration touches a populated table THE PLAN SHALL specify the guardrail form for it and SHALL NOT contain any step that takes an ACCESS EXCLUSIVE lock on that table.
+R-DEPLOY-6. Migrations against populated tables use R-DB-16's guardrail forms, and this module schedules them: each step that briefly takes an ACCESS EXCLUSIVE lock (ADD COLUMN, ADD CONSTRAINT ... NOT VALID, SET NOT NULL after a validated CHECK) runs under an explicit lock_timeout and statement_timeout; backfills run outside transactions; no rename of a column still read by running code; destructive DDL only with a restore point and a one-cycle read gap.
+Criterion: IF a planned migration touches a populated table THE PLAN SHALL cite the R-DB-16 form for it, SHALL set lock_timeout on every step that takes an ACCESS EXCLUSIVE lock, and SHALL NOT contain any step that holds that lock while scanning or rewriting the table.
 
 R-DEPLOY-7. The plan names the full promotion ladder and the parity gap at every rung: traffic source, data source, scale, feature-flag defaults, observability reach.
 Criterion: WHEN the plan names environments THE PLAN SHALL list each rung with its five parity properties; a compact ladder is allowed, a silent parity gap is not.
@@ -67,7 +67,7 @@ Criterion: WHEN a deploy is the first to its environment THE PLAN SHALL include 
 R-DEPLOY-13. The readiness probe is truthful: it returns healthy only when the service can serve a real request, exercising at least one critical dependency, never on socket bind.
 Criterion: WHEN health checking is planned THE PLAN SHALL require the probe to fail while a critical dependency is down and SHALL NOT accept a 200-on-bind probe.
 
-R-DEPLOY-14. Feature-flag lineage is audited: no flag name is reused from a prior deploy until the old code path behind it is confirmed removed. When R-BIZ-23 lands, the flag mechanism, its fallback, owners and expiry, and runtime kill switches are its; otherwise this module plans them. This requirement always owns name reuse.
+R-DEPLOY-14. Feature-flag lineage is audited: no flag name is reused from a prior deploy until the old code path behind it is confirmed removed. When R-BIZ-23 lands, the flag mechanism, its fallback, owners and expiry, and runtime kill switches are its; otherwise this module plans them. This requirement always owns name reuse, and its flag inventory (name, owner, expiry, lineage per flag) is the documentation set's `build.feature-flags` row.
 Criterion: IF the plan introduces or reuses feature flags THE PLAN SHALL include a lineage-audit step before any name reuse.
 
 R-DEPLOY-15. Every production deploy is followed by planned verification: healthcheck healthy, p99 latency and error rate within the canary threshold for at least 15 minutes, critical-path smoke run, and the contract phase scheduled if an expand shipped.
@@ -105,9 +105,9 @@ Criterion: IF any planned task runs a destructive command against a production r
   - Verify: grep -c "contract" docs/deploy/migration-calendar.md
   - Requirements: R-DEPLOY-5, R-DEPLOY-17
 - [ ] GP-xxx Implement the truthful readiness probe
-  - Files: src/health/readiness.ext
-  - Acceptance: probe checks database connectivity and one critical dependency before returning healthy; returns 503 during warmup; no bare 200-on-bind path exists
-  - Verify: Manual: stop the database, then run `curl -sf localhost:PORT/ready`; expect nonzero exit
+  - Files: src/health/readiness.ext, tests/health/readiness.test.ext
+  - Acceptance: probe checks database connectivity and one critical dependency before returning healthy; returns 503 during warmup; no bare 200-on-bind path exists; a test makes the database unreachable and asserts the probe returns 503
+  - Verify: npm test -- tests/health/readiness.test.ext
   - Requirements: R-DEPLOY-13, R-DEPLOY-15
 - [ ] GP-xxx Execute the first-deploy cold-start checklist for the target environment
   - Files: docs/deploy/cold-start-env.md
@@ -116,7 +116,7 @@ Criterion: IF any planned task runs a destructive command against a production r
   - Requirements: R-DEPLOY-12, R-DEPLOY-16
 - [ ] GP-xxx Write and rehearse the rollback doc per service
   - Files: docs/deploy/rollback.md
-  - Acceptance: exact revert command per service; time-to-revert measured against a non-prod copy; compensating-forward plan present for every data-forward change; incident-log template linked
+  - Acceptance: exact revert command per service; time-to-revert measured against a non-prod copy; a `Last drilled: YYYY-MM-DD` line; compensating-forward plan present for every data-forward change; incident-log template linked
   - Verify: grep -c "time-to-revert" docs/deploy/rollback.md
   - Requirements: R-DEPLOY-4, R-DEPLOY-16
 

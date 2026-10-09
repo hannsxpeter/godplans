@@ -10,7 +10,7 @@ OUTPUT=$2
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK="$(mktemp -d)"
 RAW="$(mktemp)"
-LOG="$(dirname "$OUTPUT")/$PROVIDER.log"
+LOG="$(dirname "$OUTPUT")/$(basename "$OUTPUT" .json).$PROVIDER.log"
 trap 'rm -rf "$WORK"; rm -f "$RAW"' EXIT
 
 case "$PROVIDER" in claude|gemini) ;; *)
@@ -25,7 +25,7 @@ if [ "$PROVIDER" = "gemini" ]; then
     > "$WORK/.gemini/settings.json"
 fi
 
-PROMPT="You are an independent blind evaluator. No planning or audit skill is installed. Read the packet, apply its rubric exactly, and return only one JSON object matching the requested fields."
+PROMPT="You are an independent blind evaluator. No planning or audit skill is installed. Read the packet, apply its rubric exactly, and return only one JSON object that matches the packet's Required JSON schema."
 set +e
 if [ "$PROVIDER" = "claude" ]; then
   MODEL="${GODPLANS_GRADE_CLAUDE_MODEL:-sonnet}"

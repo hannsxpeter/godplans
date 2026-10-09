@@ -1,7 +1,7 @@
 # godplans
 
 [![lint](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml/badge.svg)](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml)
-[![version](https://img.shields.io/badge/version-1.14.0-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.15.0-blue)](CHANGELOG.md)
 [![agent skills](https://img.shields.io/badge/Agent%20Skills-compatible-2f6fed)](skills/godplans/SKILL.md)
 [![planning domains](https://img.shields.io/badge/planning%20domains-19-2f6fed)](#how-it-works)
 [![plan gate](https://img.shields.io/badge/plan%20gate-machine%20checked-2f6fed)](skills/godplans/scripts/validate-plan.sh)
@@ -61,6 +61,8 @@ git clone https://github.com/hannsxpeter/godplans
 cd godplans && sh install.sh
 ```
 
+In Claude Code you can also install it as a plugin from this repository's marketplace: run `/plugin marketplace add hannsxpeter/godplans`, then `/plugin install godplans@godplans`. Claude Code prefixes a plugin's skills with the plugin name, so the command becomes `/godplans:godplans`.
+
 Then, in your coding agent, in any project folder:
 
 ```
@@ -80,14 +82,16 @@ That is the whole interface. There are no sub-commands to learn.
 
 The installer refuses to overwrite or remove a folder it does not own. Use `--force` only when replacement is intentional.
 
+By default the installer links each destination to `skills/godplans` inside this clone, so keep the clone where it is: `git pull` there updates every linked install. Use `sh install.sh --copy` for a standalone copy (pull and rerun it to update), and `sh install.sh --uninstall` to remove exactly what the installer created.
+
 ## What a plan actually looks like
 
 The plan is a plain markdown file with checkboxes. Here is one task from one:
 
 ```markdown
-- [ ] GP-101 [W1.1] Add workspace scoping to the expenses table
+- [ ] GP-203 [W2.1] Add workspace scoping to the expenses table
   - Files: db/migrations/003_expenses_workspace.sql, src/db/expenses.ts
-  - Depends on: GP-072
+  - Depends on: GP-104
   - Reuses: the workspace helper already in src/db/tenancy.ts
   - Acceptance: every expenses query filters on workspace_id; row-level
     security enabled; no raw table access outside src/db/expenses.ts
@@ -196,7 +200,7 @@ That is one case on one model. It is directional support for the claim, not proo
 <details>
 <summary><b>How the evidence is produced, and what still falls short</b></summary>
 
-Repository tests cover installer collisions and aliases, portable-prompt parity, plan-validator failure modes, generated PLAN.json sidecars checked against `PLAN.schema.json`, JSON and shell validity, version parity, immutable action pins, a lint self-test that injects one violation per check, and the behavioral evaluation harness. The behavioral matrix also covers product-form routing, Pillars 1.1 nested scopes and catalogs, stale source evidence, stale prepublication evidence, observability evidence labels, and the business pass for a priced B2B product with seat billing, a trial, a free tier, and a retiring plan.
+Repository tests cover installer collisions and aliases, portable-prompt parity, plan-validator failure modes, generated PLAN.json sidecars checked against `PLAN.schema.json`, JSON and shell validity, version parity, immutable action pins, a lint self-test that injects one violation per check, and the behavioral evaluation harness. The behavioral matrix also covers product-form routing, Pillars nested scopes and catalogs, stale source evidence, stale prepublication evidence, observability evidence labels, and the business pass for a priced B2B product with seat billing, a trial, a free tier, and a retiring plan.
 
 ```bash
 npm test
@@ -211,16 +215,19 @@ SKILLS_REF_BIN="$PWD/.venv-skills-ref/bin/skills-ref" npm run release:check
 npm run eval:matrix
 
 # rescore retained outputs after expectation changes
-bash scripts/eval.sh --score-only
+bash scripts/eval.sh --score-only --baseline --output evals/results/<date>-<rev>/<profile>
 ```
 
 Conformance is not value. Passing the matrix proves the skill did what it
 promised; it does not prove the promise was worth loading. The control arm
 answers that: `scripts/eval.sh --baseline` runs each case a second time through
 the same agent and model with no skill loaded, on a neutral request, and
-reports the delta. The included Codex runners isolate `HOME` and `CODEX_HOME`.
-The Claude runners use safe mode while retaining normal host authentication.
-The Gemini runners use workspace-scoped skill and hook controls. Every runner
+reports the delta. The included Codex runners isolate `HOME` and `CODEX_HOME`
+and run with `--sandbox workspace-write`. The Claude runners use safe mode,
+and the Gemini control arm disables skills and hooks in a workspace settings
+file. Both the Claude and the Gemini planning runners skip every permission
+prompt and are not confined to their temporary workspace, so run them only on
+a disposable machine or account, as [SECURITY.md](SECURITY.md) says. Every runner
 records its isolation mode, and the control reads a de-branded
 `REQUEST.baseline.md` so it is never told to use a skill it does not have.
 
@@ -309,7 +316,7 @@ godplans consolidates, inverts, and adapts seventeen skills into one command. "I
 | [uiauditor](https://github.com/hannsxpeter/auditor-suite/tree/main/skills/uiauditor) | Accessibility, semantics, design-system consistency as acceptance criteria |
 | [uxauditor](https://github.com/hannsxpeter/auditor-suite/tree/main/skills/uxauditor) | Journeys, workflows, error states designed before build |
 | [productauditor](https://github.com/hannsxpeter/auditor-suite/tree/main/skills/productauditor) | 9 product and business dimensions (claims and delivery, plans and entitlements, billing lifecycle, accounts and operations, instrumentation, metric definitions, release and sunset, experiments, feedback), inverted into the business module. Its five Critical classes are designed out at plan time: charging more than, other than, or after what the customer chose, refusing what a plan includes, destroying customer data in a lifecycle event without notice or a recovery window, a business model nothing enforces, and selling something that does not exist. The director layer an audit cannot judge (the bet and its kill criterion, the business model and sales motion, principles and commercial decision rights) is added by godplans, not inverted |
-| [pillars](https://github.com/hannsxpeter/pillars) | Pillars 1.1 agent memory: nested scopes, local absent catalogs, deterministic routing, and context budgets |
+| [pillars](https://github.com/hannsxpeter/pillars) | Pillars 1.2 agent memory: nested scopes, local absent catalogs, deterministic routing, and context budgets |
 | [codedna](https://github.com/hannsxpeter/codedna) | The style genome: prescribed for greenfield, fingerprinted for brownfield. The AI-tells catalog and the measurement script ship with godplans, vendored by copy |
 | [docdna](https://github.com/hannsxpeter/docdna) | The documentation selection engine, inverted to plan time: which documents this project owes, which it does not and on what evidence, and the tripwire that reverses each absence. Also the three-valued evidence model, the durability split, and the rule that no number is invented |
 | [BuilderIO visual-plan](https://github.com/BuilderIO/skills) | Plan discipline: hard-to-reverse bets first, reuse-first steps, one Open Questions section, the standalone-plan rule, the visual layer |
@@ -338,7 +345,7 @@ Then it does not get a hollow section about one. Every area is either planned no
 The plan drops straight into documentation pipelines (Docusaurus, Nextra, Fumadocs) and MDX-native plan viewers, but the body is written to be plain GitHub-flavored markdown at the same time. Rename it to `PLAN.md` any time for rich rendering on GitHub. Nothing is lost.
 
 **How is this different from arc-ready?**
-arc-ready walks the arc one tier at a time, building as it goes. godplans front-loads the decisions from all tiers plus the anticipatable checks of all eight auditors into one document before anything is built. They compose: plan with godplans, execute with anything, including arc-ready's build tiers.
+arc-ready walks the arc one stage at a time, building as it goes. godplans front-loads the decisions from all stages plus the anticipatable checks of all eight auditors into one document before anything is built. They compose: plan with godplans, execute with anything, including arc-ready's build stages.
 
 <details>
 <summary><b>Repository map</b></summary>
@@ -352,13 +359,14 @@ arc-ready walks the arc one tier at a time, building as it goes. godplans front-
 | `skills/godplans/scripts/plan-halflife.sh` | Cumulative and per-domain task supersession metric generator |
 | `skills/godplans/scripts/style-stats.py` | Measured style baseline for the style-genome pass, vendored by copy from codedna |
 | `skills/godplans/schemas/PLAN.schema.json` | JSON Schema for generated PLAN.json sidecars (`plan-json@2`; `PLAN.v1.schema.json` covers sidecars from 1.13.0 and earlier) |
-| `.agents/skills/`, `.claude/skills/` | Symlink projections of the canonical skill |
+| `.agents/skills/godplans`, `.claude/skills/godplans`, `plugins/godplans/skills` | Symlink projections of the canonical skill (the plugin link points at `skills/`) |
+| `.claude-plugin/marketplace.json`, `plugins/godplans/.claude-plugin/plugin.json` | Claude Code plugin marketplace and manifest; the plugin manifest and the marketplace's godplans entry carry the SKILL.md description verbatim, and the marketplace tagline carries the package.json description (`description-parity`) |
 | `install.sh` | Ownership-safe installer; `--global` (the default), `--project`, `--tools`, `--copy`, `--uninstall`, `--force` |
 | `PROMPT.md` | Generated portable fallback |
 | `scripts/lint.sh` | Meta-linter: unicode cleanliness, version and description parity, module contracts, domain parity, PROMPT freshness |
 | `scripts/lint-parity.js` | The description-length, description-parity, and domain-parity logic that `scripts/lint.sh` runs |
 | `scripts/build-catalog.js` | Maintainer-only generator that derives the validator's embedded requirement and document catalogs from the reference modules (`npm run catalog`); not shipped in the skill |
-| `scripts/release-check.sh` | Release-grade checks: pinned official validator, full suite, eval contract, tag/release parity, package dry run |
+| `scripts/release-check.sh` | Release-grade checks: pinned official validator, full suite (including the eval contract), tag/release parity, GitHub About parity, package dry run |
 | `requirements/skills-ref.txt` | Pinned official Agent Skills validator dependency |
 | `evals/` | Behavioral, external-grade, context-cost, and build-outcome evaluation contracts |
 | `evals/cases-roster.txt` | The behavioral case roster; the release matrix refuses to run when it and `evals/cases/` differ |
@@ -366,6 +374,7 @@ arc-ready walks the arc one tier at a time, building as it goes. godplans front-
 | `MAINTAINING.md` | Maintainer rituals and guardrails |
 | `docs/ABOUT.md` | The long-form writeup: why godplans exists and how it was designed |
 | `docs/ARCHITECTURE.md` | The pieces, and the source -> generator -> artifact -> check graph |
+| `docs/RELEASING.md` | The release checklist |
 | `docs/DRIFT.md` | Drift log: what drifted, how it was resolved, and what now prevents it |
 
 </details>

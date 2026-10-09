@@ -12,8 +12,9 @@ For each case the coordinator:
 3. Runs the case verifier.
 4. Runs the same fresh static godaudits pass against each built repository,
    with the input plan removed and arm names hidden from the auditor.
-5. Compares open Critical and High findings, verifier status, build token cost,
-   and audit engine versions.
+5. Compares active (open or accepted-risk) Critical and High findings,
+   verifier status, and plan and build token cost, and refuses the comparison
+   when the two audits report different godaudits engine or pack versions.
 
 Example:
 
@@ -27,6 +28,12 @@ node scripts/eval-outcome.js \
   --audit-runner evals/runners/codex-godaudits.sh \
   --output evals/outcomes/results/RUN
 ```
+
+`GODPLANS_OUTCOME_BUILD_MODEL` and `GODPLANS_OUTCOME_BUILD_EFFORT` set the
+builder's model and reasoning effort, and `GODPLANS_OUTCOME_AUDIT_MODEL` and
+`GODPLANS_OUTCOME_AUDIT_EFFORT` set the auditor's. The model defaults to the
+Codex configured default and the effort to `high`. `GODAUDITS_SKILL_DIR`
+defaults to a sibling `../godaudits/skills/godaudits` checkout when one exists.
 
 The output retains both plans, built repositories, verifier logs, complete
 AUDIT.json and AUDIT.mdx artifacts, runner metadata, and generated
@@ -46,11 +53,13 @@ before making a broad claim.
 
 ## Published directional result
 
-The 2026-07-23 `tenant-notes-api` run used `gpt-5.6-sol` through an already
-authenticated Codex CLI. Both arms passed the case verifier. Treatment had 0
-Critical and 1 High finding; control had 1 Critical and 4 High findings, for a
--4 Critical plus High delta. Treatment planning reported 11,236,025 cumulative
-input plus output tokens versus 162,816 for control.
+The 2026-07-23 `tenant-notes-api` run measured the godplans 1.9.0 release
+candidate with `gpt-5.6-sol` through an already authenticated Codex CLI. Both
+arms passed the case verifier. Treatment had 0 Critical and 1 High finding;
+control had 1 Critical and 4 High findings, for a -4 Critical plus High delta.
+Treatment planning reported 11,236,025 cumulative input plus output tokens
+versus 162,816 for control. No later godplans version has been re-measured, so
+these numbers describe 1.9.0, not the current skill.
 
 Read the method, cost, limits, and raw artifacts under
 `results/2026-07-23-tenant-notes-api-codex/`.

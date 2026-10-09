@@ -19,6 +19,11 @@ trim_trailing_whitespace = false
 [*.py]
 indent_size = 4
 
+# tests/fixtures/ holds sidecars exactly as the validator emitted them
+# (JSON::PP indents three spaces). Never reformat them.
+[tests/fixtures/**]
+indent_size = unset
+
 # Frozen evaluation evidence is published byte for byte and carries the
 # conventions of whatever repository the agent built. Never reformat it.
 [evals/{results,external/results,outcomes/results}/**]

@@ -1,6 +1,6 @@
 # Code quality planning module
 
-Plans the code quality sections of PLAN.mdx: quality budgets, testing discipline, error handling, performance rules, dependency hygiene, docs, and observability hooks. The orchestrator loads this module for every archetype that ships code; only pure marketing-site plans with zero application code may exclude it, with the reason stated in the applicability matrix.
+Plans the code quality sections of PLAN.mdx: quality budgets, testing discipline, error handling, performance rules, dependency hygiene, docs, and observability hooks. The orchestrator loads this module for every archetype. Code quality is never excluded or deferred: a site with no application code scales it down to its build, lint, and link checks, and its applicability row stays `applicable` with a scale note.
 
 ## Lineage
 
@@ -100,20 +100,20 @@ Criterion: WHEN a requirement is behavioral (concurrency, a gating flag, a state
 
 - [ ] GP-xxx Wire lint, format, and type checking into CI with quality budgets
   - Files: .github/workflows/ci.yml, eslint.config.js (or ruff.toml, .golangci.yml per stack), tsconfig.json
-  - Acceptance: lint config sets max function length, max nesting, and no-magic-numbers rules with the numbers from the Decisions section; type checker runs in strict mode with zero suppressions; CI fails on any lint or type error
-  - Verify: npx eslint . && npx tsc --noEmit (or the stack's equivalent lint and check commands)
+  - Acceptance: lint config sets max function length, max nesting, and no-magic-numbers rules with the numbers from the Decisions section; type checker runs in strict mode with zero suppressions; CI fails on any lint or type error; a stack without ESLint or tsc puts its own lint and type-check commands in Verify
+  - Verify: npx eslint . && npx tsc --noEmit
   - Requirements: R-CODE-5, R-CODE-6, R-CODE-7
 
 - [ ] GP-xxx Scaffold deterministic test harness and run it in CI
   - Files: tests/helpers/clock.ts, tests/helpers/seed.ts, tests/setup.ts, .github/workflows/ci.yml
   - Acceptance: test setup injects a fake clock and seeded RNG; network access in tests fails fast by default; CI workflow runs the full suite on every push; at least one example test per layer (unit, integration) exists with real assertions
-  - Verify: npm test -- --run && ! grep -rLE 'expect\(' tests/ --include='*.test.ts'
+  - Verify: npm test -- --run && test -z "$(grep -rLE --include='*.test.ts' 'expect\(' tests/)"
   - Requirements: R-CODE-9, R-CODE-10, R-CODE-11
 
 - [ ] GP-xxx Establish error boundary and I/O policy helpers
   - Files: src/lib/errors.ts, src/lib/http-client.ts, src/middleware/error-handler.ts
   - Acceptance: shared HTTP client sets a default timeout and backoff retry; error handler is the single boundary that logs with cause chain and returns generic client-facing messages; lint rule banning empty catch blocks is enabled
-  - Verify: grep -rn "catch {}" src/ returns nothing and grep -n "timeout" src/lib/http-client.ts returns a match
+  - Verify: ! grep -rnE 'catch *(\([^)]*\))? *\{ *\}' src/ && grep -q timeout src/lib/http-client.ts
   - Requirements: R-CODE-12, R-CODE-13
 
 - [ ] GP-xxx Write critical-path tests for auth and data mutations
@@ -131,13 +131,13 @@ Criterion: WHEN a requirement is behavioral (concurrency, a gating flag, a state
 - [ ] GP-xxx Implement real health check and structured logging hooks
   - Files: src/routes/health.ts, src/lib/logger.ts
   - Acceptance: health endpoint queries at least one real dependency (database ping or equivalent) and returns non-200 when it fails; logger emits structured output with a redaction list covering secrets and PII fields; no console.log calls outside the logger module
-  - Verify: grep -rn "console.log" src/ --include="*.ts" | grep -v lib/logger returns nothing
+  - Verify: test -f src/lib/logger.ts && ! grep -rn --include='*.ts' 'console.log' src/ | grep -v lib/logger
   - Requirements: R-CODE-19, R-CODE-20
 
 - [ ] GP-xxx Verify README from a clean clone
   - Files: README.md, scripts/dev.sh
   - Acceptance: README setup, build, and run sections name the exact commands from package scripts; following them from a fresh clone reaches a running state; every shipped env var appears in the configuration section
-  - Verify: bash -n scripts/dev.sh and diff of documented commands against the scripts block in package.json shows no drift
+  - Verify: bash -n scripts/dev.sh && node -e "const s=require('./package.json').scripts||{};const m=require('fs').readFileSync('README.md','utf8').match(/npm (run [A-Za-z0-9:_-]+|start|test)/g)||[];process.exit(m.length&&m.every(c=>s[c.replace(/^npm (run )?/,'')])?0:1)"
   - Requirements: R-CODE-18
 
 ## Self-audit rubric

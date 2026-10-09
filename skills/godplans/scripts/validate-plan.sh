@@ -136,7 +136,7 @@ sub task_depends_on {
 }
 
 open my $plan_fh, '<:raw', $plan_file
-    or die "FAIL $plan_file: cannot read: $!\n";
+    or bail("cannot read: $!");
 my $plan_bytes = do { local $/; <$plan_fh> };
 close $plan_fh;
 # Decode strictly: a lenient read carries substituted text into the sidecar.
@@ -148,7 +148,8 @@ if (!defined $plan_text) {
 fail('plan starts with a UTF-8 byte order mark; save it without one')
     if $plan_text =~ s/^\x{FEFF}//;
 my @lines = split /\n/, $plan_text;
-s/\r$// for @lines;
+# Markdown ignores trailing whitespace, so headings and labels do too.
+s/[ \t\r]+$// for @lines;
 
 for my $index (0 .. $#lines) {
     fail('banned Unicode on line ' . ($index + 1))
@@ -199,6 +200,12 @@ sub section {
         push @body, $index if $inside;
     }
     return @body;
+}
+
+sub section_count {
+    my $count = grep { $_ eq "## $_[0]" } @lines;
+    fail("expected exactly one ## $_[0] section, found $count") if $count != 1;
+    return $count;
 }
 
 my %frontmatter;
@@ -258,6 +265,12 @@ my %allowed_product_form = map { $_ => 1 } qw(web-application api-or-service cli
 if (exists $frontmatter{product_form} && !$allowed_product_form{$frontmatter{product_form}}) {
     fail("invalid product_form '$frontmatter{product_form}'; expected web-application, api-or-service, cli-or-sdk, mobile-or-desktop, data-or-ml, or infrastructure-or-iac");
 }
+
+# The nine archetypes discovery.md scores; a merged hybrid is not one of them.
+my @archetypes = qw(cli-tool library api-service saas-dashboard marketing-site mobile-app ml-pipeline extension game);
+my %allowed_archetype = map { $_ => 1 } @archetypes;
+fail("invalid archetype '$frontmatter{archetype}'; expected unknown or one of " . join(', ', @archetypes))
+    if ($frontmatter{archetype} || 'unknown') ne 'unknown' && !$allowed_archetype{$frontmatter{archetype}};
 
 my %allowed_confidence = map { $_ => 1 } qw(high medium low);
 if (exists $frontmatter{archetype_confidence}
@@ -393,12 +406,12 @@ my %doc_catalog = (
     'assure.scanning-index' => 'repo|evidence',
     'assure.threat-model' => 'security|durable',
     'build.agent-memory' => 'agent-memory|durable',
-    'build.api-reference' => 'build|durable',
+    'build.api-reference' => 'architecture|durable',
     'build.codebase-map' => 'agent-memory|durable',
     'build.config-reference' => 'stack|durable',
     'build.contributing' => 'repo|durable',
-    'build.dev-setup' => 'build|durable',
-    'build.feature-flags' => 'build|durable',
+    'build.dev-setup' => 'repo|durable',
+    'build.feature-flags' => 'deploy|durable',
     'build.llms-txt' => 'seo|durable',
     'build.readme' => 'repo|durable',
     'build.style-genome' => 'style-genome|durable',
@@ -785,28 +798,23 @@ for my $key (qw(phases_total phases_done tasks_total tasks_done)) {
 fail("status done requires every task checked, found $tasks_done of $tasks_total")
     if ($frontmatter{status} || '') eq 'done' && $tasks_done != $tasks_total;
 
-my $open_questions_count = scalar grep { $_ eq '## Open Questions' } @lines;
-fail("expected exactly one ## Open Questions section, found $open_questions_count")
-    if $open_questions_count != 1;
+section_count('Open Questions');
 my %open_question = map { $lines[$_] =~ /^### (Q[1-9][0-9]*):/ ? ($1 => $lines[$_]) : () }
     section('## Open Questions');
 
-my $provenance_count = scalar grep { $_ eq '## Plan provenance' } @lines;
-fail("expected exactly one ## Plan provenance section, found $provenance_count")
-    if $provenance_count != 1;
-
-my $product_form_count = scalar grep { $_ eq '## Product form' } @lines;
-fail("expected exactly one ## Product form section, found $product_form_count")
-    if $product_form_count != 1;
+my $provenance_count = section_count('Plan provenance');
+section_count('Product form');
 
 # Archetype confidence is arithmetic, not a feeling. The plan states its own
 # scores; everything downstream of them is recomputed here, so a confident
 # label that does not follow from the plan's own numbers cannot ship.
-my $archetype_low = 0;
+my $archetype_low = '';
 my %archetype_block;
 my $archetype_count = scalar grep { $_ eq '### Archetype confidence' } @lines;
 fail("expected exactly one ### Archetype confidence block, found $archetype_count")
     if $archetype_count != 1;
+fail('### Archetype confidence must sit under ## Product form')
+    if $archetype_count == 1 && !grep { $lines[$_] eq '### Archetype confidence' } section('## Product form');
 
 if ($archetype_count == 1) {
     for my $index (section('### Archetype confidence')) {
@@ -840,6 +848,9 @@ if ($archetype_count == 1) {
             fail("archetype confidence Runner-up must read '<archetype> (score 0.NN)' or 'none'");
         }
     }
+    for my $name (grep { defined $_ && !$allowed_archetype{$_} } $primary_name, $runner_name) {
+        fail("archetype confidence names $name, which is not one of " . join(', ', @archetypes));
+    }
 
     if (defined $primary_score) {
         fail("archetype confidence Primary score exceeds 1.00") if $primary_score > 1;
@@ -851,8 +862,8 @@ if ($archetype_count == 1) {
         # Below the floor the archetype is not decided, and a named archetype
         # would license matrix defaults and a document set nothing supports.
         if ($primary_score < 0.45) {
-            $archetype_low = 1;
-            fail("archetype confidence Primary score $primary_score is below the 0.45 floor, so frontmatter archetype must be unknown")
+            $archetype_low = 'the archetype Primary score is below the 0.45 floor';
+            fail('archetype confidence Primary score ' . sprintf('%.2f', $primary_score) . ' is below the 0.45 floor, so frontmatter archetype must be unknown')
                 if exists $frontmatter{archetype} && $frontmatter{archetype} ne 'unknown';
         }
     }
@@ -875,7 +886,7 @@ if ($archetype_count == 1) {
             ($expected_margin >= 15 && $primary_score >= 0.70) ? 'high'
             : ($expected_margin >= 15 || $primary_score >= 0.70) ? 'medium'
             : 'low';
-        $archetype_low = 1 if $expected_confidence eq 'low';
+        $archetype_low = 'archetype confidence is low' if $expected_confidence eq 'low';
         if (defined $archetype_block{Confidence}) {
             my $stated = lc $archetype_block{Confidence};
             if (!$allowed_confidence{$stated}) {
@@ -915,9 +926,10 @@ if ($archetype_count == 1) {
     }
 }
 
-# Low confidence is not a disclaimer. It withholds the archetype as a settled
-# fact until a human confirms it, so the question has to be on the page.
-fail("archetype confidence is low, so the archetype belongs in ## Open Questions as a ### Q<n>: entry naming it")
+# Low confidence, or a Primary below the floor, is not a disclaimer. It withholds
+# the archetype as a settled fact until a human confirms it, so the question has
+# to be on the page.
+fail("$archetype_low, so the archetype belongs in ## Open Questions as a ### Q<n>: entry naming it")
     if $archetype_low && !grep { /archetype/i } values %open_question;
 
 if ($provenance_count == 1) {
@@ -952,10 +964,14 @@ if ($provenance_count == 1) {
             next;
         }
         if ($inventory_started
-                && $line =~ /^- (\[recheck\] )?`([A-Za-z0-9][A-Za-z0-9._\/-]*)` = `sha256:([0-9a-f]{64})`$/) {
+                && $line =~ /^- (\[recheck\] )?`([A-Za-z0-9._][A-Za-z0-9._\/-]*)` = `sha256:([0-9a-f]{64})`$/) {
             my ($recheck, $label, $digest) = ($1, $2, $3);
             $inventory_count++;
-            if (exists $inventory{$label}) {
+            # A dotfile path is a repository-relative path; a .. segment is not.
+            if ($label =~ m{(?:^|/)\.\.(?:/|$)}) {
+                fail("Plan provenance inventory label $label must not contain a .. segment");
+                $inventory_valid = 0;
+            } elsif (exists $inventory{$label}) {
                 fail("duplicate Plan provenance inventory label: $label");
                 $inventory_valid = 0;
             } else {
@@ -1016,9 +1032,7 @@ my %never_excludable = map { $_ => 1 } qw(security code-quality style-genome rep
 my $vague_predicate = qr/^(?:later|eventually|when ready|post-mvp|future|tbd)\b/;
 my %domain_evidence_state;
 my %domain_revisit_when;
-my $matrix_count = scalar grep { $_ eq '## Applicability matrix' } @lines;
-fail("expected exactly one ## Applicability matrix section, found $matrix_count")
-    if $matrix_count != 1;
+my $matrix_count = section_count('Applicability matrix');
 
 if ($matrix_count == 1) {
     my %seen_domain;
@@ -1091,6 +1105,13 @@ if ($matrix_count == 1) {
     }
 }
 
+# The rest of the skeleton; Architecture and Agent memory while applicable.
+section_count($_) for 'Scope and non-goals', 'Compliance gate', 'Requirements', 'Style genome',
+    'Phases', 'Rules for executing agents', 'Session log',
+    grep { ($domain_disposition{lc($_) =~ tr/ /-/r} || '') eq 'applicable' } 'Architecture', 'Agent memory';
+fail('executor rules lack > [!IMPORTANT]')
+    unless grep { $lines[$_] eq '> [!IMPORTANT]' } section('## Rules for executing agents');
+
 # The module disposition is the only place a module requirement may leave the
 # plan. Precedence alone does not save it: a later layer is not a more correct
 # layer, only a later one, so the line names which layer dropped what. Without
@@ -1125,6 +1146,7 @@ if (%domain_disposition) {
     }
 
     my $found = grep { $_ eq '### Module disposition' } @lines;
+    my $inside = grep { $lines[$_] eq '### Module disposition' } section('## Applicability matrix');
     my %disposition_line = map { ($_ + 1 => $lines[$_]) }
         grep { $lines[$_] =~ /\S/ } section('### Module disposition');
 
@@ -1137,8 +1159,9 @@ if (%domain_disposition) {
         $reference_lines{$_}++ for keys %seen;
     }
 
-    if (!$found) {
-        fail("expected a ### Module disposition block under ## Applicability matrix");
+    if ($found != 1 || $inside != 1) {
+        fail("expected exactly one ### Module disposition block under ## Applicability matrix, found $inside"
+            . ($found > $inside ? ' there and ' . ($found - $inside) . ' elsewhere' : ''));
     }
 
     my %seen_module;
@@ -1295,9 +1318,7 @@ if (%domain_disposition) {
 # is the one outcome this section exists to make structurally hard.
 my %doc_verdict = map { $_ => 1 } qw(required recommended optional not-applicable);
 my @json_documents;
-my $docset_count = scalar grep { $_ eq '## Documentation set' } @lines;
-fail("expected exactly one ## Documentation set section, found $docset_count")
-    if $docset_count != 1;
+my $docset_count = section_count('Documentation set');
 
 if ($docset_count == 1) {
     my $boundary = 0;
@@ -1352,7 +1373,7 @@ if ($docset_count == 1) {
             # A misread archetype deletes assure-stage rows silently, and those
             # are the threat models and compliance records. Withhold them until
             # the archetype is confirmed.
-            fail("documentation set marks the assure-stage row $id not-applicable while archetype confidence is low; confirm the archetype first")
+            fail("documentation set marks the assure-stage row $id not-applicable while $archetype_low; confirm the archetype first")
                 if $archetype_low && $stage eq 'assure';
             my ($predicate) = $detail =~ /revisit when[ \t]*:[ \t]*(.*)$/i;
             $predicate = defined $predicate ? $predicate : '';
@@ -1363,7 +1384,7 @@ if ($docset_count == 1) {
                     unless grep { $open_question{$_} } $detail =~ /\b(Q[1-9][0-9]*)\b/g;
             } else {
                 if ($state eq 'unknown' || $state eq 'hint') {
-                    fail("documentation set excludes $id on evidence state '$state'; only absent or by-design may exclude");
+                    fail("documentation set excludes $id on evidence state '$state'; only absent, by-design, or present-elsewhere may exclude");
                 } elsif ($state !~ /^(?:absent|by-design|present-elsewhere)$/) {
                     fail("documentation set excludes $id without an evidence state; the cell must open with 'absent:', 'by-design:', or 'present-elsewhere:'");
                 }
@@ -1392,9 +1413,7 @@ if ($docset_count == 1) {
         unless $boundary;
 }
 
-my $decisions_count = scalar grep { $_ eq '## Decisions' } @lines;
-fail("expected exactly one ## Decisions section, found $decisions_count")
-    if $decisions_count != 1;
+my $decisions_count = section_count('Decisions');
 
 if ($decisions_count == 1) {
     my $current_decision;
@@ -1444,16 +1463,18 @@ if ($decisions_count == 1) {
                 unless exists $falsifier_field{$decision}{$field};
         }
         if (exists $falsifier_field{$decision}{Signal}) {
-            my $signal = lc $falsifier_field{$decision}{Signal};
+            (my $signal = lc $falsifier_field{$decision}{Signal}) =~ s/^[(\[]+//;
             fail("decision $decision Signal is too vague to observe")
                 if length($signal) < 12
                     || $signal =~ /^(?:metric|event|signal|performance|usage|something|tbd)\b/;
         }
         if (exists $falsifier_field{$decision}{'Failure boundary'}) {
             my $boundary = lc $falsifier_field{$decision}{'Failure boundary'};
+            # An id such as D1, R-1.1, R-SEC-4, or GP-101 is not a threshold.
+            (my $scan = $boundary) =~ s/\b(?:[da][1-9][0-9]*|gp-[0-9]+|r-[a-z0-9.-]*[0-9])\b//g;
             fail("decision $decision Failure boundary lacks an observable event or numeric threshold")
                 if length($boundary) < 12
-                    || $boundary !~ /(?:[0-9]|exceed|below|above|unavailable|removed|reject|prohibit|deprecat|ship|cannot|breach|change|timeout|error)/;
+                    || $scan !~ /(?:[0-9]|exceed|below|above|unavailable|removed|reject|prohibit|deprecat|ship|cannot|breach|change|timeout|error)/;
         }
         if (exists $falsifier_field{$decision}{'Replan action'}) {
             my $action = lc $falsifier_field{$decision}{'Replan action'};
@@ -1489,29 +1510,35 @@ if (@errors) {
     exit 1;
 }
 
+# Every FAIL exits 1, drift and I/O included; 2 stays the usage code.
+sub bail {
+    print STDERR "FAIL $plan_file: $_[0]\n";
+    exit 1;
+}
+
+# A signal, or a shell that never started, is not an exit status.
+sub rerun {
+    my ($what, $command) = @_;
+    system('sh', '-c', $command);
+    bail("$what " . ($? == -1 ? "could not start: $!"
+        : $? & 127 ? 'was killed by signal ' . ($? & 127) : 'exited ' . ($? >> 8))) if $?;
+}
+
 if ($drift_phase ne '') {
     my ($phase) = grep { $_->{number} == $drift_phase } @phases;
-    if (!defined $phase) {
-        die "FAIL $plan_file: drift phase $drift_phase does not exist\n";
-    }
+    bail("drift phase $drift_phase does not exist") unless defined $phase;
     my @completed = grep { $tasks[$_]{done} } @{$phase->{tasks}};
-    if (@completed != @{$phase->{tasks}}) {
-        die "FAIL $plan_file: drift phase $drift_phase is not complete\n";
-    }
+    bail("drift phase $drift_phase is not complete") if @completed != @{$phase->{tasks}};
 
     for my $label (sort keys %recheck_inventory) {
-        if ($label eq 'intake') {
-            die "FAIL $plan_file: recheck inventory label intake is not a file path\n";
-        }
+        bail('recheck inventory label intake is not a file path') if $label eq 'intake';
         open my $evidence_fh, '<:raw', $label
-            or die "FAIL $plan_file: recheck evidence $label cannot be read: $!\n";
+            or bail("recheck evidence $label cannot be read: $!");
         local $/;
         my $bytes = <$evidence_fh>;
         close $evidence_fh;
-        my $actual = sha256_hex($bytes);
-        if ($actual ne $recheck_inventory{$label}) {
-            die "FAIL $plan_file: recheck evidence drifted: $label\n";
-        }
+        bail("recheck evidence drifted: $label")
+            if sha256_hex($bytes) ne $recheck_inventory{$label};
         print "recheck evidence ok: $label\n";
     }
 
@@ -1521,22 +1548,18 @@ if ($drift_phase ne '') {
     } else {
         @sample_positions = (0, int($#completed / 2), $#completed);
     }
-    my %sample_seen;
     for my $position (@sample_positions) {
         my $task = $tasks[$completed[$position]];
-        next if $sample_seen{$task->{id}}++;
         my ($command) = $task->{fields}{Verify}[0] =~ /^`(.*)`$/;
         print "drift sample $task->{id}: $command\n";
-        system('sh', '-c', $command);
-        die "FAIL $plan_file: drift sample $task->{id} exited " . ($? >> 8) . "\n" if $?;
+        rerun("drift sample $task->{id}", $command);
     }
 
     # A phase of superseded tasks did no work, so it has no outcome to reprove.
     if (@completed) {
         my $checkpoint = $phase->{checkpoint_verify};
         print "checkpoint Phase $drift_phase: $checkpoint\n";
-        system('sh', '-c', $checkpoint);
-        die "FAIL $plan_file: Phase $drift_phase checkpoint exited " . ($? >> 8) . "\n" if $?;
+        rerun("Phase $drift_phase checkpoint", $checkpoint);
     }
 }
 
@@ -1674,11 +1697,11 @@ if ($emit_json ne '') {
     my $json = JSON::PP->new->utf8->canonical(1)->pretty->encode(\%document);
     my $json_tmp = "$emit_json.tmp.$$";
     open my $json_fh, '>:raw', $json_tmp
-        or die "FAIL $json_tmp: cannot write: $!\n";
+        or bail("cannot write $json_tmp: $!");
     print {$json_fh} $json;
     close $json_fh;
     rename $json_tmp, $emit_json
-        or die "FAIL $emit_json: cannot replace atomically: $!\n";
+        or bail("cannot replace $emit_json atomically: $!");
 }
 
 print "ok   $plan_file\n";

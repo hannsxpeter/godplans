@@ -113,6 +113,7 @@ fs.mkdirSync(output, { recursive: true });
 // A same-day rerun reuses the date-named output directory. A summary left by
 // an earlier run must not stand beside this run's arms if this run fails.
 fs.rmSync(path.join(output, 'SUMMARY.json'), { force: true });
+fs.rmSync(path.join(output, 'SUMMARY.md'), { force: true });
 
 try {
   for (const [arm, config] of Object.entries(arms)) {

@@ -110,6 +110,28 @@ run_project "$fixture" "$home" "$project" --tools claude,copilot-cloud --copy >/
 [ ! -L "$project/.github/skills/godplans" ] || fail "project Copilot copy created a symlink"
 pass "copy and symlink installs work globally and per project"
 
+# The global agents and claude roots honor their override variables at
+# non-default paths, and --help names them. run_global pins both to the fake
+# HOME, so these runs call the installer directly.
+new_fixture override
+home=$TMP_ROOT/home-override
+mkdir -p "$home"
+HOME=$home AGENTS_SKILLS_DIR=$TMP_ROOT/custom-agents CLAUDE_SKILLS_DIR=$TMP_ROOT/custom-claude \
+  sh "$fixture/install.sh" --tools agents,claude >/dev/null
+[ -L "$TMP_ROOT/custom-agents/godplans" ] || fail "AGENTS_SKILLS_DIR was ignored"
+[ -L "$TMP_ROOT/custom-claude/godplans" ] || fail "CLAUDE_SKILLS_DIR was ignored"
+[ ! -e "$home/.agents/skills/godplans" ] || fail "AGENTS_SKILLS_DIR override still wrote under HOME"
+[ ! -e "$home/.claude/skills/godplans" ] || fail "CLAUDE_SKILLS_DIR override still wrote under HOME"
+HOME=$home AGENTS_SKILLS_DIR=$TMP_ROOT/custom-agents CLAUDE_SKILLS_DIR=$TMP_ROOT/custom-claude \
+  sh "$fixture/install.sh" --tools agents,claude --uninstall >/dev/null
+[ ! -e "$TMP_ROOT/custom-agents/godplans" ] || fail "uninstall left the AGENTS_SKILLS_DIR install"
+[ ! -e "$TMP_ROOT/custom-claude/godplans" ] || fail "uninstall left the CLAUDE_SKILLS_DIR install"
+sh "$fixture/install.sh" --help > "$TMP_ROOT/help.out"
+assert_file_contains "$TMP_ROOT/help.out" "AGENTS_SKILLS_DIR=DIR CLAUDE_SKILLS_DIR=DIR"
+[ "$(tail -n 1 "$TMP_ROOT/help.out")" = "instructions are printed at the end." ] ||
+  fail "--help does not print the whole usage block"
+pass "global root overrides are honored and documented"
+
 # An unowned directory must survive install and uninstall attempts.
 new_fixture collision
 home=$TMP_ROOT/home-collision

@@ -1,0 +1,472 @@
+{
+   "applicability" : [
+      {
+         "domain" : "agent-memory",
+         "evidence_state" : null,
+         "reason" : "execution rules travel with the plan",
+         "revisit_when" : null,
+         "status" : "applicable"
+      },
+      {
+         "domain" : "architecture",
+         "evidence_state" : null,
+         "reason" : "shell and embedded Perl boundary",
+         "revisit_when" : null,
+         "status" : "applicable"
+      },
+      {
+         "domain" : "build",
+         "evidence_state" : null,
+         "reason" : "validator is the emitted application artifact",
+         "revisit_when" : null,
+         "status" : "applicable"
+      },
+      {
+         "domain" : "code-quality",
+         "evidence_state" : null,
+         "reason" : "validator coverage",
+         "revisit_when" : null,
+         "status" : "applicable"
+      },
+      {
+         "domain" : "database",
+         "evidence_state" : "by-design",
+         "reason" : "by-design: the validator reads a plan and writes a sidecar, holding no state between runs; revisit when: any task introduces a datastore or a persisted cache",
+         "revisit_when" : "any task introduces a datastore or a persisted cache",
+         "status" : "excluded"
+      },
+      {
+         "domain" : "deploy",
+         "evidence_state" : "by-design",
+         "reason" : "by-design: the validator ships inside the skill package and is never deployed; revisit when: any task publishes a hosted or installable service",
+         "revisit_when" : "any task publishes a hosted or installable service",
+         "status" : "excluded"
+      },
+      {
+         "domain" : "launch",
+         "evidence_state" : "by-design",
+         "reason" : "by-design: distribution is the skill release, not a public activation; revisit when: public_release flips to true",
+         "revisit_when" : "public_release flips to true",
+         "status" : "excluded"
+      },
+      {
+         "domain" : "llm",
+         "evidence_state" : "by-design",
+         "reason" : "by-design: every check is deterministic Perl with no model call; revisit when: any task adds a model SDK dependency or a prompt template",
+         "revisit_when" : "any task adds a model SDK dependency or a prompt template",
+         "status" : "excluded"
+      },
+      {
+         "domain" : "observe",
+         "evidence_state" : "by-design",
+         "reason" : "by-design: nothing runs long enough to observe; revisit when: any task adds a long-running process or a scheduled job",
+         "revisit_when" : "any task adds a long-running process or a scheduled job",
+         "status" : "excluded"
+      },
+      {
+         "domain" : "product",
+         "evidence_state" : null,
+         "reason" : "fixture requirement",
+         "revisit_when" : null,
+         "status" : "applicable"
+      },
+      {
+         "domain" : "repo",
+         "evidence_state" : null,
+         "reason" : "validator ships in the skill package",
+         "revisit_when" : null,
+         "status" : "applicable"
+      },
+      {
+         "domain" : "roadmap",
+         "evidence_state" : null,
+         "reason" : "fixture tasks exercise ordering",
+         "revisit_when" : null,
+         "status" : "applicable"
+      },
+      {
+         "domain" : "security",
+         "evidence_state" : null,
+         "reason" : "execution lifecycle is a safety boundary",
+         "revisit_when" : null,
+         "status" : "applicable"
+      },
+      {
+         "domain" : "seo",
+         "evidence_state" : "by-design",
+         "reason" : "by-design: nothing the validator produces is crawlable; revisit when: the project publishes a page a search engine can reach",
+         "revisit_when" : "the project publishes a page a search engine can reach",
+         "status" : "excluded"
+      },
+      {
+         "domain" : "stack",
+         "evidence_state" : null,
+         "reason" : "stock macOS and Linux toolchain",
+         "revisit_when" : null,
+         "status" : "applicable"
+      },
+      {
+         "domain" : "style-genome",
+         "evidence_state" : null,
+         "reason" : "portable shell conventions",
+         "revisit_when" : null,
+         "status" : "applicable"
+      },
+      {
+         "domain" : "ui",
+         "evidence_state" : "by-design",
+         "reason" : "by-design: output is stdout text with no rendered surface; revisit when: any task adds a rendered view the project owns",
+         "revisit_when" : "any task adds a rendered view the project owns",
+         "status" : "excluded"
+      },
+      {
+         "domain" : "ux",
+         "evidence_state" : "by-design",
+         "reason" : "by-design: the only interaction is one command and an exit code; revisit when: the validator gains an interactive or multi-step flow",
+         "revisit_when" : "the validator gains an interactive or multi-step flow",
+         "status" : "excluded"
+      }
+   ],
+   "archetype" : "cli-tool",
+   "archetype_confidence" : "high",
+   "created" : "2026-07-13",
+   "decisions" : [
+      {
+         "falsifier" : {
+            "failure_boundary" : "any supported platform ships without Perl",
+            "replan_action" : "return to planning and replace the embedded parser with a supported runtime",
+            "signal" : "Perl availability on every supported platform"
+         },
+         "id" : "D1",
+         "title" : "portable runtime boundary"
+      }
+   ],
+   "documentation" : [
+      {
+         "detail" : "the portable runtime boundary is D1; written by GP-101",
+         "durability" : "durable",
+         "id" : "decide.adr",
+         "owner" : "architecture",
+         "stage" : "decide",
+         "verdict" : "required"
+      },
+      {
+         "detail" : "always; written by GP-102",
+         "durability" : "durable",
+         "id" : "build.readme",
+         "owner" : "repo",
+         "stage" : "build",
+         "verdict" : "required"
+      },
+      {
+         "detail" : "always; written by GP-102",
+         "durability" : "durable",
+         "id" : "build.style-genome",
+         "owner" : "style-genome",
+         "stage" : "build",
+         "verdict" : "required"
+      },
+      {
+         "detail" : "always; written by GP-102",
+         "durability" : "durable",
+         "id" : "govern.manifest",
+         "owner" : "repo",
+         "stage" : "govern",
+         "verdict" : "required"
+      },
+      {
+         "detail" : "always; written by GP-201",
+         "durability" : "durable",
+         "id" : "verify.dod",
+         "owner" : "product",
+         "stage" : "verify",
+         "verdict" : "required"
+      },
+      {
+         "detail" : "by-design: the validator is a script with no deployed surface to operate; revisit when: any task adds a hosted service or a scheduled job",
+         "durability" : "durable",
+         "id" : "operate.runbook",
+         "owner" : "observe",
+         "stage" : "operate",
+         "verdict" : "not-applicable"
+      },
+      {
+         "detail" : "absent: no external user was named in intake; revisit when: the validator ships to users outside this repository",
+         "durability" : "durable",
+         "id" : "serve.user-guide",
+         "owner" : "launch",
+         "stage" : "serve",
+         "verdict" : "not-applicable"
+      }
+   ],
+   "format" : "godplans/plan-json@1",
+   "input_digest" : "sha256:1c7ca1006bb3157ad989c1f1dd1cd1d6e8e2a44d9509821ffa43f3be205a12d5",
+   "metrics" : {
+      "domains" : [
+         {
+            "active" : 1,
+            "domain" : "agent-memory",
+            "historical" : 1,
+            "superseded" : 0,
+            "supersession_rate" : 0
+         },
+         {
+            "active" : 1,
+            "domain" : "architecture",
+            "historical" : 1,
+            "superseded" : 0,
+            "supersession_rate" : 0
+         },
+         {
+            "active" : 1,
+            "domain" : "build",
+            "historical" : 1,
+            "superseded" : 0,
+            "supersession_rate" : 0
+         },
+         {
+            "active" : 3,
+            "domain" : "code-quality",
+            "historical" : 3,
+            "superseded" : 0,
+            "supersession_rate" : 0
+         },
+         {
+            "active" : 1,
+            "domain" : "product",
+            "historical" : 1,
+            "superseded" : 0,
+            "supersession_rate" : 0
+         },
+         {
+            "active" : 1,
+            "domain" : "repo",
+            "historical" : 1,
+            "superseded" : 0,
+            "supersession_rate" : 0
+         },
+         {
+            "active" : 1,
+            "domain" : "roadmap",
+            "historical" : 1,
+            "superseded" : 0,
+            "supersession_rate" : 0
+         },
+         {
+            "active" : 1,
+            "domain" : "security",
+            "historical" : 1,
+            "superseded" : 0,
+            "supersession_rate" : 0
+         },
+         {
+            "active" : 1,
+            "domain" : "stack",
+            "historical" : 1,
+            "superseded" : 0,
+            "supersession_rate" : 0
+         },
+         {
+            "active" : 1,
+            "domain" : "style-genome",
+            "historical" : 1,
+            "superseded" : 0,
+            "supersession_rate" : 0
+         }
+      ],
+      "task_history" : {
+         "active" : 3,
+         "historical" : 3,
+         "superseded" : 0,
+         "supersession_rate" : 0,
+         "survival_rate" : 1
+      }
+   },
+   "mode" : "greenfield",
+   "module_disposition" : [
+      {
+         "dropped" : [
+            {
+               "layer" : "scale",
+               "reason" : "fixture scope: no pricing surface to plan",
+               "requirements" : [
+                  "R-PRD-9"
+               ]
+            }
+         ],
+         "landed" : [
+            "R-PRD-1"
+         ],
+         "module" : "product"
+      },
+      {
+         "dropped" : [
+            {
+               "layer" : "scale",
+               "reason" : "one shell entry point, no heavy pattern to justify",
+               "requirements" : [
+                  "R-ARCH-10"
+               ]
+            }
+         ],
+         "landed" : [
+            "R-ARCH-4"
+         ],
+         "module" : "architecture"
+      },
+      {
+         "dropped" : [],
+         "landed" : [
+            "R-STACK-1"
+         ],
+         "module" : "stack"
+      },
+      {
+         "dropped" : [],
+         "landed" : [
+            "R-SEC-1"
+         ],
+         "module" : "security"
+      },
+      {
+         "dropped" : [],
+         "landed" : [
+            "R-CODE-21"
+         ],
+         "module" : "code-quality"
+      },
+      {
+         "dropped" : [],
+         "landed" : [
+            "R-DNA-14"
+         ],
+         "module" : "style-genome"
+      },
+      {
+         "dropped" : [],
+         "landed" : [
+            "R-MEM-2"
+         ],
+         "module" : "agent-memory"
+      },
+      {
+         "dropped" : [],
+         "landed" : [
+            "R-REPO-21"
+         ],
+         "module" : "repo"
+      },
+      {
+         "dropped" : [],
+         "landed" : [
+            "R-BUILD-1"
+         ],
+         "module" : "build"
+      },
+      {
+         "dropped" : [],
+         "landed" : [
+            "R-ROAD-1"
+         ],
+         "module" : "roadmap"
+      }
+   ],
+   "name" : "validator-fixture",
+   "overlays" : [],
+   "phases" : [
+      {
+         "name" : "Validator behavior",
+         "number" : 1,
+         "tasks" : [
+            "GP-101",
+            "GP-102"
+         ]
+      },
+      {
+         "name" : "Verification",
+         "number" : 2,
+         "tasks" : [
+            "GP-201"
+         ]
+      }
+   ],
+   "plan_digest" : "sha256:657b03f24eba3e5cf7d3f428d243fcada2ee812937adb10e60672086497ecd35",
+   "plan_version" : 1,
+   "product_form" : "cli-or-sdk",
+   "progress" : {
+      "phases_done" : 0,
+      "phases_total" : 2,
+      "tasks_done" : 0,
+      "tasks_total" : 3
+   },
+   "public_release" : false,
+   "source_revision" : "none",
+   "status" : "planning",
+   "superseded_tasks" : [],
+   "tasks" : [
+      {
+         "acceptance" : "frontmatter and counters are checked",
+         "depends_on" : [],
+         "done" : false,
+         "files" : "skills/godplans/scripts/validate-plan.sh",
+         "id" : "GP-101",
+         "parallel" : false,
+         "phase" : 1,
+         "requirements" : [
+            "R-1.1",
+            "R-CODE-21",
+            "R-ARCH-4",
+            "R-STACK-1"
+         ],
+         "reuses" : "repository shell conventions",
+         "verify" : "`bash tests/validate-plan.sh`",
+         "wave" : "W1.1"
+      },
+      {
+         "acceptance" : "dependencies and requirement IDs resolve",
+         "depends_on" : [
+            "GP-101"
+         ],
+         "done" : false,
+         "files" : "tests/validate-plan.sh",
+         "id" : "GP-102",
+         "parallel" : false,
+         "phase" : 1,
+         "requirements" : [
+            "R-1.1",
+            "R-CODE-21",
+            "R-REPO-21",
+            "R-DNA-14"
+         ],
+         "reuses" : "validator fixture",
+         "verify" : "`bash tests/validate-plan.sh`",
+         "wave" : "W1.1"
+      },
+      {
+         "acceptance" : "all regression cases pass",
+         "depends_on" : [
+            "GP-101",
+            "GP-102"
+         ],
+         "done" : false,
+         "files" : "tests/validate-plan.sh",
+         "id" : "GP-201",
+         "parallel" : false,
+         "phase" : 2,
+         "requirements" : [
+            "R-1.1",
+            "R-CODE-21",
+            "R-ROAD-1",
+            "R-BUILD-1",
+            "R-MEM-2",
+            "R-PRD-1",
+            "R-SEC-1"
+         ],
+         "reuses" : "repository lint entry point",
+         "verify" : "`bash tests/validate-plan.sh`",
+         "wave" : "W2.1"
+      }
+   ],
+   "updated" : "2026-07-13",
+   "validated_at" : "2026-07-13T12:00:00Z"
+}
