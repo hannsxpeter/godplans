@@ -16,7 +16,8 @@
 #   - nothing from the skill leaks in: no godplans name, no .godplans path, no
 #     format contract, requirement IDs, validator, phase method, or PLAN.mdx
 #     vocabulary in the preamble
-#   - a missing plan is scored as zero, never hidden as a runner error
+#   - a missing plan file means the final response is scored in its place,
+#     never hidden as a runner error
 
 set -euo pipefail
 
@@ -41,8 +42,8 @@ command -v codex >/dev/null 2>&1 || { echo "codex CLI not found" >&2; exit 2; }
 # skills in $CODEX_HOME/skills and $HOME/.agents/skills, so on a machine where
 # godplans is installed globally (the common case, since a maintainer runs the
 # evals), the control would silently load it and measure godplans against
-# itself. Both arms isolate the same way; the ONLY difference between them is
-# that this runner never links the skill into its workspace.
+# itself. Both arms isolate the same way; the ONLY isolation difference between
+# them is that this runner never links the skill into its workspace.
 REAL_CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 mkdir -p "$ISO_CODEX_HOME"
 [ -f "$REAL_CODEX_HOME/auth.json" ] && cp "$REAL_CODEX_HOME/auth.json" "$ISO_CODEX_HOME/auth.json"

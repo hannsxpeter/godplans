@@ -12,8 +12,9 @@ For each case the coordinator:
 3. Runs the case verifier.
 4. Runs the same fresh static godaudits pass against each built repository,
    with the input plan removed and arm names hidden from the auditor.
-5. Compares open Critical and High findings, verifier status, build token cost,
-   and audit engine versions.
+5. Compares active (open or accepted-risk) Critical and High findings,
+   verifier status, and plan and build token cost, and refuses the comparison
+   when the two audits report different godaudits engine or pack versions.
 
 Example:
 
@@ -52,11 +53,13 @@ before making a broad claim.
 
 ## Published directional result
 
-The 2026-07-23 `tenant-notes-api` run used `gpt-5.6-sol` through an already
-authenticated Codex CLI. Both arms passed the case verifier. Treatment had 0
-Critical and 1 High finding; control had 1 Critical and 4 High findings, for a
--4 Critical plus High delta. Treatment planning reported 11,236,025 cumulative
-input plus output tokens versus 162,816 for control.
+The 2026-07-23 `tenant-notes-api` run measured the godplans 1.9.0 release
+candidate with `gpt-5.6-sol` through an already authenticated Codex CLI. Both
+arms passed the case verifier. Treatment had 0 Critical and 1 High finding;
+control had 1 Critical and 4 High findings, for a -4 Critical plus High delta.
+Treatment planning reported 11,236,025 cumulative input plus output tokens
+versus 162,816 for control. No later godplans version has been re-measured, so
+these numbers describe 1.9.0, not the current skill.
 
 Read the method, cost, limits, and raw artifacts under
 `results/2026-07-23-tenant-notes-api-codex/`.

@@ -10,7 +10,7 @@ OUTPUT=$2
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK="$(mktemp -d)"
 RAW="$(mktemp)"
-LOG="$(dirname "$OUTPUT")/$PROVIDER.log"
+LOG="$(dirname "$OUTPUT")/$(basename "$OUTPUT" .json).$PROVIDER.log"
 trap 'rm -rf "$WORK"; rm -f "$RAW"' EXIT
 
 case "$PROVIDER" in claude|gemini) ;; *)

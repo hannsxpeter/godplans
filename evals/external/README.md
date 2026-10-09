@@ -29,7 +29,7 @@ authentication and record the available customization-isolation mode.
 `GODPLANS_GRADE_CLAUDE_MODEL` (default `sonnet`) and
 `GODPLANS_GRADE_GEMINI_MODEL` (default `gemini-2.5-pro`) choose the judge
 models, and each grade's `<case>.RUNNER.txt` records the model used. The
-coordinator validates totals, unblinds only after both grades exist, and
+coordinator validates totals, unblinds only after every grade exists, and
 publishes treatment and control means, preference counts, raw grades, and mean
 absolute inter-rater score gap.
 
