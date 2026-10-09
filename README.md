@@ -200,7 +200,7 @@ That is one case on one model. It is directional support for the claim, not proo
 <details>
 <summary><b>How the evidence is produced, and what still falls short</b></summary>
 
-Repository tests cover installer collisions and aliases, portable-prompt parity, plan-validator failure modes, generated PLAN.json sidecars checked against `PLAN.schema.json`, JSON and shell validity, version parity, immutable action pins, a lint self-test that injects one violation per check, and the behavioral evaluation harness. The behavioral matrix also covers product-form routing, Pillars 1.1 nested scopes and catalogs, stale source evidence, stale prepublication evidence, observability evidence labels, and the business pass for a priced B2B product with seat billing, a trial, a free tier, and a retiring plan.
+Repository tests cover installer collisions and aliases, portable-prompt parity, plan-validator failure modes, generated PLAN.json sidecars checked against `PLAN.schema.json`, JSON and shell validity, version parity, immutable action pins, a lint self-test that injects one violation per check, and the behavioral evaluation harness. The behavioral matrix also covers product-form routing, Pillars nested scopes and catalogs, stale source evidence, stale prepublication evidence, observability evidence labels, and the business pass for a priced B2B product with seat billing, a trial, a free tier, and a retiring plan.
 
 ```bash
 npm test
@@ -345,7 +345,7 @@ Then it does not get a hollow section about one. Every area is either planned no
 The plan drops straight into documentation pipelines (Docusaurus, Nextra, Fumadocs) and MDX-native plan viewers, but the body is written to be plain GitHub-flavored markdown at the same time. Rename it to `PLAN.md` any time for rich rendering on GitHub. Nothing is lost.
 
 **How is this different from arc-ready?**
-arc-ready walks the arc one tier at a time, building as it goes. godplans front-loads the decisions from all tiers plus the anticipatable checks of all eight auditors into one document before anything is built. They compose: plan with godplans, execute with anything, including arc-ready's build tiers.
+arc-ready walks the arc one stage at a time, building as it goes. godplans front-loads the decisions from all stages plus the anticipatable checks of all eight auditors into one document before anything is built. They compose: plan with godplans, execute with anything, including arc-ready's build stages.
 
 <details>
 <summary><b>Repository map</b></summary>

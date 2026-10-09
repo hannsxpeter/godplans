@@ -12,7 +12,7 @@ How drift is prevented from 1.14.0 on:
 - **The macOS CI job** runs the test suite and every lint check with `/bin/bash` 3.2 and BSD awk, grep, sed, and find first on PATH.
 - **Branch protection** (from 1.15.0) requires both CI jobs before anything merges to `main`, administrators included.
 - **About parity** (from 1.15.0): `release-check.sh` compares the GitHub About text and topics with `package.json`; it warns on pull requests and fails on `main` and in a local release check. `description-parity` also requires the marketplace tagline to equal the `package.json` description.
-- **Contract parity tests** (from 1.15.0): `tests/validate-plan.sh` requires the executor-rules block to match between `plan-format.md` and the template, and the archetype list to match between `discovery.md`, the validator, and the schema.
+- **Contract parity tests** (from 1.15.0): `tests/validate-plan.sh` requires the executor-rules block to match between `plan-format.md` and the template, and the archetype list to match between `discovery.md`, `plan-format.md`, the validator, and the schema.
 
 Behind those: `scripts/lint.sh --all` now runs every check and reports every failure, and the files it scans come from git.
 
@@ -139,12 +139,13 @@ Eight reviewers read the repository in parallel (public docs, maintainer docs, t
 | Eval harness | The control-arm runners scored the replan case's unchanged INPUT fixture instead of the control's own plan, the matrix accepted a missing control run, a duplicated judge label graded one judge against itself, the Gemini judge never saw the grade schema, and Claude token totals left out cached input. | Fixed, with `tests/vendor-runner.sh` (stand-in CLIs) and new cases in `tests/eval-harness.sh` and `tests/evidence-harnesses.sh`. |
 | Portable prompt | The core never said where to write the inlined validator, left the style-stats path unresolved, ignored `--output` before `--full`, and the budget test checked only the upper bound. | Fixed; `tests/portable-prompt.test.sh` checks the validator sentence, bare and backticked paths, doc-set routing, and both budget bounds. |
 | Docs | The README's sample task failed the validator, no doc showed the Claude Code plugin route, RELEASING tagged before the merge and waited for one of two CI jobs, the PR template skipped `npm run catalog`, and the private reporting channel the docs named was switched off. | Fixed; private vulnerability reporting is on and is the conduct channel too. Prose stays hand-kept. |
+| Housekeeping (after both reviews) | Old names and claims survived in files the reviews read lightly: the former handle aihxp as author and copyright holder, two eval expectations that a correct plan could fail (an archetype tie, and a phrase only the skill-arm runner prompt contained), requests that pointed at an `INPUT/` directory the runners never create, maintainer scripts that treated `--help` as a real argument, validator I/O failures that exited with the OS error number, a judge log overwritten per packet, and CODEOWNERS and comments that named fewer files than now reach user projects. | Fixed; `tests/script-usage.sh` covers the `--help` paths and `tests/validate-plan.sh` the I/O exit code. Expectations still carry checks the validator now runs behind `outcome|plan|`; trimming them waits for an approved model run. |
 | Vendored `style-stats.py` | Cut black-style functions at the signature, missed wrapped arrow functions, kept an unsorted first 800 files above the cap, and recorded no upstream base. | Fixed and tested; the docstring and MAINTAINING.md name the codedna base and the rule to port fixes both ways. |
 
 Still open after 1.15.0:
 
 - product.md R-PRD-17 plans a support runbook beside observe's operational runbooks (`operate.runbook`); the two serve different readers, but no row in the doc-set catalog names the support one.
 - The Codex runners still duplicate their environment setup. A shared helper waits until `codex-builder.sh` and `codex-godaudits.sh` have stand-in-CLI tests.
-- `evals/cases/replan-preserves-history/EXPECTATIONS` does not yet expect `half-life: not measured`; adding it needs a maintainer-approved model run.
+- `evals/cases/replan-preserves-history/EXPECTATIONS` does not yet expect `half-life: not measured`, and several expectations repeat checks the validator runs behind `outcome|plan|`; both changes need a maintainer-approved model run.
 - The local `style-stats.py` fixes have not been ported to hannsxpeter/codedna, and this copy has not taken codedna's git-aware listing or new extensions.
 

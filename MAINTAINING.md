@@ -30,7 +30,7 @@ Two checks hold the surfaces together:
 
 Never hand-edit a version string, including the badge. `install.sh` reads the version from SKILL.md when it runs, so it needs no edit.
 
-Semver, as practiced so far: patch releases carry documentation, CI, or correctness fixes (1.11.1, 1.12.1, 1.12.2, 1.12.3). Minor releases add requirements, phases, domains, or validator checks (1.12.0, 1.13.0, 1.14.0). There has been no major release since 1.0.0.
+Semver, as practiced so far: patch releases carry documentation, CI, or correctness fixes (1.11.1, 1.12.1, 1.12.2, 1.12.3). Minor releases add requirements, phases, domains, or validator checks (1.12.0, 1.13.0, 1.14.0, 1.15.0). There has been no major release since 1.0.0.
 
 ## Ritual: adding a domain module
 
@@ -159,7 +159,7 @@ The README's head-to-head build-outcome result measured godplans 1.9.0 on 2026-0
 
 ## Vendored code
 
-`skills/godplans/scripts/style-stats.py` is vendored by copy from hannsxpeter/codedna (`skill/scripts/codedna_stats.py`, MIT). The base is codedna v1.0.4 (tag commit `645ea5a`; the file last changed upstream in `4f75a6a`), and the script's docstring records the base and the local fixes. Neither repository depends on the other at run time. A fix travels between them as an edit to the file, never as a reference. When either copy changes, diff the two files and port fixes in both directions, then run `bash tests/style-stats.sh`, which covers the copy here.
+`skills/godplans/scripts/style-stats.py` is vendored by copy from hannsxpeter/codedna (`skill/scripts/codedna_stats.py`, MIT). The base is codedna v1.0.4 (tag commit `645ea5a`; at that tag the file had last changed in `4f75a6a`), and the script's docstring records the base and the local fixes. Neither repository depends on the other at run time. A fix travels between them as an edit to the file, never as a reference. When either copy changes, diff the two files and port fixes in both directions, then run `bash tests/style-stats.sh`, which covers the copy here.
 
 Where the copies stand against codedna v1.1.1 (`f2953c8`):
 

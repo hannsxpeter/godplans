@@ -51,6 +51,12 @@ which check now holds it, or that none does.
   `package.json`: it warns in pull-request CI and fails on `main` and locally.
   `description-parity` also requires the marketplace tagline to equal the
   `package.json` description.
+- The maintainer scripts `version-sync.js`, `context-metrics.js`,
+  `build-catalog.js`, `release-prepare.js`, `summarize-eval.js`, and
+  `summarize-matrix.js` answer `--help` with their usage and refuse unknown
+  arguments with exit 2; `--help` used to reach `npm version` as a bump,
+  rebuild PROMPT.md, or create a directory named `--help`.
+  `tests/script-usage.sh` covers them.
 - README documents the Claude Code plugin route
   (`/plugin marketplace add hannsxpeter/godplans`, then
   `/plugin install godplans@godplans`).
@@ -95,6 +101,20 @@ which check now holds it, or that none does.
 - One description now serves `package.json`, the marketplace tagline, and the
   GitHub About text. RELEASING.md waits for both CI jobs and splits its commands
   at the merge; `main` now requires both jobs, administrators included.
+- The author and copyright holder is Hanns Peter in LICENSE, `package.json`,
+  both plugin manifests, and SKILL.md, replacing the former handle aihxp; the
+  lineage of product, architecture, and build names hannsxpeter/ready-suite and
+  hannsxpeter/arc-ready.
+- Eval cases: product-form-routing accepts `api-service` as well as
+  `ml-pipeline`, which discovery.md's scoring table ties for that request;
+  compliance-refusal looks for the skill's own "hard stop" wording instead of a
+  phrase only the skill-arm runner prompt contained; the brownfield and replan
+  requests describe the repository in the workspace, where the runners put it;
+  and discovery.md's worked matrix calls its household invite-only, so it no
+  longer reads as the greenfield-saas product with business excluded.
+- CODEOWNERS covers every shipped script that reaches user projects, plus
+  `package.json` and `requirements/`; the plugin manifest gains the
+  `audit-aware` keyword.
 - SECURITY.md and the Code of Conduct link the repository's private reporting
   form, which is now enabled, and CONTRIBUTING.md points to both.
 
@@ -117,6 +137,13 @@ which check now holds it, or that none does.
   counts distinct, case-insensitive judge labels and hands every judge the grade
   schema; Claude token totals include cached input; `eval-outcome.js` clears a
   stale `SUMMARY.md`.
+- Every validator FAIL now exits 1, including an unreadable plan and an
+  `--emit-json` write that fails (they exited with the OS error number, such as
+  2 or 13); 2 is again only a usage error.
+- `vendor-grade.sh` keeps one log per graded packet instead of truncating a
+  single log per judge; `tests/lib/plan-schema-check.js` reports an unreadable
+  schema as a FAIL with exit 2 instead of a stack trace; and the package
+  `files` list includes the frozen 1.9.0 sidecar that the v1 schema test reads.
 - `build-prompt.sh` honors `--output` in any flag order, and
   `build-catalog.js` counts only requirement definitions, so a stale
   cross-reference can no longer raise `%catalog_max`.
@@ -143,8 +170,8 @@ which check now holds it, or that none does.
   `build.dev-setup`, `build.api-reference`, or `build.feature-flags` fails the
   ownership check; a replan updates the owner.
 - Callers of `--drift-check` that treated exit 2 as a missing recheck file
-  should treat any non-zero exit as a failure. A drift failure now exits 1; 2
-  means a usage error or an `--emit-json` write into a missing directory.
+  should treat any non-zero exit as a failure. Every FAIL, drift and I/O
+  included, now exits 1, and 2 means only a usage error.
 
 ## [1.14.0] - 2026-10-01
 

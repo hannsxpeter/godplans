@@ -47,8 +47,9 @@ when it makes an agent produce a better plan, and when a script can prove it.
    `discovery`, `compliance`, `exemplar`, `doc-set`) are exempt. The linter
    checks presence (`modules-complete`) and that every domain module is wired
    into the SKILL.md Phase 4 table, the validator tables, the prompt build,
-   the context metrics, the template and discovery matrices, and the schema's
-   row count (`domain-parity`); reviewers check substance.
+   the context metrics, the portable-prompt test, the template and discovery
+   matrices, and the schema's row count (`domain-parity`); reviewers check
+   substance.
 5. **Every plan requirement must be checkable.** A requirement whose
    violation cannot be detected by reading a plan is opinion, not a
    requirement; it will be asked to change.

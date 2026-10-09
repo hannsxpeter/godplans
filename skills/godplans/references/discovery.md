@@ -193,7 +193,7 @@ Never deferrable: product, business, architecture, stack, database, security, ll
 | Domain | Status | Reason |
 |---|---|---|
 | product | applicable | |
-| business | excluded | by-design: one household, no charge, no analytics; revisit when: any task adds a price, a checkout, an uninvited sign-up route, or an analytics SDK |
+| business | excluded | by-design: one invite-only household, no charge, no analytics; revisit when: any task adds a price, a checkout, an uninvited sign-up route, or an analytics SDK |
 | architecture | applicable | |
 | stack | applicable | |
 | database | applicable | |

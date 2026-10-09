@@ -196,7 +196,7 @@ godplans 1.0.0 was designed and written by AI agents under human direction in on
 The short version: plan with godplans, execute with anything, audit with auditor-suite or godaudits.
 
 - Plan with godplans, then execute with any agent following the embedded rules.
-- Or execute with arc-ready's build tiers: the plan's tier sections map onto arc-ready's artifact contract.
+- Or execute with arc-ready's build stages: the plan's domain sections map onto arc-ready's artifact contract.
 - Audit with [auditor-suite](https://github.com/hannsxpeter/auditor-suite): run its eight auditors at the end to check whether the inversion held. Expect fewer preventable findings, not zero; replan mode folds any findings into new tasks.
 - Or audit with [godaudits](https://github.com/hannsxpeter/godaudits), which audits the whole codebase in one run and, when `.godplans/PLAN.mdx` is present, also checks the code against the plan. It writes `.godaudits/EVIDENCE.json`; a later brownfield plan cites that inventory when its recorded revision matches the revision the plan binds to, and fingerprints the codebase itself when the file is stale or absent. The head-to-head run above used godaudits as its blind auditor.
 - pillars and codedna remain the living, in-repo forms of the agent-memory and style-genome sections the plan seeds.
