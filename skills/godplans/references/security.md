@@ -99,12 +99,12 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
 - [ ] GP-xxx Secret hygiene: gitignore, scanning, CI references
   - Files: .gitignore, .pre-commit-config.yaml, .github/workflows/ci.yml
   - Acceptance: .env*, *.pem, and credential file patterns ignored before first commit; gitleaks scans full history in pre-commit and CI, run by the R-REPO-15 agent-safety task when it lands (no second step here); workflow contains no continue-on-error on scan steps and references secrets.* only
-  - Verify: gitleaks detect --no-banner && ! grep -n "continue-on-error" .github/workflows/ci.yml
+  - Verify: gitleaks detect --no-banner && test -f .github/workflows/ci.yml && ! grep -n "continue-on-error" .github/workflows/ci.yml
   - Requirements: R-SEC-13, R-SEC-14
 - [ ] GP-xxx Supply chain pinning and SCA gate
   - Files: package-lock.json, .github/workflows/ci.yml, .npmrc
   - Acceptance: CI installs with npm ci; every third-party action pinned to a 40-char commit SHA; audit step gates on high with no || true; SBOM generated at build (when `public_release` is true or scale is enterprise, this is the R-REPO-14 dependency-inventory task's generator, not a second one)
-  - Verify: grep -Ec "uses: .*@[0-9a-f]{40}" .github/workflows/ci.yml && grep -c "npm ci" .github/workflows/ci.yml
+  - Verify: grep -q "npm ci" .github/workflows/ci.yml && ! grep -hE "^[ -]*uses:" .github/workflows/*.yml | grep -vE "@[0-9a-f]{40}|uses: *\./"
   - Requirements: R-SEC-17, R-SEC-18
 - [ ] GP-xxx Security event logging with formatter-level redaction
   - Files: src/logging/logger.ts, src/logging/redact.ts, tests/security/logging.test.ts

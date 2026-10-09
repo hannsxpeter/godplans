@@ -103,13 +103,13 @@ Criterion: WHEN the documentation set is emitted, THE PLAN SHALL contain the rep
 - [ ] GP-xxx Scaffold tier-scoped repo file inventory
   - Files: README.md, LICENSE, .gitignore, .gitattributes, .editorconfig
   - Acceptance: README contains install, usage, and a Quick Start of 5 or fewer commands; LICENSE contains the real SPDX text, current year, and real author; .gitignore contains the stack's canonical ignore entries; grep for "{{", "TODO", "example.com" across all five files returns nothing
-  - Verify: grep -rEn '\{\{|TODO|TBD|example\.com' README.md LICENSE .gitignore .gitattributes .editorconfig; test $? -eq 1
+  - Verify: ls README.md LICENSE .gitignore .gitattributes .editorconfig >/dev/null && ! grep -rEn '\{\{|TODO|TBD|example\.com' README.md LICENSE .gitignore .gitattributes .editorconfig
   - Requirements: R-REPO-1, R-REPO-4, R-REPO-6, R-REPO-7
 
 - [ ] GP-xxx Write contributor and security docs
   - Files: CONTRIBUTING.md, SECURITY.md, CHANGELOG.md, CODE_OF_CONDUCT.md
   - Acceptance: CONTRIBUTING names the real branch model, setup commands, and test command; SECURITY.md contains a real contact and a response timeline; CHANGELOG has Keep a Changelog headings with an Unreleased section
-  - Verify: grep -q 'Unreleased' CHANGELOG.md && ! grep -q 'example.com' SECURITY.md && grep -qE 'npm test|pytest|go test|cargo test' CONTRIBUTING.md
+  - Verify: grep -q 'Unreleased' CHANGELOG.md && test -f SECURITY.md && ! grep -q 'example.com' SECURITY.md && grep -qE 'npm test|pytest|go test|cargo test' CONTRIBUTING.md
   - Requirements: R-REPO-8, R-REPO-13, R-REPO-6
 
 - [ ] GP-xxx Wire CI pipeline with real commands

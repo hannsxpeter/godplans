@@ -109,7 +109,7 @@ Criterion: WHEN interactive UI is planned THE PLAN SHALL carry the conformance t
 - [ ] GP-xxx Scaffold the state matrix for data views
   - Files: src/components/views/*.tsx
   - Acceptance: every data-fetching view renders loading, empty, error, and success branches tied to real state; zero key={index} on mutable lists; error boundary wraps each data-driven tree; controlled inputs paired with onChange
-  - Verify: ! grep -rEn 'key=\{(index|i)\}' src/components/
+  - Verify: ls src/components/views/*.tsx >/dev/null && ! grep -rEn 'key=\{(index|i)\}' src/components/
   - Requirements: R-UI-11, R-UI-19
 - [ ] GP-xxx Wire the LCP and asset baseline per key route
   - Files: src/app/(routes)/*, public/
@@ -119,7 +119,7 @@ Criterion: WHEN interactive UI is planned THE PLAN SHALL carry the conformance t
 - [ ] GP-xxx Run the UI verification sweep (final Verification phase)
   - Files: .godplans/PLAN.mdx
   - Acceptance: zero onClick on div/span; zero positive tabindex; zero unlabeled inputs; zero raw hex literals outside the token source; zero aria-hidden on focusable ancestors; sweep results recorded under the task
-  - Verify: ! grep -rEn '<(div|span)[^>]*onClick' src/ && ! grep -rEn 'tabindex="[1-9]' src/
+  - Verify: test -d src && ! grep -rEn '<(div|span)[^>]*onClick' src/ && ! grep -rEn 'tabindex="[1-9]' src/
   - Requirements: R-UI-2, R-UI-4, R-UI-14, R-UI-19, R-UI-20
 
 ## Self-audit rubric

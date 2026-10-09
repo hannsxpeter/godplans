@@ -84,12 +84,12 @@ Templates ready to instantiate. Replace path placeholders and the entity token w
 - [ ] GP-xxx CTA-completeness audit for slice <n>
   - Files: .godplans/deferred-cta.md
   - Acceptance: every button, link, form, menu, and drawer on touched pages completes its chain to a user-visible outcome; blocked CTAs are removed, disabled-with-visible-reason, or logged with all five fields; no entry has a vague blocker
-  - Verify: ! grep -riE "blocker: *(later|soon|tbd)" .godplans/deferred-cta.md
+  - Verify: test -f .godplans/deferred-cta.md && ! grep -riE "blocker: *(later|soon|tbd)" .godplans/deferred-cta.md
   - Requirements: R-BUILD-6, R-BUILD-7
 - [ ] GP-xxx Hollow-check gate at tier boundary
   - Files: src/
   - Acceptance: zero TODO or implement-later markers in prod paths; zero hardcoded fake-data arrays in components; zero Math.random() driving charts or KPIs; zero alert() or prompt() for UI
-  - Verify: ! grep -rnE "TODO|implement later|hook up to API|Math.random\(\)" src/ --include="*.tsx" --include="*.ts"
+  - Verify: test -d src && ! grep -rnE "TODO|implement later|hook up to API|Math.random\(\)" src/ --include="*.tsx" --include="*.ts"
   - Requirements: R-BUILD-16, R-BUILD-18
 - [ ] GP-xxx Cross-cutting Tier-3 pass
   - Files: src/app/search/, src/components/export-button.tsx, src/components/theme-toggle.tsx, src/app/audit-log/page.tsx
@@ -100,7 +100,7 @@ Templates ready to instantiate. Replace path placeholders and the entity token w
   - Files: next.config.js, .size-limit.json
   - Depends on: GP-xxx every landed R-SEC-15, R-SEC-16, and R-SEC-17 task
   - Acceptance: no secret matches (server-only env names, live key prefixes, private-key headers) in the client bundle output; a per-route bundle budget is set and enforced; heavy libraries load through dynamic import
-  - Verify: npm run build && ! grep -rqE "sk_live_|PRIVATE KEY|DATABASE_URL" .next/static && npx size-limit
+  - Verify: npm run build && test -d .next/static && ! grep -rqE "sk_live_|PRIVATE KEY|DATABASE_URL" .next/static && npx size-limit
   - Requirements: R-BUILD-15
 
 ## Self-audit rubric

@@ -92,7 +92,7 @@ Replace each `<...>` placeholder with the plan's real domain or URL; one left in
 - [ ] GP-xxx Run banned-word and voice audit on all launch copy
   - Files: site/index.html, docs/launch/emails/
   - Acceptance: zero banned-word hits above the fold; no AI self-reference in hero; second person and active voice on hero
-  - Verify: ! grep -riE 'seamless|powerful|revolutionary|effortless|\bintelligent\b|cutting-edge|game-changing|\bunlock\b|supercharge|streamline|empower|elevate|robust|best-in-class|\bleading\b|world-class|enterprise-grade' site/index.html
+  - Verify: test -f site/index.html && ! grep -riE 'seamless|powerful|revolutionary|effortless|\bintelligent\b|cutting-edge|game-changing|\bunlock\b|supercharge|streamline|empower|elevate|robust|best-in-class|\bleading\b|world-class|enterprise-grade' site/index.html
   - Requirements: R-LAUNCH-6, R-LAUNCH-7
 - [ ] GP-xxx Ship launch-day SEO head and OG card to spec
   - Files: site/index.html, site/public/og.png, site/public/robots.txt, site/public/sitemap.xml
@@ -123,7 +123,7 @@ Replace each `<...>` placeholder with the plan's real domain or URL; one left in
   - Files: docs/release/PREPUBLICATION.md
   - Depends on: GP-HARDENING
   - Acceptance: records checked_at later than current hardening evidence, matching hardening_revision, finding_counts, policy, and verdict; validates owner, justification, accepted_at, and expires_at for permitted Critical risks; any later hardening change invalidates the pass
-  - Verify: test "$(git hash-object docs/security/HARDENING.md)" = "$(awk '/^hardening_revision:/ {print $2}' docs/release/PREPUBLICATION.md)" && grep -q '^verdict: pass$' docs/release/PREPUBLICATION.md
+  - Verify: test -f docs/security/HARDENING.md && test "$(git hash-object docs/security/HARDENING.md)" = "$(awk '/^hardening_revision:/ {print $2}' docs/release/PREPUBLICATION.md)" && grep -q '^verdict: pass$' docs/release/PREPUBLICATION.md
   - Requirements: R-ROAD-21
 
 - [ ] GP-xxx Perform the first public activation
