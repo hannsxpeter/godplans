@@ -105,4 +105,66 @@ EOF
 stats "$TMP_DIR/py" > "$TMP_DIR/py.json"
 expect "$TMP_DIR/py.json" py naming.variable 'null' "a comparison counted as a variable"
 
+# A wrapped signature does not end the function: the black-style `):` line sits
+# at the def's indent, and the docstring comes after it.
+mkdir "$TMP_DIR/pysig"
+cat > "$TMP_DIR/pysig/report.py" <<'EOF'
+def build_report(
+    source,
+    target,
+):
+    """Build the report."""
+    rows = []
+    for item in source:
+        rows.append(item)
+    rows.extend(target)
+    return rows
+
+
+def short(value):
+    return value
+EOF
+stats "$TMP_DIR/pysig" > "$TMP_DIR/pysig.json"
+expect "$TMP_DIR/pysig.json" py function_lengths '{"count": 2, "median": 6.0, "p90": 10}' "a wrapped signature cut the body"
+expect "$TMP_DIR/pysig.json" py doc_comment_coverage.documented '1' "a docstring after a wrapped signature missed"
+
+# An arrow function whose parameters wrap is measured; a wrapped parenthesized
+# expression is not a function.
+mkdir "$TMP_DIR/arrow"
+cat > "$TMP_DIR/arrow/handler.js" <<'EOF'
+const handler = async (
+  req,
+  res,
+) => {
+  const body = req.body;
+  res.send(body);
+  return body;
+};
+
+const config = (
+  { retries: 3 }
+);
+EOF
+stats "$TMP_DIR/arrow" > "$TMP_DIR/arrow.json"
+expect "$TMP_DIR/arrow.json" js function_lengths '{"count": 1, "median": 8, "p90": 8}' "a wrapped arrow function skipped"
+expect "$TMP_DIR/arrow.json" js doc_comment_coverage.functions '1' "a wrapped arrow or expression miscounted"
+
+# Above the per-language cap, files are sampled evenly over sorted paths, so
+# every directory is measured and the result does not depend on walk order.
+mkdir "$TMP_DIR/cap" "$TMP_DIR/cap/aa" "$TMP_DIR/cap/zz"
+i=0
+while [ "$i" -lt 800 ]; do
+  printf 'def f():\n    return 1\n' > "$TMP_DIR/cap/aa/f$i.py"
+  i=$((i + 1))
+done
+i=0
+while [ "$i" -lt 200 ]; do
+  printf 'def g():\n    """Doc."""\n    a = 1\n    b = 2\n    c = a + b\n    return c\n' > "$TMP_DIR/cap/zz/g$i.py"
+  i=$((i + 1))
+done
+stats "$TMP_DIR/cap" > "$TMP_DIR/cap.json"
+expect "$TMP_DIR/cap.json" py files_capped '200' "the cap miscounted"
+expect "$TMP_DIR/cap.json" py function_lengths '{"count": 800, "median": 2.0, "p90": 6}' "the cap dropped a directory"
+expect "$TMP_DIR/cap.json" py doc_comment_coverage.documented '160' "the cap sample was not even"
+
 echo "ok   [style-stats]"

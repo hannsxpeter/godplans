@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
 """Best-effort style statistics for the godplans style-genome pass.
 
-Vendored by copy from hannsxpeter/codedna (skill/scripts/codedna_stats.py, MIT).
-godplans depends on nothing from codedna at runtime and codedna depends on
-nothing from godplans; fixes travel between the two repositories as edits to
-this file, never as a reference. Stdlib only, so it runs wherever the plan does.
+Vendored by copy from hannsxpeter/codedna v1.0.4 (commit 645ea5a,
+skill/scripts/codedna_stats.py, MIT). godplans depends on nothing from codedna
+at runtime and codedna depends on nothing from godplans; fixes travel between
+the two repositories as edits to this file, never as a reference. When either
+copy changes, diff the two and port fixes in both directions. Stdlib only, so
+it runs wherever the plan does.
+
+Local fixes since that base: bodyless declarations and .d.ts files are not
+measured, an identifier counts under one kind only, and a Python comparison
+is not an assignment (godplans 1.14.0); wrapped Python signatures, docstrings
+after them, and arrow functions whose parameters wrap are measured, and
+languages with equal file counts sort by name. Taken from codedna v1.1.1:
+sorted paths, sampled evenly above the per-language cap. Not taken: its git
+file listing, extra extensions, comment-aware quote counts, and prose voice.
 
 R-DNA-5 asks for a numeric function-size norm and R-DNA-20 asks for measured
 frequencies rather than an eyeballed sample. This produces those numbers.
@@ -63,6 +73,9 @@ HASH_COMMENT = {"py", "rb"}
 QUOTE_LANGS = {"js", "ts", "py", "rb", "php"}
 BOOLEAN_PREFIX_RE = re.compile(r"^(?:is|has|should|can|will|did)(?:[A-Z_]|$)")
 TODO_RE = re.compile(r"\b(?:TODO|FIXME)\b")
+STRING_RE = re.compile(r'"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'')
+# An arrow function whose parameter list wraps: `const handler = async (` alone.
+WRAPPED_ARROW_RE = re.compile(r"\b(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*=\s*(?:async\s*)?(\()[^)]*$")
 
 DOC_MARKERS = {
     "default": ("/**", "///"),
@@ -131,7 +144,14 @@ def collect_files(target):
             lang = EXT.get(os.path.splitext(name)[1].lower())
             if lang:
                 files[lang].append(os.path.join(root, name))
-    return files
+    return {lang: sorted(paths) for lang, paths in files.items()}
+
+
+def sample_paths(paths):
+    if len(paths) <= MAX_FILES_PER_LANG:
+        return paths
+    step = len(paths) / MAX_FILES_PER_LANG
+    return [paths[int(index * step)] for index in range(MAX_FILES_PER_LANG)]
 
 
 def read_text(path):
@@ -274,6 +294,18 @@ def leading_indent(line):
     return len(line) - len(line.lstrip())
 
 
+def signature_end(lines, index):
+    # A wrapped signature ends where its brackets close, which in black style
+    # is a `):` line at the def's own indent; that line is not the body's end.
+    depth = 0
+    for cursor in range(index, len(lines)):
+        code = STRING_RE.sub("", lines[cursor]).split("#", 1)[0]
+        depth += sum(code.count(char) for char in "([{") - sum(code.count(char) for char in ")]}")
+        if depth <= 0:
+            return cursor
+    return index
+
+
 def py_function_lengths(text):
     lengths = []
     lines = text.splitlines()
@@ -281,8 +313,9 @@ def py_function_lengths(text):
         if not re.match(r"^\s*(?:async\s+)?def\s+[A-Za-z_]\w*", line):
             continue
         indent = leading_indent(line)
-        end = index + 1
-        for cursor in range(index + 1, len(lines)):
+        body = signature_end(lines, index)
+        end = body + 1
+        for cursor in range(body + 1, len(lines)):
             stripped = lines[cursor].strip()
             if not stripped:
                 continue
@@ -291,6 +324,29 @@ def py_function_lengths(text):
             end = cursor + 1
         lengths.append(max(1, end - index))
     return lengths
+
+
+def wrapped_arrow(lines, index):
+    # (closing line, text after the closing paren) when lines[index] opens an
+    # arrow function whose parameters wrap; None for a wrapped parenthesized
+    # expression such as `const view = (` ... `);`.
+    match = WRAPPED_ARROW_RE.search(lines[index])
+    if not match:
+        return None
+    depth = 0
+    for cursor in range(index, len(lines)):
+        text = lines[cursor][match.start(1):] if cursor == index else lines[cursor]
+        for position, char in enumerate(text):
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+                if not depth:
+                    rest = text[position + 1:].strip()
+                    if rest.startswith("=>") or (rest.startswith(":") and "=>" in rest):
+                        return cursor, rest
+                    return None
+    return None
 
 
 def brace_function_lengths(text):
@@ -303,15 +359,23 @@ def brace_function_lengths(text):
     lengths = []
     lines = text.splitlines()
     for index, line in enumerate(lines):
+        first = index
         if not starts.search(line):
-            continue
-        if "=>" in line and "{" not in line:
+            arrow = wrapped_arrow(lines, index)
+            if not arrow:
+                continue
+            first, rest = arrow
+            # A concise body is measured to the arrow, as on a one-line arrow.
+            if "{" not in rest:
+                lengths.append(first - index + 1)
+                continue
+        elif "=>" in line and "{" not in line:
             lengths.append(1)
             continue
         balance = 0
         saw_brace = False
         end = index
-        for cursor in range(index, len(lines)):
+        for cursor in range(first, len(lines)):
             # A signature that ends in `;` before any brace is a bodyless
             # declaration (TS overload, `declare`, Rust trait item); measuring
             # it would run into whatever block follows.
@@ -360,12 +424,12 @@ def doc_coverage(lang, text):
                 r"\bfunc\s+(?:\([^)]*\)\s*)?[A-Za-z_]\w*|"
                 r"\bfn\s+[A-Za-z_]\w*",
                 line,
-            )
+            ) or wrapped_arrow(lines, index)
         if not match:
             continue
         total += 1
         if lang == "py":
-            for cursor in range(index + 1, len(lines)):
+            for cursor in range(signature_end(lines, index) + 1, len(lines)):
                 stripped = lines[cursor].strip()
                 if not stripped:
                     continue
@@ -411,7 +475,7 @@ def analyze_language(lang, paths):
     documented_functions = 0
     total_functions = 0
 
-    for path in paths[:MAX_FILES_PER_LANG]:
+    for path in sample_paths(paths):
         try:
             if os.path.getsize(path) > MAX_FILE_BYTES:
                 result["files_skipped_large"] += 1
@@ -469,7 +533,7 @@ def analyze(target):
     files = collect_files(target)
     return [
         analyze_language(lang, paths)
-        for lang, paths in sorted(files.items(), key=lambda item: -len(item[1]))
+        for lang, paths in sorted(files.items(), key=lambda item: (-len(item[1]), item[0]))
     ]
 
 
@@ -493,7 +557,7 @@ def print_text(results, target):
             sample = "read %d of %d files" % (read, total)
         print("\n== %s (%s, %d code lines) ==" % (lang, sample, result["code_lines"]))
         if result["files_capped"]:
-            print("  sampled  : capped at %d files" % MAX_FILES_PER_LANG)
+            print("  sampled  : capped at %d files, spread evenly by path" % MAX_FILES_PER_LANG)
         if result["files_skipped_large"]:
             print("  skipped  : %d oversized files" % result["files_skipped_large"])
         if result["files_skipped_minified"]:
