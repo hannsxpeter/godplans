@@ -3,7 +3,7 @@ name: godplans
 description: "Produce an audit-aware, agent-executable master plan (PLAN.mdx) before application code is written. One command runs discovery, forces hard-to-reverse decisions, and plans product, business (pricing, entitlements, billing, metrics, feedback), architecture, roadmap, stack, repo, build, deploy, observability, launch, security, code quality, style genome, database, LLM integration, SEO, UI, UX, and agent memory upfront. After-the-fact audit checks become plan-time acceptance criteria, a prose-integrity pass removes generic language without changing meaning, and a self-contained validator enforces task structure and approval state. Use when the user says: plan this project, godplans, master plan, product plan, plan everything upfront, plan before code, audit-aware plan, replan, or starts a greenfield project or major feature. Refuses plan theater, vague tasks without verification, unsupported quality guarantees, and projects whose core purpose violates the Anthropic Usage Policy."
 license: MIT
 metadata:
-  version: "1.14.0"
+  version: "1.15.0"
   author: aihxp
   homepage: https://github.com/hannsxpeter/godplans
 ---
@@ -179,4 +179,4 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 | `scripts/style-stats.py` | Measured style baseline for the style-genome pass (naming histograms, comment density, function length) |
 | `schemas/PLAN.schema.json` | Published JSON Schema for the generated PLAN.json sidecar (`plan-json@2`; `PLAN.v1.schema.json` covers `@1` sidecars) |
 
-## Skill version: 1.14.0
+## Skill version: 1.15.0

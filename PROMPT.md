@@ -180,7 +180,7 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 - **Invented numbers**: an availability target, recovery objective, retention period, or review cadence the plan made up so a section would be complete. Cite it, decide it with a falsifier, or ask it.
 - **Ungated promises**: a marker an executor acts on that nothing verifies. `[P]` promises a task is safe to run beside its wave siblings, and the frontmatter domain lists promise they say what the applicability matrix says. Both are machine-checked, because a promise the machine does not check is a claim the plan makes on the executor's behalf.
 
-## Skill version: 1.14.0
+## Skill version: 1.15.0
 
 
 ---
@@ -693,7 +693,7 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
 
 # Architecture planning module
 
-Turns audit-time architecture discipline into plan-time obligations: the orchestrator loads this module during the architecture domain pass for every archetype; a plan that fails the load-bearing check below gets R-ARCH-2's one-page shape statement and ADR-001, never an exclusion.
+Turns audit-time architecture discipline into plan-time obligations: the orchestrator loads this module during the architecture domain pass for every archetype; a plan that fails the load-bearing check below still gets R-ARCH-2's one-page shape statement and ADR-001, because `decide.adr` is an always-owed documentation row this module owns.
 
 ## Lineage
 
@@ -707,7 +707,7 @@ Ordered hardest-to-reverse first. Each must land in the plan's Decisions section
 2. Data ownership and tenancy. Per entity: one writer, tenancy model (shared-schema, per-tenant-schema, per-tenant-DB), lifecycle (immutable, append-only, mutable, soft-delete), retention. Hard to reverse because tenancy migration means live data migration under uptime pressure. Default: shared-schema with a tenant_id column and single-writer components, unless compliance demands isolation.
 3. Storage shape per entity group. Relational, document, key-value, time-series, event log, search, graph, object store; chosen before any product name. Hard to reverse because access patterns calcify around the shape. Naming Postgres at this stage is stackitecture; the pick belongs to the stack pass. Default: relational for entities with cross-entity invariants, object store for blobs.
 4. Read-consistency stance and partition key per entity group. Which reads need strong consistency, read-your-writes, bounded staleness with a stated number, or eventual; and whether any group outgrows one node at the 12-month ceiling, which fixes the partition key. Hard to reverse because the stance leaks into every read call site, and a key chosen late means re-keying live data while every query that assumed one node is rewritten. Default: read-your-writes for the writer's own session, bounded staleness elsewhere with the number written down, one node until the arithmetic says otherwise.
-5. Trust boundary placement. Where network edge, authentication, authorization, and tenant isolation sit, and how each is enforced. Hard to reverse because retrofitting a boundary means auditing every existing call path. Default: authn at the edge, authz in the domain layer, tenant isolation enforced in both query layer and schema (two independent layers).
+5. Trust boundary placement. Where network edge, authentication, authorization, and tenant isolation sit, and how each is enforced. Hard to reverse because retrofitting a boundary means auditing every existing call path. Default: authn at the edge, authz in the domain layer, tenant isolation enforced in two independent layers: the query layer and the database, in R-DB-19's form.
 6. Integration posture per external dependency. Sync vs async, transport, idempotency key and retry policy, failure blast radius. Hard to reverse because callers grow to depend on the timing and delivery semantics. Default: sync for request-path reads, async with at-least-once delivery plus idempotent receivers for mutations; exactly-once is never assumed.
 7. Distributed-transaction stance. Adopt cross-service transactions (almost never) or plan the outbox pattern with reconciliation. Hard to reverse because invariant enforcement points spread through the codebase. Default: single-writer boundaries plus outbox; reject two-phase commit.
 8. Wire formats and public interface style. What crosses component boundaries and how it versions. Hard to reverse because external consumers freeze it on first use. Default: JSON over HTTP for sync, versioned event payloads for async, with an explicit compatibility rule.
@@ -796,7 +796,7 @@ Criterion: WHEN a throughput ceiling is stated, THE PLAN SHALL give every entry 
 - [ ] GP-xxx Write ADR corpus for shape, storage, and trust boundaries
   - Files: docs/adr/001-system-shape.md, docs/adr/002-storage-shapes.md, docs/adr/003-trust-boundaries.md
   - Acceptance: each file contains the strings "Flip point:" and "Blast radius:" and an "Alternatives rejected" section with at least two entries
-  - Verify: grep -l "Flip point:" docs/adr/00*.md | wc -l | grep -q 3
+  - Verify: test "$(grep -l "Flip point:" docs/adr/00*.md | wc -l)" -ge 3
   - Requirements: R-ARCH-4, R-ARCH-8, R-ARCH-14
 
 - [ ] GP-xxx Author C4 Level 2 container diagram with labeled arrows
@@ -817,10 +817,10 @@ Criterion: WHEN a throughput ceiling is stated, THE PLAN SHALL give every entry 
   - Verify: grep -q "idempotency_key" migrations/*outbox*.sql && grep -rq "outbox" src/shared/outbox/dispatcher.ts
   - Requirements: R-ARCH-8, R-ARCH-9
 
-- [ ] GP-xxx Enforce tenant isolation at two independent layers
-  - Files: src/shared/db/scoped-client.ts, migrations/NNN_row_level_security.sql
-  - Acceptance: query layer requires a tenant id on every accessor (no raw-client export); schema layer enforces row-level policies on every tenant-owned table
-  - Verify: grep -q "tenant_id" src/shared/db/scoped-client.ts && grep -qi "row level security" migrations/*row_level*.sql
+- [ ] GP-xxx Enforce tenant isolation in the query layer
+  - Files: src/shared/db/scoped-client.ts
+  - Acceptance: query layer requires a tenant id on every accessor (no raw-client export); the database layer comes from the R-DB-19 roles and RLS task, never a second migration here
+  - Verify: grep -q "tenant_id" src/shared/db/scoped-client.ts
   - Requirements: R-ARCH-13
 
 - [ ] GP-xxx Run NFR probe against the latency and availability budget
@@ -1289,12 +1289,12 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
 - [ ] GP-xxx Secret hygiene: gitignore, scanning, CI references
   - Files: .gitignore, .pre-commit-config.yaml, .github/workflows/ci.yml
   - Acceptance: .env*, *.pem, and credential file patterns ignored before first commit; gitleaks scans full history in pre-commit and CI, run by the R-REPO-15 agent-safety task when it lands (no second step here); workflow contains no continue-on-error on scan steps and references secrets.* only
-  - Verify: gitleaks detect --no-banner && ! grep -n "continue-on-error" .github/workflows/ci.yml
+  - Verify: gitleaks detect --no-banner && test -f .github/workflows/ci.yml && ! grep -n "continue-on-error" .github/workflows/ci.yml
   - Requirements: R-SEC-13, R-SEC-14
 - [ ] GP-xxx Supply chain pinning and SCA gate
   - Files: package-lock.json, .github/workflows/ci.yml, .npmrc
   - Acceptance: CI installs with npm ci; every third-party action pinned to a 40-char commit SHA; audit step gates on high with no || true; SBOM generated at build (when `public_release` is true or scale is enterprise, this is the R-REPO-14 dependency-inventory task's generator, not a second one)
-  - Verify: grep -Ec "uses: .*@[0-9a-f]{40}" .github/workflows/ci.yml && grep -c "npm ci" .github/workflows/ci.yml
+  - Verify: grep -q "npm ci" .github/workflows/ci.yml && ! grep -hE "^[ -]*uses:" .github/workflows/*.yml | grep -vE "@[0-9a-f]{40}|uses: *\./"
   - Requirements: R-SEC-17, R-SEC-18
 - [ ] GP-xxx Security event logging with formatter-level redaction
   - Files: src/logging/logger.ts, src/logging/redact.ts, tests/security/logging.test.ts
@@ -2198,7 +2198,7 @@ with an R-ROAD-7 validation task scheduled ahead of it, not a question. Write
 
 ## Session log
 
-- YYYY-MM-DD plan created (godplans v1.14.0)
+- YYYY-MM-DD plan created (godplans v1.15.0)
 
 
 ---

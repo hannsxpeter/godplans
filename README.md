@@ -1,7 +1,7 @@
 # godplans
 
 [![lint](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml/badge.svg)](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml)
-[![version](https://img.shields.io/badge/version-1.14.0-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.15.0-blue)](CHANGELOG.md)
 [![agent skills](https://img.shields.io/badge/Agent%20Skills-compatible-2f6fed)](skills/godplans/SKILL.md)
 [![planning domains](https://img.shields.io/badge/planning%20domains-19-2f6fed)](#how-it-works)
 [![plan gate](https://img.shields.io/badge/plan%20gate-machine%20checked-2f6fed)](skills/godplans/scripts/validate-plan.sh)

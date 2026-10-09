@@ -1,6 +1,6 @@
 {
   "name": "godplans",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "private": true,
   "description": "Plan everything before anything. One command turns an idea or an existing codebase into an audit-aware, validated master plan (PLAN.mdx), from pricing and product decisions to architecture, security, and launch, that any coding agent executes checkbox by checkbox. For Claude Code, Codex, Cursor, Gemini CLI, OpenCode, and any Agent Skills client.",
   "keywords": [

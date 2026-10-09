@@ -3,6 +3,149 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [1.15.0] - 2026-10-09
+
+A review-and-repair release. Eight reviewers read 1.14.0 in parallel (public
+docs, maintainer docs, the contract modules, the domain modules in two groups,
+the shipped plan scripts, the maintainer tooling, and repository hygiene), a
+critic read the seams between them, and an adversarial verifier re-checked every
+finding: 143 survived. Most were instructions that disagreed. Two modules owned
+the same artifact under different rules, a module intro allowed an exclusion the
+validator refuses, or a task seed's Verify line could never pass. A planning
+agent follows whichever instruction it read last, so each disagreement was a
+second behavior. A second review of the fixes found 30 more, and those are fixed
+here too. docs/DRIFT.md section 7 records each class, how it was fixed, and
+which check now holds it, or that none does.
+
+### Added
+
+- The validator requires exactly one of each required skeleton section (Scope
+  and non-goals, Plan provenance, Product form, Compliance gate, Applicability
+  matrix, Decisions, Requirements, Style genome, Documentation set, Phases, Open
+  Questions, Rules for executing agents, Session log), plus Architecture and
+  Agent memory while those domains are applicable. Extra per-domain sections
+  stay allowed, and the executor rules must keep their `> [!IMPORTANT]` alert.
+- The validator refuses a frontmatter archetype that is neither one of the nine
+  discovery.md scores nor `unknown`, and a Primary or Runner-up outside the nine
+  (a Runner-up may also be `none`); `PLAN.schema.json` gives `archetype` the
+  nine plus `unknown` as an enum. It also checks that
+  `### Archetype confidence` sits under `## Product form` and that exactly one
+  `### Module disposition` block sits under `## Applicability matrix`.
+- Domain plan sections have a defined place: one `## <Domain>` section per
+  other applicable domain whose pass writes prose, between Requirements and
+  Documentation set, in Phase 4 order. Product and roadmap content keep their existing sections.
+- Replan snapshots the outgoing plan to `.godplans/archive/PLAN-v<n>.mdx`, and a
+  half-life measurement that no validator can run is logged as
+  `half-life: not measured (<reason>)` instead of blocking the replan.
+- Executor rule 7 also returns the plan to planning when an excluded domain's or
+  a not-applicable document row's revisit-when predicate comes true.
+- `plan-halflife.sh` has usage text and `--help`, and refuses unknown options
+  and extra arguments with exit 2.
+- Tests: `tests/vendor-runner.sh` drives the Claude and Gemini planning and
+  judge runners with stand-in CLIs; `tests/agent-memory-guidance.sh`; parity
+  tests for the executor-rules block (plan-format.md vs the template) and the
+  archetype list (discovery.md, plan-format.md, the validator, the schema);
+  `PLAN.v1.schema.json` checked against real 1.9.0 and 1.13.0 sidecars; and the
+  portable-prompt budget's lower bound.
+- `npm run release:check` compares the GitHub About text and topics with
+  `package.json`: it warns in pull-request CI and fails on `main` and locally.
+  `description-parity` also requires the marketplace tagline to equal the
+  `package.json` description.
+- README documents the Claude Code plugin route
+  (`/plugin marketplace add hannsxpeter/godplans`, then
+  `/plugin install godplans@godplans`).
+
+### Changed
+
+- Cross-module ownership has one owner for ADRs (architecture), the threat
+  model (security, citing R-ARCH-13), rollback (deploy, which product's
+  rollback statement links), launch applicability and mode (the matrix and
+  launch), the database form of tenant isolation (R-DB-19; architecture plans
+  only the tenant-scoped query layer, and an ORM tenant filter is defense in
+  depth), the password KDF (R-SEC-6), the billing system of record (business
+  decision 4), and gitleaks (one repo task). Build cites upstream decisions
+  instead of re-forcing them. Product's support runbook still sits beside
+  observe's operational runbooks.
+- The security, code-quality, style-genome, and repo intros say they are never
+  excluded; deploy is deferred, not excluded, for artifacts the shipped-artifact
+  overlay protects. Requirement drops name scale, archetype, or form, deferral
+  is per domain, and absent sub-surfaces drop in the module disposition rather
+  than the applicability matrix.
+- Documentation catalog owners: `build.dev-setup` moves to repo,
+  `build.api-reference` to architecture, and `build.feature-flags` to deploy,
+  so each row's owner is applicable whenever the row is selected. Greenfield
+  plans may mark a row `present-elsewhere`.
+- Task-seed Verify lines the reviews found broken (prose, self-matching,
+  passing when their target file is missing, or BSD-incompatible) are now one
+  command line each that fails when its condition is false, checked by hand
+  under `/bin/sh` and dash with BSD tools. No check runs seeds.
+- When a planned task runs the style-stats script inside the project, SKILL.md
+  Phase 7 copies it byte for byte to `.godplans/style-stats.py`, and the
+  style-genome seed runs that copy.
+- agent-memory pins Pillars 1.2.2 and maps the `unknown` archetype; stack names
+  Better Auth as the auth-library example; seo and ux dated facts are reworded
+  against their sources; ui and database lineage links point at
+  hannsxpeter/auditor-suite.
+- `style-stats.py` sorts and evenly samples files above the per-language cap
+  (ported from codedna v1.1.1), and measures black-style Python functions and
+  wrapped arrow functions through their bodies.
+- The portable core says where to write the inlined validator, resolves bare as
+  well as backticked core paths, and no longer names `scripts/style-stats.py`,
+  which it does not inline.
+- One description now serves `package.json`, the marketplace tagline, and the
+  GitHub About text. RELEASING.md waits for both CI jobs and splits its commands
+  at the merge; `main` now requires both jobs, administrators included.
+- SECURITY.md and the Code of Conduct link the repository's private reporting
+  form, which is now enabled, and CONTRIBUTING.md points to both.
+
+### Fixed
+
+- The validator accepts provenance labels that start with `.` or `_` (such as
+  the `.godaudits/EVIDENCE.json` recheck entry discovery.md asks for) and
+  refuses any `..` segment; ignores trailing whitespace on headings and labels;
+  stops counting ids (D1, R-SEC-4, GP-101) as numeric failure boundaries while
+  still counting calendar quarters; names the 0.45 floor when it fires; and
+  exits 1 on every `--drift-check` failure (a missing recheck file used to exit
+  2, and a missing phase or a signal-killed Verify exited 255, the latter with
+  a message saying it had exited 0).
+- `PLAN.v1.schema.json` accepts every `@1` sidecar from 1.9.0 through 1.13.0;
+  the fields added in 1.10.0 and 1.11.0 are optional but typed.
+- The README's sample task passes the validator.
+- Eval harness: the control-arm runners score the control's own `PLAN.md`
+  instead of an unchanged INPUT fixture (the replan case always scored its
+  input); the matrix refuses a missing or errored control run; external grading
+  counts distinct, case-insensitive judge labels and hands every judge the grade
+  schema; Claude token totals include cached input; `eval-outcome.js` clears a
+  stale `SUMMARY.md`.
+- `build-prompt.sh` honors `--output` in any flag order, and
+  `build-catalog.js` counts only requirement definitions, so a stale
+  cross-reference can no longer raise `%catalog_max`.
+
+### Removed
+
+- `tests/lint-regression.sh`, folded into `tests/lint-selftest.sh` and
+  `tests/agent-memory-guidance.sh`.
+- The unused `install:skill` and `postpack` npm scripts. `prepack` stays as a
+  guard that runs `npm run check` before any manual `npm pack`; the package
+  test passes `--ignore-scripts`, so CI never triggers it.
+- The dead `%requirement_domain` fallback in `domain-parity` and the unused
+  `frontmatter-version` lint alias.
+
+### Upgrade notes
+
+- The validator is stricter. A draft written against 1.14.0 can now fail for a
+  missing or duplicated skeleton section, an executor-rules section without its
+  `> [!IMPORTANT]` alert, an archetype outside the nine, a misplaced archetype
+  or disposition block, or a Failure boundary whose only number is an id. A plan
+  already executing keeps the companion validator it was emitted with, so this
+  applies at the next replan.
+- A plan whose documentation set names `build` as the owner of
+  `build.dev-setup`, `build.api-reference`, or `build.feature-flags` fails the
+  ownership check; a replan updates the owner.
+- Callers of `--drift-check` that treated exit 2 as a missing recheck file
+  should treat any non-zero exit as a failure. A drift failure now exits 1; 2
+  means a usage error or an `--emit-json` write into a missing directory.
+
 ## [1.14.0] - 2026-10-01
 
 godplans inverted seven auditors into plan-time requirements. The eighth,
