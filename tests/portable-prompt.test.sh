@@ -40,7 +40,10 @@ exemplar
 plan-format
 "
 
+# doc-set is a lazy contract, not a domain; domain-parity leaves it out of
+# its comparison, as it does the contract modules in expected_refs.
 lazy_refs="
+doc-set
 business
 llm
 ux
@@ -74,11 +77,14 @@ for ref in $expected_refs; do
   previous_line=$line
 done
 
+# Routing is prose a reader follows, so the inlined scripts (whose comments
+# also name module paths) do not count.
+sed '/^# INLINED VALIDATOR: /,$d' "$PROMPT" > "$TMP/routing.md"
 for ref in $lazy_refs; do
   marker="# INLINED REFERENCE: references/$ref.md"
   count=$(marker_count "$marker")
   [ "$count" -eq 0 ] || fail "lazy module was inlined into the core: $ref"
-  grep -Fq "references/$ref.md" "$PROMPT" ||
+  grep -Fq "references/$ref.md" "$TMP/routing.md" ||
     fail "portable core does not route to lazy module: $ref"
 done
 
@@ -106,9 +112,11 @@ grep -Fq 'Weekend plans have at most 3 phases and 8 tasks.' "$PROMPT" ||
   fail "portable prompt is missing the weekend scale ceiling"
 grep -Fq 'Create the validator companion before drafting the plan.' "$PROMPT" ||
   fail "portable prompt is missing the pre-draft companion gate"
+tr '\n' ' ' < "$PROMPT" | grep -Fq 'write the inlined validator byte-for-byte to `.godplans/validate-plan.sh`' ||
+  fail "portable core does not say where to write the validator companion"
 grep -Fq 'Pick product form before archetype and domain composition.' "$PROMPT" ||
   fail "portable prompt is missing product-form routing"
-grep -Fq 'expected exactly one ## Plan provenance section' "$PROMPT" ||
+grep -Fq "section_count('Plan provenance')" "$PROMPT" ||
   fail "portable prompt is missing provenance validation"
 
 # The budget exists to make growth visible, not to be raised whenever it fires.
@@ -142,12 +150,25 @@ grep -Fq 'expected exactly one ## Plan provenance section' "$PROMPT" ||
 # the number so headroom lands just under the smallest core module again. Print
 # the module sizes with `npm run metrics:context` and read them out of
 # evals/metrics/context-cost.json rather than guessing.
+budget=347923
 prompt_bytes=$(wc -c < "$PROMPT" | tr -d ' ')
-[ "$prompt_bytes" -le 347923 ] || fail "portable core exceeds 347923-byte budget: $prompt_bytes"
+[ "$prompt_bytes" -le "$budget" ] || fail "portable core exceeds $budget-byte budget: $prompt_bytes"
+# The lower bound: a cut that leaves more headroom than the smallest core module
+# lets a module-sized addition pass, so the number must come down with it.
+smallest_core=$(for ref in $expected_refs; do
+  wc -c < "$REPO_DIR/skills/godplans/references/$ref.md"
+done | sort -n | head -1 | tr -d ' ')
+headroom=$((budget - prompt_bytes))
+[ "$headroom" -lt "$smallest_core" ] ||
+  fail "budget headroom $headroom bytes is not under the smallest core module ($smallest_core bytes); lower the budget in this test to at most $((prompt_bytes + smallest_core - 1)) and record why in the comment above"
 
+# unresolved_paths FILE [EXTRA]: lines naming an inlined file by a path the
+# reader cannot open, in backticked or bare form. EXTRA is one more ERE: the
+# core adds style-stats.py, which it never inlines; the full prompt inlines
+# style-genome.md, whose task seeds run that script in the planned project.
 unresolved_paths() {
   sed '/^# INLINED REFERENCE: /d; /^# INLINED TEMPLATE: /d; /^# INLINED VALIDATOR: /d; /^# INLINED SCRIPT: /d' "$1" |
-    grep -En 'templates/PLAN\.template\.mdx|skills/godplans/scripts/validate-plan\.sh|scripts/plan-halflife\.sh|(^|[^[:alnum:]-])plan-format\.md([^[:alnum:]-]|$)' || true
+    grep -En "templates/PLAN\.template\.mdx|(^|[^[:alnum:]_.-])scripts/validate-plan\.sh|scripts/plan-halflife\.sh|(^|[^[:alnum:]-])plan-format\.md([^[:alnum:]-]|$)|references/(compliance|discovery|product|architecture|stack|database|security|exemplar)\.md${2:+|$2}" || true
 }
 
 # A portable reader has no skill checkout, so it can run the half-life script
@@ -162,8 +183,9 @@ assert_halflife_portable() {
     fail "$label prompt does not run the saved plan half-life script"
 }
 
-unresolved=$(unresolved_paths "$PROMPT")
-[ -z "$unresolved" ] || fail "unresolved required local reference remains:\n$unresolved"
+unresolved=$(unresolved_paths "$PROMPT" 'scripts/style-stats\.py')
+[ -z "$unresolved" ] || fail "unresolved required local reference remains:
+$unresolved"
 assert_halflife_portable core "$PROMPT"
 
 # The header lists what the core inlines, and compliance comes first.
@@ -174,12 +196,18 @@ bash "$BUILD" --output "$TMP/PROMPT.second.md" >/dev/null
 cmp -s "$PROMPT" "$TMP/PROMPT.second.md" || fail "regeneration is not deterministic"
 
 bash "$BUILD" --full --output "$FULL_PROMPT" >/dev/null
+# --output is honored in any flag order, and --core after --full builds a core.
+bash "$BUILD" --output "$TMP/order-full.md" --full >/dev/null
+cmp -s "$FULL_PROMPT" "$TMP/order-full.md" || fail "--output before --full was not honored"
+bash "$BUILD" --full --core --output "$TMP/order-core.md" >/dev/null
+cmp -s "$PROMPT" "$TMP/order-core.md" || fail "--full --core did not build the core prompt"
 for ref in $expected_refs $lazy_refs; do
   grep -Fqx "# INLINED REFERENCE: references/$ref.md" "$FULL_PROMPT" ||
     fail "full prompt is missing module: $ref"
 done
 unresolved=$(unresolved_paths "$FULL_PROMPT")
-[ -z "$unresolved" ] || fail "unresolved required local reference remains in the full prompt:\n$unresolved"
+[ -z "$unresolved" ] || fail "unresolved required local reference remains in the full prompt:
+$unresolved"
 assert_halflife_portable full "$FULL_PROMPT"
 
 # A rewritten "the inlined X reference" must point at a module this prompt

@@ -14,7 +14,9 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SKILL="$REPO_DIR/skills/godplans/SKILL.md"
 REFS="$REPO_DIR/skills/godplans/references"
-OUT="${GODPLANS_PROMPT_OUT:-$REPO_DIR/PROMPT.md}"
+# --output, then GODPLANS_PROMPT_OUT, then the mode's default, resolved after
+# parsing so the flags work in any order.
+OUT="${GODPLANS_PROMPT_OUT:-}"
 MODE=core
 
 while [ "$#" -gt 0 ]; do
@@ -24,9 +26,6 @@ while [ "$#" -gt 0 ]; do
       ;;
     --full)
       MODE=full
-      if [ -z "${GODPLANS_PROMPT_OUT:-}" ]; then
-        OUT="$REPO_DIR/PROMPT.full.md"
-      fi
       ;;
     --output)
       shift
@@ -47,6 +46,13 @@ while [ "$#" -gt 0 ]; do
   esac
   shift
 done
+if [ -z "$OUT" ]; then
+  if [ "$MODE" = "full" ]; then
+    OUT="$REPO_DIR/PROMPT.full.md"
+  else
+    OUT="$REPO_DIR/PROMPT.md"
+  fi
+fi
 
 strip_frontmatter() {
   awk 'BEGIN{fm=0} /^---$/{fm++; next} fm!=1{print}' "$1"
@@ -80,6 +86,12 @@ portable_text_full() {
     -e 's|plan-format\.md|the inlined plan-format reference|g'
 }
 
+# The core rewrites each inlined path in its backticked form, then its bare
+# form, one module per expression because BSD sed BRE has no alternation. It
+# does not inline style-stats.py (larger than the budget headroom), so the
+# SKILL.md and discovery.md sentences that run or copy it get one expression
+# per phrase: the measured baseline is recorded as not run, and the copy as not
+# made. tests/portable-prompt.test.sh fails on any phrasing left unrewritten.
 portable_text_core() {
   sed \
     -e 's|`references/compliance\.md`|the inlined compliance reference|g' \
@@ -93,6 +105,19 @@ portable_text_core() {
     -e 's|`references/plan-format\.md`|the inlined plan-format reference|g' \
     -e 's|`templates/PLAN\.template\.mdx`|the inlined PLAN template|g' \
     -e 's|`scripts/validate-plan\.sh`|the inlined validator|g' \
+    -e 's|references/compliance\.md|the inlined compliance reference|g' \
+    -e 's|references/discovery\.md|the inlined discovery reference|g' \
+    -e 's|references/product\.md|the inlined product reference|g' \
+    -e 's|references/architecture\.md|the inlined architecture reference|g' \
+    -e 's|references/stack\.md|the inlined stack reference|g' \
+    -e 's|references/database\.md|the inlined database reference|g' \
+    -e 's|references/security\.md|the inlined security reference|g' \
+    -e 's|references/exemplar\.md|the inlined exemplar reference|g' \
+    -e 's|templates/PLAN\.template\.mdx|the inlined PLAN template|g' \
+    -e 's|scripts/validate-plan\.sh|the inlined validator|g' \
+    -e 's|run `[^`]*scripts/style-stats\.py[^`]*`[^,;]* for the measured style baseline|record the measured style baseline as not run (only a native install has the style-stats script)|g' \
+    -e 's|measured [^`;]*`[^`]*scripts/style-stats\.py[^`]*`[^,;]* and then close-read|with its measured baseline recorded as not run (only a native install has the style-stats script) and then close-read|g' \
+    -e 's|copy `[^`]*scripts/style-stats\.py`[^,.]*|copy the style-stats script there if a native install is reachable, else record it as not copied|g' \
     -e 's|`scripts/plan-halflife\.sh`|the inlined plan half-life script|g' \
     -e 's|`scripts/plan-halflife\.sh |`bash .godplans/plan-halflife.sh |g' \
     -e 's|scripts/plan-halflife\.sh|the inlined plan half-life script|g' \
@@ -154,7 +179,10 @@ You are operating under the godplans skill. This slim core includes compliance,
 discovery, the plan contract, the five load-bearing modules (product,
 architecture, stack, database, and security), the quality exemplar, the PLAN
 template, and the portable scripts. It does not preload reversible or
-specialized domains. Before a replan, save the inlined plan half-life script as
+specialized domains. When filesystem tools are available, write the inlined
+validator byte-for-byte to `.godplans/validate-plan.sh` before validation; with
+no installed skill, that inlined copy is the resolved source the `cmp -s` checks
+name. Before a replan, save the inlined plan half-life script as
 `.godplans/plan-halflife.sh`, beside the validator companion it runs.
 
 Before each non-core domain pass, load that module from

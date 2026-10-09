@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Release tooling regressions: release-check.sh validator resolution, changelog
-# guard, and gate wiring, and the version sync that release:prepare runs.
+# guard, gate wiring, and GitHub About parity, and the version sync that
+# release:prepare runs.
 # Everything runs in scratch copies, so no tracked file, venv, or tag is
 # touched.
 
@@ -92,22 +93,55 @@ grep -q 'authenticated gh CLI is required' "$TMP/clean.out" ||
 
 # Past its local guards the release check runs the repository gates. With
 # stand-ins for gh, npm, and the gate scripts, it must finish and check the
-# package against committed files only.
+# package against committed files only. There is no scripts/eval.sh stand-in:
+# npm run check already covers the evaluation contracts, so the gate must not
+# call it again. The gh stand-in answers `repo view` from about.json beside it,
+# shaped like `gh repo view --json description,repositoryTopics` output.
 mkdir -p "$BIN/ok-tools" "$RC/tests"
-printf '%s\n' '#!/usr/bin/env sh' 'exit 0' > "$BIN/ok-tools/gh"
+printf '%s\n' '#!/usr/bin/env sh' \
+  'if [ "$1 $2" = "repo view" ]; then cat "$(dirname "$0")/about.json"; fi' 'exit 0' > "$BIN/ok-tools/gh"
 printf '%s\n' '#!/usr/bin/env sh' 'exit 0' > "$BIN/ok-tools/npm"
-for stub in scripts/eval.sh scripts/lint.sh; do
-  printf '%s\n' '#!/usr/bin/env bash' 'exit 0' > "$RC/$stub"
-done
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' > "$RC/scripts/lint.sh"
 printf '%s\n' '#!/usr/bin/env bash' 'printf "%s\n" "$*" > "$(dirname "$0")/package-contents.args"' \
   > "$RC/tests/package-contents.sh"
 chmod +x "$BIN/ok-tools/gh" "$BIN/ok-tools/npm"
+# The About comparison runs node; link the real one in rather than widening PATH.
+NODE_BIN=$(command -v node) || fail "node is required to run this test"
+ln -s "$NODE_BIN" "$BIN/ok-tools/node"
+printf '%s\n' '{' '  "description": "Fixture description.",' '  "keywords": ["alpha", "beta"]' '}' > "$RC/package.json"
+# Matching About text, with one extra topic, which is allowed.
+printf '%s\n' '{"description":"Fixture description.","repositoryTopics":[{"name":"beta"},{"name":"alpha"},{"name":"gamma"}]}' \
+  > "$BIN/ok-tools/about.json"
 env PATH="$BIN/ok-tools:/usr/bin:/bin" SKILLS_REF_BIN="$BIN/accepting" \
   bash "$RC/scripts/release-check.sh" >"$TMP/full.out" 2>&1 ||
   fail "release check failed with every gate stubbed to pass: $(cat "$TMP/full.out")"
 grep -q 'ok   \[release-check\]' "$TMP/full.out" || fail "release check did not finish"
 [ "$(cat "$RC/tests/package-contents.args" 2>/dev/null)" = "--tracked-only" ] ||
   fail "release check did not check the package against tracked files only"
+
+# An About description that differs from package.json, or a keyword missing
+# from the topics, fails the release and names the gh command that fixes it.
+rm -f "$RC/tests/package-contents.args"
+printf '%s\n' '{"description":"An older About text.","repositoryTopics":[{"name":"alpha"}]}' \
+  > "$BIN/ok-tools/about.json"
+if env PATH="$BIN/ok-tools:/usr/bin:/bin" SKILLS_REF_BIN="$BIN/accepting" \
+  bash "$RC/scripts/release-check.sh" >"$TMP/about.out" 2>&1; then
+  fail "release check passed with GitHub About drift"
+fi
+for want in 'the repository description differs from package.json description' \
+  'the repository topics lack package.json keywords: beta' \
+  'fix: gh repo edit hannsxpeter/godplans --description "Fixture description." --add-topic beta'; do
+  grep -Fq "$want" "$TMP/about.out" || fail "About drift output lacks [$want]: $(cat "$TMP/about.out")"
+done
+[ ! -e "$RC/tests/package-contents.args" ] || fail "release check went on past GitHub About drift"
+# No topics at all reads as every keyword missing, not as a crash.
+printf '%s\n' '{"description":"Fixture description.","repositoryTopics":null}' > "$BIN/ok-tools/about.json"
+if env PATH="$BIN/ok-tools:/usr/bin:/bin" SKILLS_REF_BIN="$BIN/accepting" \
+  bash "$RC/scripts/release-check.sh" >"$TMP/notopics.out" 2>&1; then
+  fail "release check passed with no repository topics"
+fi
+grep -Fq 'fix: gh repo edit hannsxpeter/godplans --add-topic alpha,beta' "$TMP/notopics.out" ||
+  fail "missing topics were not named: $(cat "$TMP/notopics.out")"
 
 # release:prepare from a scratch copy: version sync must leave every derived
 # artifact current, and the TODO stub it writes must block the release check.

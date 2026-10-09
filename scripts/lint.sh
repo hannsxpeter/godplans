@@ -25,16 +25,18 @@
 #   modules-complete     every domain module has the six contract sections.
 #   domain-parity        the same domain modules appear in references/ (minus
 #                        the contract modules), the SKILL.md Phase 4 table,
-#                        the validator's %known_domain keys, %module_prefix
-#                        keys, and %requirement_domain values (when present),
-#                        the full reference order in build-prompt.sh, the
-#                        module lists in context-metrics.js, and the module
-#                        lists in tests/portable-prompt.test.sh. The core and
-#                        lazy split, the lazy module sentence, and the "all N
-#                        domain modules" count in build-prompt.sh agree with
-#                        them; each module has its own requirement prefix, the
-#                        prefix map back to modules is its exact inverse, and
-#                        each module defines its requirements under its prefix.
+#                        the validator's %known_domain and %module_prefix
+#                        keys, the full reference order in build-prompt.sh,
+#                        the module lists in context-metrics.js and
+#                        tests/portable-prompt.test.sh, the PLAN template's
+#                        applicability matrix, and discovery's worked matrix;
+#                        the schema's applicability minItems and maxItems
+#                        equal the module count. The core and lazy split, the
+#                        lazy module sentence, and the "all N domain modules"
+#                        count in build-prompt.sh agree with them; each module
+#                        has its own requirement prefix, the validator derives
+#                        the prefix map back to modules with reverse, and each
+#                        module defines its requirements under its prefix.
 #   symlinks-valid       .agents/skills/godplans and .claude/skills/godplans
 #                        are symlinks to skills/godplans, and
 #                        plugins/godplans/skills is a symlink to skills.
@@ -125,7 +127,7 @@ done
 check_function() {
   case "$1" in
     unicode-clean) echo check_unicode_clean ;;
-    version-parity|frontmatter-version) echo check_version_parity ;;
+    version-parity) echo check_version_parity ;;
     description-length) echo check_description_length ;;
     description-parity) echo check_description_parity ;;
     dir-name-match) echo check_dir_name_match ;;

@@ -55,14 +55,42 @@ if printf '%s\n' "$top_section" | grep -Fqx -- "$CHANGELOG_STUB"; then
 fi
 
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
-  printf '%s\n' "[fail] authenticated gh CLI is required for tag and release parity." >&2
+  printf '%s\n' "[fail] authenticated gh CLI is required for tag, release, and About parity." >&2
   exit 1
 fi
 
 cd "$REPO_DIR"
+# npm run check already runs scripts/eval.sh --check-cases (lint eval-cases and
+# tests/eval-harness.sh), so the release gate does not repeat it.
 SKILLS_REF_BIN="$VALIDATOR" npm run check
-bash scripts/eval.sh --check-cases
 bash scripts/lint.sh tag-release-parity --verbose
+
+# The GitHub About text says what package.json says (docs/RELEASING.md step
+# 10): the repository description equals package.json description, and every
+# keyword is a repository topic. A missing topics list reads as no topics.
+about=$(gh repo view hannsxpeter/godplans --json description,repositoryTopics) ||
+  die "gh could not read the repository description and topics"
+about_drift=$(printf '%s\n' "$about" | node -e '
+const fs = require("node:fs");
+const pkg = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const repo = JSON.parse(fs.readFileSync(0, "utf8"));
+const topics = new Set((repo.repositoryTopics || []).map((topic) => topic.name));
+const missing = (pkg.keywords || []).filter((keyword) => !topics.has(keyword));
+const fix = [];
+if (repo.description !== pkg.description) {
+  console.log("the repository description differs from package.json description");
+  fix.push(`--description ${JSON.stringify(pkg.description)}`);
+}
+if (missing.length) {
+  console.log(`the repository topics lack package.json keywords: ${missing.join(", ")}`);
+  fix.push(`--add-topic ${missing.join(",")}`);
+}
+if (fix.length) console.log(`fix: gh repo edit hannsxpeter/godplans ${fix.join(" ")}`);
+' "$REPO_DIR/package.json") || die "could not compare the GitHub About text with package.json"
+[ -z "$about_drift" ] ||
+  die "GitHub About drifted from package.json:
+$about_drift"
+
 # npm test accepts untracked, unignored files so work in progress can be
 # tested; a release ships exactly what is committed.
 bash tests/package-contents.sh --tracked-only

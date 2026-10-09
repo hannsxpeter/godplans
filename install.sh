@@ -9,6 +9,8 @@
 #   ./install.sh --copy                copy instead of symlink (Windows, some CI)
 #   ./install.sh --uninstall           remove exactly what this script created
 #   ./install.sh --force               replace or remove an unowned destination
+#   AGENTS_SKILLS_DIR=DIR CLAUDE_SKILLS_DIR=DIR ./install.sh
+#                                      override the global agents and claude roots
 #
 # Destinations exploit skill-path convergence, so few targets cover many tools:
 #   agents         ~/.agents/skills  or  <project>/.agents/skills
@@ -58,7 +60,7 @@ while [ $# -gt 0 ]; do
     --copy) LINK_MODE="copy" ;;
     --uninstall) ACTION="uninstall" ;;
     --force) FORCE=1 ;;
-    -h|--help) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown flag: $1 (try --help)" >&2; exit 1 ;;
   esac
   shift

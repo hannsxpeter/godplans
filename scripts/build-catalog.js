@@ -16,8 +16,11 @@ const referencesDir = path.join(skillRoot, 'references');
 const validatorPath = path.join(skillRoot, 'scripts/validate-plan.sh');
 const check = process.argv.includes('--check');
 
-// Extraction mirrors tests/validate-plan.sh: within a `## Plan requirements`
-// section, collect R-<PREFIX>-<N>; every prefix must be contiguous 1..max.
+// Extraction mirrors tests/validate-plan.sh and the definedPrefixes scan in
+// scripts/lint-parity.js: within a `## Plan requirements` section, collect each
+// R-<PREFIX>-<N> that starts a line (after an optional list marker and an
+// optional **). Ids cited mid-sentence are cross-references to other modules
+// and define nothing. Every prefix must be contiguous 1..max.
 const seen = {};
 for (const file of fs.readdirSync(referencesDir).filter((name) => name.endsWith('.md'))) {
   const lines = fs.readFileSync(path.join(referencesDir, file), 'utf8').split(/\r?\n/);
@@ -26,9 +29,8 @@ for (const file of fs.readdirSync(referencesDir).filter((name) => name.endsWith(
     if (/^## Plan requirements\s*$/.test(line)) { inside = true; continue; }
     if (inside && /^## /.test(line)) { inside = false; }
     if (!inside) continue;
-    for (const m of line.matchAll(/R-([A-Z][A-Z0-9-]*)-([0-9]+)/g)) {
-      (seen[m[1]] ||= new Set()).add(Number(m[2]));
-    }
+    const m = line.match(/^\s*(?:(?:[0-9]+\.|[-*])\s+)?(?:\*\*)?R-([A-Z][A-Z0-9-]*)-([0-9]+)/);
+    if (m) (seen[m[1]] ||= new Set()).add(Number(m[2]));
   }
 }
 
