@@ -97,7 +97,7 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
 - [ ] GP-xxx Audit the plan's product section for banned language and unowned questions
   - Files: .godplans/PLAN.mdx
   - Acceptance: zero banned marketing phrases; zero TBD/TODO without owner and date; every Open Questions entry has owner, due date, blocking flag, and default
-  - Verify: ! grep -v '^ *- Verify:' .godplans/PLAN.mdx | grep -qiE "seamless|best-in-class|world-class|cutting-edge|game-chang|revolutionary|industry-leading|enterprise-grade|AI-powered" && ! grep -vE '^ *- (Verify|Acceptance):' .godplans/PLAN.mdx | grep -iE "TBD|TODO" | grep -qvi "owner"
+  - Verify: ! awk '/^## /{s=1;p=/^## (Sc|Req|Op)/}p||!s' .godplans/PLAN.mdx | grep -iE "TBD|TODO|seamless|best-in-class|world-class|cutting-edge|game-chang|revolutionary|industry-leading|enterprise-grade|AI-powered" | grep -qvi owner
   - Requirements: R-PRD-11, R-PRD-10
 
 ## Self-audit rubric

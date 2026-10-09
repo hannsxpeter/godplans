@@ -35,13 +35,14 @@ So a brownfield `absent:` reason carries a backticked citation: the search that 
 
 ## Evidence states
 
-Every claim the matrix and the documentation set make about this project carries one of five states. The state is what licenses the disposition, so it is recorded before the disposition is chosen.
+Every claim the matrix and the documentation set make about this project carries one of six states. The state is what licenses the disposition, so it is recorded before the disposition is chosen.
 
 | State | What the plan is saying | May it exclude a domain or document? |
 |---|---|---|
 | `present` | this project has the thing, and here is where | no, it selects |
 | `absent` | this was checked and the thing is not there; the reason names what checked | yes |
 | `by-design` | the plan decides this project will not have the thing | yes |
+| `present-elsewhere` | the document lives outside this repository (a wiki, an intranet, a compliance platform), and here is where | a document only |
 | `unknown` | nobody looked, or the answer is not derivable from what the plan has | **no** |
 | `hint` | something matched and it is not enough to decide on | **no** |
 

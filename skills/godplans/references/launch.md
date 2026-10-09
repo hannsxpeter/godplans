@@ -77,6 +77,8 @@ Banned-word replacement table for R-LAUNCH-6. Each slop word is replaced with th
 
 ## Task seeds
 
+Replace each `<...>` placeholder with the plan's real domain or URL; one left in makes its Verify a shell syntax error.
+
 - [ ] GP-xxx Write positioning document with substitution-tested sentences
   - Files: docs/launch/POSITIONING.md
   - Acceptance: four sentences present; each lists >=2 named competitors that fail substitution; three adjectives and three anti-adjectives; founder named
@@ -105,7 +107,7 @@ Banned-word replacement table for R-LAUNCH-6. Each slop word is replaced with th
 - [ ] GP-xxx Authenticate sending domain
   - Files: docs/launch/dns-email-auth.md
   - Acceptance: SPF, DKIM, DMARC records documented with values; unsubscribe mechanism named; GDPR consent noted if applicable
-  - Verify: dig +short TXT _dmarc.example.com | grep -q 'v=DMARC1'
+  - Verify: dig +short TXT _dmarc.<domain> | grep -q 'v=DMARC1'
   - Requirements: R-LAUNCH-14
 - [ ] GP-xxx Write per-channel post plans and UTM registry
   - Files: docs/launch/channels.md, docs/launch/utm-registry.md
@@ -128,7 +130,7 @@ Banned-word replacement table for R-LAUNCH-6. Each slop word is replaced with th
   - Files: deployment or publication target for the selected product form
   - Depends on: GP-PREPUBLICATION
   - Acceptance: the selected link, package, store artifact, service, model, or infrastructure surface becomes public only after the immediately preceding prepublication gate passes; a package, store artifact, or model replaces the Verify probe with its registry or store availability query
-  - Verify: curl -fsS -o /dev/null https://example.com/
+  - Verify: curl -fsS -o /dev/null <public-url>
   - Requirements: R-LAUNCH-22
 
 ## Self-audit rubric

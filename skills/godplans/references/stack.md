@@ -55,9 +55,9 @@ Instantiate with real paths, real tool names, and wave/parallel markers; replace
   - Verify: test $(grep -cE '^\| (framework|language|database|orm|auth|ui|client-data|hosting|observability|payments|email|jobs) ' docs/stack/inventory.md) -eq 12
   - Requirements: R-STACK-1, R-STACK-4
 - [ ] GP-xxx Scaffold the project with the pinned stack manifest
-  - Files: package.json (or the runtime's manifest), .tool-versions
-  - Acceptance: every dependency in the plan's stack table appears at its exact pinned version; no dependency introduces a second ORM, auth provider, design system, client cache, or job queue; runtime version matches the plan
-  - Verify: node scripts/check-stack.mjs (diffs manifest deps against the plan's stack table; exit 1 on drift or duplicate-category dep)
+  - Files: package.json (or the runtime's manifest), .tool-versions, scripts/check-stack.mjs
+  - Acceptance: every dependency in the plan's stack table appears at its exact pinned version; no dependency introduces a second ORM, auth provider, design system, client cache, or job queue; runtime version matches the plan; the check script exits 1 on drift or a duplicate
+  - Verify: node scripts/check-stack.mjs
   - Requirements: R-STACK-4, R-STACK-8, R-STACK-14
 - [ ] GP-xxx Emit .stack-ready/DECISION.md from the plan's stack section
   - Files: .stack-ready/DECISION.md

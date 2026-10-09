@@ -98,7 +98,7 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
   - Requirements: R-SEC-15
 - [ ] GP-xxx Secret hygiene: gitignore, scanning, CI references
   - Files: .gitignore, .pre-commit-config.yaml, .github/workflows/ci.yml
-  - Acceptance: .env*, *.pem, and credential file patterns ignored before first commit; gitleaks runs in pre-commit and CI over full history (one gitleaks step, shared with the R-REPO-15 agent-safety task when it lands); workflow contains no continue-on-error on scan steps and references secrets.* only
+  - Acceptance: .env*, *.pem, and credential file patterns ignored before first commit; gitleaks scans full history in pre-commit and CI, run by the R-REPO-15 agent-safety task when it lands (no second step here); workflow contains no continue-on-error on scan steps and references secrets.* only
   - Verify: gitleaks detect --no-banner && ! grep -n "continue-on-error" .github/workflows/ci.yml
   - Requirements: R-SEC-13, R-SEC-14
 - [ ] GP-xxx Supply chain pinning and SCA gate

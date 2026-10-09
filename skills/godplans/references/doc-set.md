@@ -183,6 +183,7 @@ A row's exclusion is a claim about the world, so it carries the state of the evi
 | `present` | this project has the thing | no, it selects the row |
 | `absent` | this was checked and the thing is not there | yes |
 | `by-design` | the plan decides this project will not have the thing | yes |
+| `present-elsewhere` | the thing exists outside this repository (a wiki, an intranet, a compliance platform) | yes on a not-applicable row (`skip`, section 6); a selected row is `confirm` |
 | `unknown` | nobody looked, or the answer is not derivable here | **no** |
 | `hint` | something matched and it is not enough | **no** |
 

@@ -105,9 +105,9 @@ Criterion: IF any planned task runs a destructive command against a production r
   - Verify: grep -c "contract" docs/deploy/migration-calendar.md
   - Requirements: R-DEPLOY-5, R-DEPLOY-17
 - [ ] GP-xxx Implement the truthful readiness probe
-  - Files: src/health/readiness.ext
-  - Acceptance: probe checks database connectivity and one critical dependency before returning healthy; returns 503 during warmup; no bare 200-on-bind path exists
-  - Verify: Manual: stop the database, then run `curl -sf localhost:PORT/ready`; expect nonzero exit
+  - Files: src/health/readiness.ext, tests/health/readiness.test.ext
+  - Acceptance: probe checks database connectivity and one critical dependency before returning healthy; returns 503 during warmup; no bare 200-on-bind path exists; a test makes the database unreachable and asserts the probe returns 503
+  - Verify: npm test -- tests/health/readiness.test.ext
   - Requirements: R-DEPLOY-13, R-DEPLOY-15
 - [ ] GP-xxx Execute the first-deploy cold-start checklist for the target environment
   - Files: docs/deploy/cold-start-env.md

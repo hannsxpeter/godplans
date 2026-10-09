@@ -56,7 +56,7 @@ Criterion: WHEN quality tooling tasks are read, THE PLAN SHALL name exactly one 
 R-REPO-11. The plan enforces one tool per job across the whole repo: no ESLint plus Biome, no Dependabot plus Renovate, no two formatters. Where the stack section already picked a tool, the repo section reuses it rather than re-deciding.
 Criterion: IF two planned tools serve the same job, THE PLAN SHALL fail its self-audit and the orchestrator SHALL remove one before emission.
 
-R-REPO-12. The plan wires security automation at tier 2 and above: exactly one dependency bot with update grouping to reduce PR noise, SAST (CodeQL or Semgrep) and branch protection requiring PR review plus CI pass before merge; secret scanning runs at every tier as the single gitleaks task that cites R-REPO-15 (and R-SEC-14 when landed).
+R-REPO-12. The plan wires security automation at tier 2 and above: exactly one dependency bot with update grouping to reduce PR noise, SAST (CodeQL or Semgrep) and branch protection requiring PR review plus CI pass before merge; secret scanning runs at every tier as the single task that wires gitleaks and cites R-REPO-15 (and R-SEC-14 when landed).
 Criterion: IF tier is 2 or above, THE PLAN SHALL contain tasks for the bot config, the SAST workflow, and a branch protection step with its exact settings listed.
 
 R-REPO-13. The plan specifies release machinery consistent with the commit convention: one release tool (release-please, semantic-release, or changesets), SemVer vX.Y.Z tags, and platform Releases with generated notes. CONTRIBUTING, the PR template, and the release tool must all cite the same commit convention.
@@ -132,7 +132,7 @@ Criterion: WHEN the documentation set is emitted, THE PLAN SHALL contain the rep
 
 - [ ] GP-xxx Install agent-safety layer
   - Files: .claude/settings.json, .githooks/pre-push, .gitleaks.toml, .github/workflows/ci.yml
-  - Acceptance: settings.json denies destructive git commands; pre-push hook exits nonzero on force-push to main; .gitleaks.toml exists and a gitleaks step runs in pre-commit and CI, the plan's only gitleaks task (it also cites R-SEC-14 when that lands)
+  - Acceptance: settings.json denies destructive git commands; pre-push hook exits nonzero on force-push to main; .gitleaks.toml exists and a gitleaks step scans full history in pre-commit and CI, the only task that wires gitleaks (it also cites R-SEC-14 when that lands)
   - Verify: grep -q 'force' .githooks/pre-push && grep -q 'gitleaks' .github/workflows/ci.yml
   - Requirements: R-REPO-15, R-REPO-3
 
@@ -173,7 +173,7 @@ Score the drafted Repository and CI sections of PLAN.mdx out of 100. Below 85 to
 - Two tools, one job: ESLint plus Biome, Dependabot plus Renovate, dueling formatters. Refusal: the planner picks one per job at plan time and records the loser as a rejected option, not a second task.
 - Uncustomized ceremony: stock issue-template text, CONTRIBUTING describing a workflow the project does not use, CHANGELOG containing only a heading. Refusal: template tasks carry project-specific acceptance strings; generic stock phrases are named banned strings in acceptance lines.
 - Dead badges: badges pointing at wrong repos, wrong branches, or unconfigured services. Refusal: a badge is planned only when the service behind it is a planned, configured task in the same plan.
-- Bureaucracy without users: GOVERNANCE.md and a full community pack on a solo side project. Refusal: audience gating; governance files require an audience declaration that justifies them, otherwise they are excluded with a reason in the applicability matrix.
+- Bureaucracy without users: GOVERNANCE.md and a full community pack on a solo side project. Refusal: audience gating; governance files require an audience declaration that justifies them, otherwise they are excluded with a stated reason under R-REPO-18, never as an applicability-matrix row, which holds only the 19 domains.
 - Ghost structure: empty directories holding only .gitkeep, or a generated .env with live-looking values. Refusal: directories enter the plan only with real planned content; only .env.example is ever a planned file.
 - Half-done tier: starting tier 3 files while tier 2 checks still fail, or forcing tier 4 on an MVP. Refusal: the planner matches tier to project, finishes tiers whole, and writes the explicit stop line at the boundary.
 - Silent overwrite (brownfield): regenerating a config the repo already has, or clobbering an existing Pillars standard. Refusal: enhancement mode is additive-only with the stop-describe-propose rollback protocol baked into every config-writing task.

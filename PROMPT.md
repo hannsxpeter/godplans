@@ -289,13 +289,14 @@ So a brownfield `absent:` reason carries a backticked citation: the search that 
 
 ## Evidence states
 
-Every claim the matrix and the documentation set make about this project carries one of five states. The state is what licenses the disposition, so it is recorded before the disposition is chosen.
+Every claim the matrix and the documentation set make about this project carries one of six states. The state is what licenses the disposition, so it is recorded before the disposition is chosen.
 
 | State | What the plan is saying | May it exclude a domain or document? |
 |---|---|---|
 | `present` | this project has the thing, and here is where | no, it selects |
 | `absent` | this was checked and the thing is not there; the reason names what checked | yes |
 | `by-design` | the plan decides this project will not have the thing | yes |
+| `present-elsewhere` | the document lives outside this repository (a wiki, an intranet, a compliance platform), and here is where | a document only |
 | `unknown` | nobody looked, or the answer is not derivable from what the plan has | **no** |
 | `hint` | something matched and it is not enough to decide on | **no** |
 
@@ -653,7 +654,7 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
 - [ ] GP-xxx Audit the plan's product section for banned language and unowned questions
   - Files: .godplans/PLAN.mdx
   - Acceptance: zero banned marketing phrases; zero TBD/TODO without owner and date; every Open Questions entry has owner, due date, blocking flag, and default
-  - Verify: ! grep -v '^ *- Verify:' .godplans/PLAN.mdx | grep -qiE "seamless|best-in-class|world-class|cutting-edge|game-chang|revolutionary|industry-leading|enterprise-grade|AI-powered" && ! grep -vE '^ *- (Verify|Acceptance):' .godplans/PLAN.mdx | grep -iE "TBD|TODO" | grep -qvi "owner"
+  - Verify: ! awk '/^## /{s=1;p=/^## (Sc|Req|Op)/}p||!s' .godplans/PLAN.mdx | grep -iE "TBD|TODO|seamless|best-in-class|world-class|cutting-edge|game-chang|revolutionary|industry-leading|enterprise-grade|AI-powered" | grep -qvi owner
   - Requirements: R-PRD-11, R-PRD-10
 
 ## Self-audit rubric
@@ -757,7 +758,7 @@ Criterion: WHEN the plan is emitted, a grep for the banned adjective list in the
 R-ARCH-13 PLAN.mdx names the four trust boundaries (network edge, authentication, authorization, tenant/data isolation), each with location, what it protects, what an attacker gains if it falls, and enforcement (two independent layers for load-bearing boundaries, or an acknowledged single-layer risk). It also lists the highest-blast-radius mutations: cross-tenant delete, admin impersonation, billing modification, password reset, API key rotation, export-all endpoints. This section is written to be consumed verbatim by the security module's threat model.
 Criterion: WHEN trust boundaries are declared, THE PLAN SHALL cover all four with all four attributes each, and the security section SHALL reference this list rather than restate it.
 
-R-ARCH-14 PLAN.mdx commits to ADR discipline as tasks: at minimum ADR-001 (shape), with ADR-002 (storage) and ADR-003 (trust boundaries) when R-ARCH-2's check holds, plus one per non-obvious decision; every ADR includes flip point and blast radius fields; ADRs live in-repo at a stated path. This module owns `decide.adr` in the documentation set, so no other pass plans an ADR-writing task; the repo module records the row and defers here (repo.md R-REPO-14 and R-REPO-23). ADRs are immutable: a superseded ADR is never deleted and never edited, a new number supersedes it with `supersedes` on the new file and `superseded_by` plus a superseded status on the old, and numbers are never reused, because a citation written last year has to keep resolving to the same decision.
+R-ARCH-14 PLAN.mdx commits to ADR discipline as tasks: at minimum ADR-001 (shape), and when R-ARCH-2's check holds ADR-002 (storage), ADR-003 (trust boundaries), and one per non-obvious decision; every ADR includes flip point and blast radius fields; ADRs live in-repo at a stated path. This module owns `decide.adr` in the documentation set, so no other pass plans an ADR-writing task; the repo module records the row and defers here (repo.md R-REPO-14 and R-REPO-23). ADRs are immutable: a superseded ADR is never deleted and never edited, a new number supersedes it with `supersedes` on the new file and `superseded_by` plus a superseded status on the old, and numbers are never reused, because a citation written last year has to keep resolving to the same decision.
 Criterion: WHEN the plan lists decisions, THE PLAN SHALL contain tasks that write ADR files with flip point and blast radius fields, the task Acceptance lines SHALL be grep-verifiable against those fields, no task outside this module SHALL write a file under the ADR path, and any task that replaces an accepted ADR SHALL mint a new number carrying supersedes and superseded_by rather than editing the original.
 
 R-ARCH-15 PLAN.mdx plans version-controlled text diagrams: a mermaid component diagram with trust boundaries (C4 Level 1 equivalent) in the plan itself, and a Level 2 container diagram task with every arrow labeled with protocol and purpose before build starts; maximum 15 boxes per diagram; every element backed by a decision; no image exports, no cloud-vendor icon diagrams.
@@ -942,9 +943,9 @@ Instantiate with real paths, real tool names, and wave/parallel markers; replace
   - Verify: test $(grep -cE '^\| (framework|language|database|orm|auth|ui|client-data|hosting|observability|payments|email|jobs) ' docs/stack/inventory.md) -eq 12
   - Requirements: R-STACK-1, R-STACK-4
 - [ ] GP-xxx Scaffold the project with the pinned stack manifest
-  - Files: package.json (or the runtime's manifest), .tool-versions
-  - Acceptance: every dependency in the plan's stack table appears at its exact pinned version; no dependency introduces a second ORM, auth provider, design system, client cache, or job queue; runtime version matches the plan
-  - Verify: node scripts/check-stack.mjs (diffs manifest deps against the plan's stack table; exit 1 on drift or duplicate-category dep)
+  - Files: package.json (or the runtime's manifest), .tool-versions, scripts/check-stack.mjs
+  - Acceptance: every dependency in the plan's stack table appears at its exact pinned version; no dependency introduces a second ORM, auth provider, design system, client cache, or job queue; runtime version matches the plan; the check script exits 1 on drift or a duplicate
+  - Verify: node scripts/check-stack.mjs
   - Requirements: R-STACK-4, R-STACK-8, R-STACK-14
 - [ ] GP-xxx Emit .stack-ready/DECISION.md from the plan's stack section
   - Files: .stack-ready/DECISION.md
@@ -1103,7 +1104,7 @@ Descends from dbauditor (hannsxpeter/auditor-suite), the read-only after-the-fac
    Criterion: WHEN the plan introduces migration tooling THE PLAN SHALL include a CI gate task that lints migrations and round-trips up-then-down, and IF a migration is destructive THE PLAN SHALL require a backup gate before it runs.
 18. R-DB-18 Access is parameterized queries only, with an allowlist for dynamic sort and table identifiers; the app connects as a least-privilege role with DML only on its tables; a separate migration identity owns DDL; secrets live in env or vault, never in the repo (rotation required on any historical exposure); TLS is verify-full; encryption at rest is declared in IaC; the database binds to a private network only.
    Criterion: WHEN the plan defines database access THE PLAN SHALL specify parameterized queries, the two-role split (app DML vs migration DDL), verify-full TLS, and private binding, and SHALL NOT place a connection string in any committed file.
-19. R-DB-19 Data protection is DB-enforced: multi-tenant isolation in the database (never app WHERE alone) with pooler-safe RLS policies; column-level encryption or tokenization for PII/PHI; passwords hashed with the KDF R-SEC-6 names (argon2id by default); CVV never stored; an audit trail on sensitive tables; views over PII scoped and security_invoker.
+19. R-DB-19 Data protection is DB-enforced: multi-tenant isolation in the database (never app WHERE alone), any RLS policy pooler-safe; column-level encryption or tokenization for PII/PHI; passwords hashed with the KDF R-SEC-6 names (argon2id by default); CVV never stored; an audit trail on sensitive tables; views over PII scoped and security_invoker.
    Criterion: IF the system is multi-tenant THE PLAN SHALL enforce isolation at the database: FORCEd RLS on a shared schema, else a per-tenant schema or database bound through the connection's role (the only option without RLS), and IF PII/PHI/financial data is stored THE PLAN SHALL name the column-level protection per sensitive column.
 20. R-DB-20 If a search surface exists, the plan picks the primitive per feature up front: pg_trgm GIN for substring and fuzzy, tsvector plus GIN with a matching config for FTS, relevance ranking always specified; external engines sync via transactional outbox plus CDC with delete propagation and a documented reindex path (handler dual-write banned); vector columns get an ANN index whose operator class matches the query's distance operator, built after load; tenant and ACL filtering is enforced in the source of truth.
    Criterion: WHEN the plan includes a search feature THE PLAN SHALL name the index primitive and ranking function per feature, and IF an external engine is used THE PLAN SHALL specify outbox-plus-CDC sync with delete propagation.
@@ -1287,7 +1288,7 @@ Descends from secauditor (an 11-dimension read-only vulnerability audit anchored
   - Requirements: R-SEC-15
 - [ ] GP-xxx Secret hygiene: gitignore, scanning, CI references
   - Files: .gitignore, .pre-commit-config.yaml, .github/workflows/ci.yml
-  - Acceptance: .env*, *.pem, and credential file patterns ignored before first commit; gitleaks runs in pre-commit and CI over full history (one gitleaks step, shared with the R-REPO-15 agent-safety task when it lands); workflow contains no continue-on-error on scan steps and references secrets.* only
+  - Acceptance: .env*, *.pem, and credential file patterns ignored before first commit; gitleaks scans full history in pre-commit and CI, run by the R-REPO-15 agent-safety task when it lands (no second step here); workflow contains no continue-on-error on scan steps and references secrets.* only
   - Verify: gitleaks detect --no-banner && ! grep -n "continue-on-error" .github/workflows/ci.yml
   - Requirements: R-SEC-13, R-SEC-14
 - [ ] GP-xxx Supply chain pinning and SCA gate
@@ -1725,7 +1726,7 @@ A material replan restarts this lifecycle at `planning`, increments `plan_versio
 8. `## Requirements`. Numbered user stories with EARS acceptance criteria: `R-1.1: WHEN <trigger> THE SYSTEM SHALL <observable behavior>`. A compact table is also valid when the requirement ID is the first cell of each row. Task `Requirements:` lines point here and at module IDs (R-SEC-4 style).
 9. `## Architecture`. The mermaid visuals (see Visual layer) plus the prose that the diagrams support.
 
-Each other applicable domain whose pass writes prose gets one `## <Domain>` section between `## Requirements` and `## Documentation set`, named and ordered as in the Phase 4 table (so `## Business` precedes `## Architecture` and `## Repository` follows `## Agent memory`). Product, roadmap, and deferred or excluded domains get none.
+Each other applicable domain whose pass writes prose gets one `## <Domain>` section between `## Requirements` and `## Documentation set`, named and ordered as in the Phase 4 table. Product prose lives in the objective, `## Scope and non-goals`, and `## Requirements`, roadmap prose in `## Phases`; they and deferred or excluded domains get none.
 
 10. `## Style genome`. Naming, idioms, structure conventions the first commit must already follow.
 11. `## Agent memory`. The AGENTS.md and pillar files the scaffold phase will emit.
@@ -1896,7 +1897,7 @@ The emitted companion is the only machine-check entry point. Copy it byte-for-by
 bash .godplans/validate-plan.sh --allow-planning .godplans/PLAN.mdx
 ```
 
-The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan; without it, the validator is also an execution gate and accepts only `approved` or `executing`, and `done` requires every task and phase checked. It checks frontmatter (lifecycle, product form, overlays, and domain lists that match the matrix), provenance and its aggregate input digest, the archetype-confidence arithmetic, and the conditional public-release gate structure; task grammar (sequential phases, wave tags that match their phase and never go backwards, unique GP IDs, every required field including wrapped continuation lines, dependencies that come earlier and in no later wave, catalog-resolved requirements that cite no excluded or deferred module, and `[P]` tasks that share no file and no dependency with a wave sibling); the applicability-matrix and module-disposition rules above, with every landed requirement appearing in the plan body; a `Falsifier:` block on every `### D<n>` decision; documentation-set rows, including which states each mode may claim; phase checkpoints and a final Verification phase; exactly one of each numbered `##` skeleton section (Architecture and Agent memory only when that domain is applicable); real calendar dates, strict UTF-8, and banned Unicode. Fenced code is not structure. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
+The companion embeds the domain requirement catalog and reads no skill files at runtime. Before this command, verify `test -x .godplans/validate-plan.sh` and compare the companion byte-for-byte with the installed source. `--allow-planning` performs structural validation for a draft or closed plan; without it, the validator is also an execution gate and accepts only `approved` or `executing`, and `done` requires every task and phase checked. It checks frontmatter (lifecycle, product form, overlays, and domain lists that match the matrix), provenance and its aggregate input digest, the archetype-confidence arithmetic, and the conditional public-release gate structure; task grammar (sequential phases, wave tags that match their phase and never go backwards, unique GP IDs, every required field including wrapped continuation lines, dependencies that come earlier and in no later wave, catalog-resolved requirements that cite no excluded or deferred module, and `[P]` tasks that share no file and no dependency with a wave sibling); the applicability-matrix and module-disposition rules above, with every landed requirement appearing in the plan body; a `Falsifier:` block on every `### D<n>` decision; documentation-set rows, including which states each mode may claim; phase checkpoints and a final Verification phase; exactly one of each numbered `##` skeleton section (Architecture and Agent memory only when that domain is applicable), with the executor rules keeping their `> [!IMPORTANT]` alert; real calendar dates, strict UTF-8, and banned Unicode. Fenced code is not structure. `--drift-check N` adds the explicit execution-time recheck for a completed phase. Its Bash 3.2 and portable Perl implementation runs on stock macOS and Linux. Any failure blocks emission. Do not replace this command with ad hoc grep pipelines.
 
 ## Machine-readable sidecar
 
@@ -2409,7 +2410,6 @@ sub section {
     return @body;
 }
 
-# A skeleton section occurs exactly once; returns how often ## $_[0] does.
 sub section_count {
     my $count = grep { $_ eq "## $_[0]" } @lines;
     fail("expected exactly one ## $_[0] section, found $count") if $count != 1;
@@ -3313,11 +3313,12 @@ if ($matrix_count == 1) {
     }
 }
 
-# The rest of the skeleton. Architecture and Agent memory are owed only while
-# their domain applies; extra ## sections are allowed.
+# The rest of the skeleton; Architecture and Agent memory while applicable.
 section_count($_) for 'Scope and non-goals', 'Compliance gate', 'Requirements', 'Style genome',
     'Phases', 'Rules for executing agents', 'Session log',
     grep { ($domain_disposition{lc($_) =~ tr/ /-/r} || '') eq 'applicable' } 'Architecture', 'Agent memory';
+fail('executor rules lack > [!IMPORTANT]')
+    unless grep { $lines[$_] eq '> [!IMPORTANT]' } section('## Rules for executing agents');
 
 # The module disposition is the only place a module requirement may leave the
 # plan. Precedence alone does not save it: a later layer is not a more correct
@@ -3670,7 +3671,7 @@ if ($decisions_count == 1) {
                 unless exists $falsifier_field{$decision}{$field};
         }
         if (exists $falsifier_field{$decision}{Signal}) {
-            (my $signal = lc $falsifier_field{$decision}{Signal}) =~ s/^[^a-z0-9]+//;
+            (my $signal = lc $falsifier_field{$decision}{Signal}) =~ s/^[(\[]+//;
             fail("decision $decision Signal is too vague to observe")
                 if length($signal) < 12
                     || $signal =~ /^(?:metric|event|signal|performance|usage|something|tbd)\b/;
@@ -3678,7 +3679,7 @@ if ($decisions_count == 1) {
         if (exists $falsifier_field{$decision}{'Failure boundary'}) {
             my $boundary = lc $falsifier_field{$decision}{'Failure boundary'};
             # An id such as D1, R-1.1, R-SEC-4, or GP-101 is not a threshold.
-            (my $scan = $boundary) =~ s/\b(?:[dqa][1-9][0-9]*|gp-[0-9]+|r-[a-z0-9.-]*[0-9])\b//g;
+            (my $scan = $boundary) =~ s/\b(?:[da][1-9][0-9]*|gp-[0-9]+|r-[a-z0-9.-]*[0-9])\b//g;
             fail("decision $decision Failure boundary lacks an observable event or numeric threshold")
                 if length($boundary) < 12
                     || $scan !~ /(?:[0-9]|exceed|below|above|unavailable|removed|reject|prohibit|deprecat|ship|cannot|breach|change|timeout|error)/;
