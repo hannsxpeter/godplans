@@ -14,6 +14,8 @@
 # Frozen evaluation evidence and fixture inputs are not product code: keep
 # them out of the repository language stats.
 evals/outcomes/results/** linguist-vendored=true
+evals/results/** linguist-vendored=true
+evals/external/results/** linguist-vendored=true
 evals/cases/*/INPUT/** linguist-vendored=true
 
 # Generated files: GitHub collapses their diffs. Regenerate them, never edit

@@ -2,7 +2,7 @@
 
 The long-form writeup: what godplans is, why it exists, and every design decision behind it.
 
-New here? The [README](../README.md) is the short version. This page is for people who want to know *why* it works the way it does, including the parts that were wrong before and got fixed.
+New here? Start with the [README](../README.md): what godplans does, how to install it, and what a plan looks like. This page is for people who want to know *why* it works the way it does, including the parts that were wrong before and got fixed.
 
 ## The one-paragraph version
 
@@ -43,7 +43,7 @@ graph TD
   D --> E[5. Applicable domain passes]
   E --> F[6. Inversion: audit checks become acceptance criteria]
   F --> G[7. Prose integrity: preserve meaning, repair wording]
-  G --> H[8. Independent critic: every domain scores 85+ of 100]
+  G --> H[8. Independent critic: every applicable domain scores 85+ of 100]
   H --> I[9. Emit .godplans/PLAN.mdx]
 ```
 
@@ -189,7 +189,7 @@ The raw plans, repositories, audits, event logs, and stated limits are retained 
 
 ## How it was built
 
-godplans was designed and written by AI agents under human direction, in one session, using the same discipline it teaches: research first (eleven parallel research agents read the source skills, the Agent Skills ecosystem, the Anthropic policy corpus, and the plan-format state of the art), then a design document with every hard-to-reverse decision recorded, then parallel domain-module authors writing against a fixed contract, then mechanical verification. The lineage tables in each module's research are preserved in the repository history.
+godplans 1.0.0 was designed and written by AI agents under human direction in one session, using the same discipline it teaches: research first (eleven parallel research agents read the source skills, the Agent Skills ecosystem, the Anthropic policy corpus, and the plan-format state of the art), then a design document with every hard-to-reverse decision recorded, then parallel domain-module authors writing against a fixed contract, then mechanical verification. Each later release is recorded in [CHANGELOG.md](../CHANGELOG.md), and what each domain module took from its source skill is recorded in that module's `## Lineage` section.
 
 ## Composing with siblings
 

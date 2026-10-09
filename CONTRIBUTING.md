@@ -17,6 +17,7 @@ when it makes an agent produce a better plan, and when a script can prove it.
 | Where does the actual product live? | `skills/godplans/SKILL.md` and `skills/godplans/references/` |
 | What is `PROMPT.md`? | Generated output. Never hand-edit it. |
 | What are `.agents/`, `.claude/`, and `plugins/godplans/skills`? | Symlinks to the canonical skill. Never edit through them. |
+| What do I need installed? | Bash, Perl, Python 3, git, and Node.js with npm (CI uses Node.js 24 and Python 3.13). `npm run release:check` also needs an authenticated `gh` and the pinned skills-ref validator. |
 | How do I know my change is valid? | `npm run generate`, then `npm run check` |
 | What gets rejected most often? | Prose that would read equally true for any other project |
 
@@ -141,8 +142,8 @@ generic for my project type" is worth filing even without a diagnosis.
 ## Conduct and security
 
 Issues, pull requests, and discussions follow the
-[Code of Conduct](CODE_OF_CONDUCT.md); report conduct problems privately to the
-maintainer. If you find a way the skill's content or scripts could make an
+[Code of Conduct](CODE_OF_CONDUCT.md); report conduct problems privately as the
+Code of Conduct describes. If you find a way the skill's content or scripts could make an
 agent take unsafe action, do not open a public issue: report it privately as
 [SECURITY.md](SECURITY.md) describes.
 

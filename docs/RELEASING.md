@@ -31,11 +31,17 @@ SemVer value.
    execute.) It includes `npm run check`, the CHANGELOG stub
    guard, deterministic evaluation contracts, official validation of the
    canonical `skills/godplans` package, immutable action pins, tag-to-release
-   parity, and a package-contents check against committed files only
+   parity, GitHub About parity (the repository description equals package.json
+   `description` and the topics include every `keywords` entry), and a
+   package-contents check against committed files only
    (`tests/package-contents.sh --tracked-only`), so a file under a shipped
    path that git does not track fails the release.
-5. Open a ready pull request and wait for the `release quality` job in the `lint` workflow.
-6. Merge the pull request to `main` without bypassing a failed required check.
+5. Open a ready pull request and wait for both jobs in the `lint` workflow:
+   `release quality` (Ubuntu, the release gate) and `stock macOS tools`
+   (`/bin/bash` 3.2 and BSD tools).
+6. Merge the pull request to `main` only when both jobs pass. Nothing enforces
+   this until both jobs are required status checks on `main`; see the branch
+   protection row in section 3 of [DRIFT.md](DRIFT.md).
 7. Pull the merged `main`, create annotated tag `vX.Y.Z`, and push the tag.
 8. Create the GitHub release from the matching CHANGELOG section.
 9. Verify the release page, tag target, default branch version, and a clean
@@ -45,9 +51,13 @@ SemVer value.
     does not, and the topics should include every entry in `keywords`. Fix
     drift with `gh repo edit --description`, `--add-topic`, and
     `--remove-topic`; GitHub allows at most 20 topics, so a stale topic has to
-    go before a new keyword fits.
+    go before a new keyword fits. `npm run release:check` already fails on
+    description or missing-topic drift and prints the `gh repo edit` command;
+    this step remains for stale extra topics, which it does not flag.
 
 ## Commands
+
+Before the merge, on the release branch (steps 1 to 6):
 
 ```bash
 npm run release:prepare -- X.Y.Z   # then replace the CHANGELOG stub body
@@ -55,6 +65,15 @@ npm run generate
 python3 -m venv .venv-skills-ref
 .venv-skills-ref/bin/pip install -r requirements/skills-ref.txt
 SKILLS_REF_BIN="$PWD/.venv-skills-ref/bin/skills-ref" npm run release:check
+# Commit, push the branch, and open a ready pull request. Merge it only after
+# both lint jobs pass.
+```
+
+After the merge, from the merged `main` (steps 7 to 10):
+
+```bash
+git switch main
+git pull --ff-only origin main
 version=X.Y.Z
 release_notes=$(mktemp)
 trap 'rm -f "$release_notes"' EXIT HUP INT TERM

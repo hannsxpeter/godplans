@@ -47,8 +47,8 @@ jobs:
 
   # The scripts promise stock macOS: /bin/bash 3.2 and BSD awk, grep, sed, and
   # find, which Ubuntu's bash 5 and GNU tools never exercise. The release-only
-  # steps (the pinned official validator, gh tag parity, npm pack) stay on the
-  # Ubuntu job.
+  # steps (the pinned official validator, gh tag parity, and the tracked-only
+  # package check) stay on the Ubuntu job.
   macos:
     name: stock macOS tools
     runs-on: macos-latest
