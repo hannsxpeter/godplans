@@ -14,7 +14,7 @@ produce the right kind of plan for a concrete request?
 | replan-preserves-history | replan | cli-tool | stable completed work and new task IDs |
 | compliance-refusal | hard stop | prohibited product | refusal before discovery or planning |
 | product-form-routing | greenfield | ml-pipeline | primary data or ML form plus independent API form |
-| nested-pillars | greenfield | hybrid | Pillars 1.1 nested scopes, catalog, and precedence |
+| nested-pillars | greenfield | not asserted (monorepo) | Pillars 1.1 nested scopes, catalog, and precedence |
 | stale-source-evidence | brownfield | api-service | provenance binding and stale resume handling |
 | stale-prepublication | greenfield | saas-dashboard | late Critical invalidates public-release authorization |
 | observability-evidence | greenfield | api-service | installation evidence separated from real-event maturity |
@@ -56,11 +56,21 @@ Set `GODPLANS_EVAL_MODEL` or `GODPLANS_EVAL_REASONING_EFFORT` to override
 the local Codex defaults (`GODPLANS_CLAUDE_MODEL`, `GODPLANS_CLAUDE_EFFORT`, and
 `GODPLANS_GEMINI_MODEL` do the same for the other runners). Each runner
 records the model, reasoning effort, CLI version, and the input, cached-input,
-output, and total tokens its CLI reports in `RUNNER.txt`.
+output, and total tokens its CLI reports in `RUNNER.txt`. `total_tokens` is
+`input_tokens` plus `output_tokens`, and each family counts them differently.
+Codex reports cached input inside `input_tokens`. The Claude runner adds
+`cache_read_input_tokens` and `cache_creation_input_tokens` to Anthropic's
+`input_tokens`, which excludes them, so its total compares with Codex. The
+Gemini runner sums each model's `prompt` and `candidates` counts and does not
+add the CLI's separate `thoughts` or `tool` counts.
 
 The runner receives two arguments:
 
-1. Absolute path to the case `REQUEST.md`.
+1. Absolute path to the case `REQUEST.md`. A control-arm runner
+   (`GODPLANS_EVAL_BASELINE_RUNNER`, a profile's `<profile>-baseline.sh`, or
+   `--control-plan-runner` in `scripts/eval-outcome.js`) receives the same path
+   and must read the sibling `REQUEST.baseline.md` in its place when present,
+   warning when it is absent, as `codex-baseline.sh` and `vendor-cli.sh` do.
 2. Absolute output path. It ends in `PLAN.mdx` for plan cases and
    `RESPONSE.md` for refusal cases.
 
@@ -148,13 +158,18 @@ plan at a neutral path. `codex-baseline.sh` reads it in place of `REQUEST.md`,
 holds the agent, model, reasoning effort, workspace, and `INPUT/` fixture
 identical to the skill arm, and leaks nothing from the skill (no godplans name,
 no `.godplans` path, no format contract, requirement IDs, validator, or phase
-method). `scripts/eval.sh --check-cases` rejects a `REQUEST.baseline.md` that
-names the skill, and `RUNNER.txt` records `prompt=neutral-baseline-request` so
-a published run proves the control was fair. If a case lacks a baseline
-request the runner warns and falls back to the skill-phrased `REQUEST.md`, and
-that run is explicitly not a fair comparison. When the control produces no
-plan at all, its final response is scored instead and the assertions fail
-honestly rather than being hidden as a runner error.
+method; a replan case's `INPUT/` fixture is the prior plan both arms must
+reconcile, so it is the one exception). `scripts/eval.sh --check-cases`
+rejects a `REQUEST.baseline.md` that names the skill, and `RUNNER.txt` records
+`prompt=neutral-baseline-request` so a published run proves the control was
+fair. If a case lacks a baseline request the runner warns, falls back to the
+skill-phrased `REQUEST.md`, and records
+`prompt=fallback-skill-phrased-request-UNFAIR`; that run is explicitly not a
+fair comparison. The control runners take the `PLAN.md` the neutral request
+names before any other plan path, and never take an `INPUT/` file the control
+left unchanged as its plan. When the control produces no plan at all, its
+final response is scored instead and the assertions fail honestly rather than
+being hidden as a runner error.
 
 Expect the control to win some assertions outright. Any case where it scores
 near the skill arm is a case whose expectations test formatting rather than

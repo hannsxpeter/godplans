@@ -28,6 +28,12 @@ node scripts/eval-outcome.js \
   --output evals/outcomes/results/RUN
 ```
 
+`GODPLANS_OUTCOME_BUILD_MODEL` and `GODPLANS_OUTCOME_BUILD_EFFORT` set the
+builder's model and reasoning effort, and `GODPLANS_OUTCOME_AUDIT_MODEL` and
+`GODPLANS_OUTCOME_AUDIT_EFFORT` set the auditor's. The model defaults to the
+Codex configured default and the effort to `high`. `GODAUDITS_SKILL_DIR`
+defaults to a sibling `../godaudits/skills/godaudits` checkout when one exists.
+
 The output retains both plans, built repositories, verifier logs, complete
 AUDIT.json and AUDIT.mdx artifacts, runner metadata, and generated
 `SUMMARY.json` plus `SUMMARY.md`. The summary includes plan and build token

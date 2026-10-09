@@ -138,25 +138,37 @@ process.stdout.write(`output_tokens=${output}\n`);
 process.stdout.write(`total_tokens=${input + output}\n`);
 NODE
 
+# Print the plan the control wrote. Accept any plausible path, so the baseline
+# is not penalized for choosing a different one, but prefer the path the
+# neutral request names (PLAN.md), and never take an INPUT fixture the control
+# left unchanged (a replan case's prior .godplans/PLAN.mdx) as its own plan.
+control_plan() {
+  for candidate in PLAN.md plan.md PLAN.mdx .godplans/PLAN.mdx; do
+    [ -s "$WORK/$candidate" ] || continue
+    if [ -f "$CASE_DIR/INPUT/$candidate" ] && cmp -s "$WORK/$candidate" "$CASE_DIR/INPUT/$candidate"; then
+      continue
+    fi
+    printf '%s\n' "$WORK/$candidate"
+    return 0
+  done
+  return 1
+}
+
 case "$OUTPUT" in
   */PLAN.mdx)
-    # Accept a plan written anywhere plausible before falling back, so the
-    # baseline is not penalized for choosing a different path.
-    for candidate in "$WORK/.godplans/PLAN.mdx" "$WORK/PLAN.mdx" "$WORK/PLAN.md" "$WORK/plan.md"; do
-      if [ -s "$candidate" ]; then
-        cp "$candidate" "$OUTPUT"
-        exit 0
-      fi
-    done
+    if plan=$(control_plan); then
+      cp "$plan" "$OUTPUT"
+      exit 0
+    fi
     # No plan file: score the final response instead. It will fail the
     # structural assertions, which is the honest result, not an error.
     cp "$LAST" "$OUTPUT" 2>/dev/null || : > "$OUTPUT"
     ;;
   */RESPONSE.md)
-    if [ -s "$WORK/.godplans/PLAN.mdx" ]; then
+    if plan=$(control_plan); then
       # The baseline planned a request it should have refused. Record the plan
       # so the refusal assertions fail against real evidence.
-      cp "$WORK/.godplans/PLAN.mdx" "$OUTPUT"
+      cp "$plan" "$OUTPUT"
     else
       cp "$LAST" "$OUTPUT" 2>/dev/null || : > "$OUTPUT"
     fi
