@@ -360,7 +360,7 @@ arc-ready walks the arc one tier at a time, building as it goes. godplans front-
 | `skills/godplans/scripts/style-stats.py` | Measured style baseline for the style-genome pass, vendored by copy from codedna |
 | `skills/godplans/schemas/PLAN.schema.json` | JSON Schema for generated PLAN.json sidecars (`plan-json@2`; `PLAN.v1.schema.json` covers sidecars from 1.13.0 and earlier) |
 | `.agents/skills/godplans`, `.claude/skills/godplans`, `plugins/godplans/skills` | Symlink projections of the canonical skill (the plugin link points at `skills/`) |
-| `.claude-plugin/marketplace.json`, `plugins/godplans/.claude-plugin/plugin.json` | Claude Code plugin marketplace and manifest; both carry the SKILL.md description verbatim (`description-parity`) |
+| `.claude-plugin/marketplace.json`, `plugins/godplans/.claude-plugin/plugin.json` | Claude Code plugin marketplace and manifest; the plugin manifest and the marketplace's godplans entry carry the SKILL.md description verbatim, and the marketplace tagline carries the package.json description (`description-parity`) |
 | `install.sh` | Ownership-safe installer; `--global` (the default), `--project`, `--tools`, `--copy`, `--uninstall`, `--force` |
 | `PROMPT.md` | Generated portable fallback |
 | `scripts/lint.sh` | Meta-linter: unicode cleanliness, version and description parity, module contracts, domain parity, PROMPT freshness |

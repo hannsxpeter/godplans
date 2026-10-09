@@ -66,8 +66,13 @@ SKILLS_REF_BIN="$VALIDATOR" npm run check
 bash scripts/lint.sh tag-release-parity --verbose
 
 # The GitHub About text says what package.json says (docs/RELEASING.md step
-# 10): the repository description equals package.json description, and every
+# 4): the repository description equals package.json description, and every
 # keyword is a repository topic. A missing topics list reads as no topics.
+# The About text is live repository state that no branch carries, so pull
+# request CI only warns on drift: a release that changes description or
+# keywords would otherwise fail every open pull request from the moment the
+# About text is edited until it merges. A push to main and a local
+# release:check still fail.
 about=$(gh repo view hannsxpeter/godplans --json description,repositoryTopics) ||
   die "gh could not read the repository description and topics"
 about_drift=$(printf '%s\n' "$about" | node -e '
@@ -87,9 +92,15 @@ if (missing.length) {
 }
 if (fix.length) console.log(`fix: gh repo edit hannsxpeter/godplans ${fix.join(" ")}`);
 ' "$REPO_DIR/package.json") || die "could not compare the GitHub About text with package.json"
-[ -z "$about_drift" ] ||
-  die "GitHub About drifted from package.json:
+if [ -n "$about_drift" ]; then
+  if [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ]; then
+    printf '%s\n' "[warn] GitHub About drifted from package.json (enforced on main and in a local release:check):" \
+      "$about_drift" >&2
+  else
+    die "GitHub About drifted from package.json:
 $about_drift"
+  fi
+fi
 
 # npm test accepts untracked, unignored files so work in progress can be
 # tested; a release ships exactly what is committed.

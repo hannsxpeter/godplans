@@ -90,7 +90,11 @@ addresses it. That is the whole test.
    (`tests/lint-selftest.sh` injects a violation for every lint check, one case
    at a time, and expects each to fail). Release changes also run the pinned
    official validator through `npm run release:check`; see
-   [docs/RELEASING.md](docs/RELEASING.md).
+   [docs/RELEASING.md](docs/RELEASING.md). A pull request that changes
+   package.json `description` or adds a `keywords` entry gets a GitHub About
+   drift warning from CI's `release quality` job, and the maintainer updates
+   the About text. A changed `description` also goes into `metadata.description`
+   in `.claude-plugin/marketplace.json`, or `description-parity` fails.
 5. If behavior changed: add a CHANGELOG entry under a new version heading and
    bump every published version surface: SKILL.md frontmatter and body, the
    top CHANGELOG.md entry, package.json, marketplace and plugin metadata, the

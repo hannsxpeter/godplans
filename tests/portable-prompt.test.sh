@@ -163,9 +163,8 @@ headroom=$((budget - prompt_bytes))
   fail "budget headroom $headroom bytes is not under the smallest core module ($smallest_core bytes); lower the budget in this test to at most $((prompt_bytes + smallest_core - 1)) and record why in the comment above"
 
 # unresolved_paths FILE [EXTRA]: lines naming an inlined file by a path the
-# reader cannot open, in backticked or bare form. EXTRA is one more ERE: the
-# core adds style-stats.py, which it never inlines; the full prompt inlines
-# style-genome.md, whose task seeds run that script in the planned project.
+# reader cannot open, in backticked or bare form. EXTRA is one more ERE: both
+# prompts add style-stats.py, which neither inlines.
 unresolved_paths() {
   sed '/^# INLINED REFERENCE: /d; /^# INLINED TEMPLATE: /d; /^# INLINED VALIDATOR: /d; /^# INLINED SCRIPT: /d' "$1" |
     grep -En "templates/PLAN\.template\.mdx|(^|[^[:alnum:]_.-])scripts/validate-plan\.sh|scripts/plan-halflife\.sh|(^|[^[:alnum:]-])plan-format\.md([^[:alnum:]-]|$)|references/(compliance|discovery|product|architecture|stack|database|security|exemplar)\.md${2:+|$2}" || true
@@ -205,7 +204,15 @@ for ref in $expected_refs $lazy_refs; do
   grep -Fqx "# INLINED REFERENCE: references/$ref.md" "$FULL_PROMPT" ||
     fail "full prompt is missing module: $ref"
 done
-unresolved=$(unresolved_paths "$FULL_PROMPT")
+# The full prompt also inlines style-genome.md. Its vendoring note and R-DNA-21
+# name the skill's own style-stats.py as where the measured norms come from,
+# and R-DNA-21 sends the planned project to the .godplans copy instead. The
+# path is masked on those two lines only, so a task seed, or a SKILL.md or
+# discovery.md sentence that runs or copies the native script, still fails.
+sed -e '/vendored by copy from codedna/s|scripts/style-stats\.py|style-stats.py|g' \
+  -e '/^- R-DNA-21 /s|scripts/style-stats\.py|style-stats.py|g' \
+  "$FULL_PROMPT" > "$TMP/full-checked.md"
+unresolved=$(unresolved_paths "$TMP/full-checked.md" 'scripts/style-stats\.py')
 [ -z "$unresolved" ] || fail "unresolved required local reference remains in the full prompt:
 $unresolved"
 assert_halflife_portable full "$FULL_PROMPT"

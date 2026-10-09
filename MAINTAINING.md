@@ -52,7 +52,7 @@ Semver, as practiced so far: patch releases carry documentation, CI, or correctn
    - the "core move" sentence and the lineage paragraph, when the module inverts an auditor or descends from a new source (no check);
    - the File map count, "N domain modules" (no check);
    - the Phase 2 overlay list, when you add an overlay (no check).
-7. **Plugin metadata.** Copy the new SKILL.md description verbatim into `plugins/godplans/.claude-plugin/plugin.json` and the godplans entry of `.claude-plugin/marketplace.json` (`description-parity`). Change SKILL.md first, then copy.
+7. **Plugin metadata.** Copy the new SKILL.md description verbatim into `plugins/godplans/.claude-plugin/plugin.json` and the godplans entry of `.claude-plugin/marketplace.json` (`description-parity`). Change SKILL.md first, then copy. The marketplace tagline, `metadata.description`, copies the package.json `description` instead, so it changes only when that does (`description-parity` too).
 8. **Discovery and plan format** (no check). In `references/discovery.md`, update:
    - the deferrable set or the "Never deferrable" list;
    - the "Hard rules" line, when the domain has its own applicability rule;
@@ -84,7 +84,7 @@ Semver, as practiced so far: patch releases carry documentation, CI, or correctn
     - in README.md: the "planning domains" badge, the domain-pass node in the How it works diagram and the sentence that lists the passes, the slim-core paragraph (its core list for a core module, or "The other fourteen domain modules" for a lazy one), the repository map's module count, and the lineage table and source count when the module inverts a new source;
     - the counts in docs/ABOUT.md;
     - the "N domain modules" ground rule in CONTRIBUTING.md and the "N domain modules" bullet in AGENTS.md;
-    - in docs/ARCHITECTURE.md: the "Domain modules (N)" row, the core and lazy lists under "Core and lazy modules", and the `%deferrable_domain`, `%never_excludable`, and `%overlay_domains` rows when step 2 changed them.
+    - in docs/ARCHITECTURE.md: the "Domain modules (N)" row, the core and lazy lists and, for a core module, the "five load-bearing domains" count under "Core and lazy modules", and the `%deferrable_domain`, `%never_excludable`, and `%overlay_domains` rows when step 2 changed them.
 18. **Generate and check.** Run `npm run generate`, then `npm run check`. Release it as a minor version, as 1.14.0 was.
 
 ## The portable-core budget
@@ -125,7 +125,7 @@ Some modules cite facts that expire. Review them at least every six months, and 
 - `references/agent-memory.md`: the Pillars release it pins (1.2.2, released 2026-08-04) in its Lineage, R-MEM-2, R-MEM-16, two task seeds, and the rubric. Compare with https://github.com/hannsxpeter/pillars/releases and the newest tag's canonical AGENTS.md; from 1.1.0 to 1.2.2 only its version references changed.
 - `references/seo.md`, decisions 2, 4, and 5, R-SEO-13, R-SEO-14, and the score caps: AI crawler names and purposes, the llms.txt status, the FAQ, HowTo, and sitelinks search box changes, and seoauditor's floor of 69, taken from seoauditor's `references/facts.md` and SKILL.md in hannsxpeter/auditor-suite (facts reviewed 2026-09-26).
 
-To refresh: check each fact against its source, then update the review date in business.md. When productauditor's `facts.md` has a newer "Last reviewed" date, compare the two first. Then run `npm run generate`. business.md, ux.md, seo.md, and agent-memory.md are lazy, so editing them changes only the context metrics. compliance.md and security.md are inlined in the portable core, so editing them also changes PROMPT.md and counts against the budget. Record the review in the CHANGELOG.
+To refresh: check each fact against its source, then update the review date where the module records one: the business.md Lineage and seo.md's R-SEO-14 (agent-memory.md pins a version, not a date). When productauditor's or seoauditor's `facts.md` has a newer "Last reviewed" date, compare it with the module first. Then run `npm run generate`. business.md, ux.md, seo.md, and agent-memory.md are lazy, so editing them changes only the context metrics. compliance.md and security.md are inlined in the portable core, so editing them also changes PROMPT.md and counts against the budget. Record the review in the CHANGELOG.
 
 In the same pass, confirm that the lineage links resolve: the README Lineage table, the "descends from" paragraph in SKILL.md, docs/ABOUT.md, and each module's Lineage section. No check follows links. The seven standalone auditor repositories were deleted on 2026-07-14, when they were folded into hannsxpeter/auditor-suite, and their links went dead without any failure.
 

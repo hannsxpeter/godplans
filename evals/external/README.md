@@ -22,10 +22,10 @@ node scripts/eval-external.js \
 The runner receives a packet path (`packets/<case>.md`, which carries the
 rubric and the `GRADE.schema.json` shape) and an output grade path
 (`grades/<judge>/<case>.json`). It must disable godplans and sibling skills
-for the judging turn. A judge label must be unique and one path segment
-(letters, digits, `.`, `_`, `-`), and the runner path may be relative or
-absolute. The included adapters use their host CLI's existing authentication
-and record the available customization-isolation mode.
+for the judging turn. A judge label must be unique, ignoring case, and one
+path segment (letters, digits, `.`, `_`, `-`), and the runner path may be
+relative or absolute. The included adapters use their host CLI's existing
+authentication and record the available customization-isolation mode.
 `GODPLANS_GRADE_CLAUDE_MODEL` (default `sonnet`) and
 `GODPLANS_GRADE_GEMINI_MODEL` (default `gemini-2.5-pro`) choose the judge
 models, and each grade's `<case>.RUNNER.txt` records the model used. The

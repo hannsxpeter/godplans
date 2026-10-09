@@ -6,6 +6,15 @@
 
 set -euo pipefail
 
+# The runners read the model and effort overrides that evals/README.md
+# documents for real runs, and the stand-in CLI reads its own mode variables.
+# One exported in the caller's shell must not change what this offline test
+# expects, so every case starts from the defaults and sets what it needs.
+unset GODPLANS_CLAUDE_MODEL GODPLANS_CLAUDE_EFFORT GODPLANS_GEMINI_MODEL \
+  GODPLANS_GRADE_CLAUDE_MODEL GODPLANS_GRADE_GEMINI_MODEL \
+  GODPLANS_VENDOR_PROVIDER GODPLANS_VENDOR_ARM GODPLANS_GRADE_PROVIDER \
+  GODPLANS_FAKE_MODE GODPLANS_FAKE_ROLE
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT

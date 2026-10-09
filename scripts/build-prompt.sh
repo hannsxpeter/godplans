@@ -64,6 +64,18 @@ strip_file_map() {
   awk 'BEGIN{skip=0} /^## File map/{skip=1; next} skip && /^## /{skip=0} !skip{print}'
 }
 
+# Neither prompt inlines style-stats.py: it is larger than the core's budget
+# headroom, and the full prompt gives the same instruction as the core. So the
+# SKILL.md and discovery.md sentences that run or copy it get one expression
+# per phrase, shared by both modes: the measured baseline is recorded as not
+# run, and the Phase 7 copy is made only when a native install is reachable.
+# tests/portable-prompt.test.sh fails on any phrasing left unrewritten.
+STYLE_STATS_REWRITES=(
+  -e 's|run `[^`]*scripts/style-stats\.py[^`]*`[^,;]* for the measured style baseline|record the measured style baseline as not run (only a native install has the style-stats script)|g'
+  -e 's|measured [^`;]*`[^`]*scripts/style-stats\.py[^`]*`[^,;]* and then close-read|with its measured baseline recorded as not run (only a native install has the style-stats script) and then close-read|g'
+  -e 's|copy `[^`]*scripts/style-stats\.py`[^,.]*|copy the style-stats script there if a native install is reachable, else record it as not copied|g'
+)
+
 # Portable surfaces cannot resolve repository-relative paths. Rewrite only
 # the paths that point at content inlined below; project paths such as
 # .godplans/PLAN.mdx remain literal because the planning agent can access them.
@@ -79,6 +91,7 @@ portable_text_full() {
     -e 's|templates/PLAN\.template\.mdx|the inlined PLAN template|g' \
     -e 's|`scripts/validate-plan\.sh`|the inlined validator|g' \
     -e 's|scripts/validate-plan\.sh|the inlined validator|g' \
+    "${STYLE_STATS_REWRITES[@]}" \
     -e 's|`scripts/plan-halflife\.sh`|the inlined plan half-life script|g' \
     -e 's|`scripts/plan-halflife\.sh |`bash .godplans/plan-halflife.sh |g' \
     -e 's|scripts/plan-halflife\.sh|the inlined plan half-life script|g' \
@@ -87,11 +100,7 @@ portable_text_full() {
 }
 
 # The core rewrites each inlined path in its backticked form, then its bare
-# form, one module per expression because BSD sed BRE has no alternation. It
-# does not inline style-stats.py (larger than the budget headroom), so the
-# SKILL.md and discovery.md sentences that run or copy it get one expression
-# per phrase: the measured baseline is recorded as not run, and the copy as not
-# made. tests/portable-prompt.test.sh fails on any phrasing left unrewritten.
+# form, one module per expression because BSD sed BRE has no alternation.
 portable_text_core() {
   sed \
     -e 's|`references/compliance\.md`|the inlined compliance reference|g' \
@@ -115,9 +124,7 @@ portable_text_core() {
     -e 's|references/exemplar\.md|the inlined exemplar reference|g' \
     -e 's|templates/PLAN\.template\.mdx|the inlined PLAN template|g' \
     -e 's|scripts/validate-plan\.sh|the inlined validator|g' \
-    -e 's|run `[^`]*scripts/style-stats\.py[^`]*`[^,;]* for the measured style baseline|record the measured style baseline as not run (only a native install has the style-stats script)|g' \
-    -e 's|measured [^`;]*`[^`]*scripts/style-stats\.py[^`]*`[^,;]* and then close-read|with its measured baseline recorded as not run (only a native install has the style-stats script) and then close-read|g' \
-    -e 's|copy `[^`]*scripts/style-stats\.py`[^,.]*|copy the style-stats script there if a native install is reachable, else record it as not copied|g' \
+    "${STYLE_STATS_REWRITES[@]}" \
     -e 's|`scripts/plan-halflife\.sh`|the inlined plan half-life script|g' \
     -e 's|`scripts/plan-halflife\.sh |`bash .godplans/plan-halflife.sh |g' \
     -e 's|scripts/plan-halflife\.sh|the inlined plan half-life script|g' \

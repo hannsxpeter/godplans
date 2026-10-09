@@ -17,8 +17,10 @@ fail() {
 }
 
 # CI and `npm run release:check` export SKILLS_REF_BIN. Each case below sets it
-# explicitly when it wants one, so resolution cases start without it.
-unset SKILLS_REF_BIN
+# explicitly when it wants one, so resolution cases start without it. GitHub
+# Actions exports GITHUB_EVENT_NAME, which decides whether About drift fails or
+# warns, so every case starts as a local run and the About cases set it.
+unset SKILLS_REF_BIN GITHUB_EVENT_NAME
 
 # Fake tools. The broken validator mimics a stale pipx shim whose interpreter
 # was deleted. The fake gh fails authentication, so a release check that gets
@@ -120,20 +122,43 @@ grep -q 'ok   \[release-check\]' "$TMP/full.out" || fail "release check did not 
   fail "release check did not check the package against tracked files only"
 
 # An About description that differs from package.json, or a keyword missing
-# from the topics, fails the release and names the gh command that fixes it.
-rm -f "$RC/tests/package-contents.args"
+# from the topics, fails a local release check and a push to main, and names
+# the gh command that fixes it.
 printf '%s\n' '{"description":"An older About text.","repositoryTopics":[{"name":"alpha"}]}' \
   > "$BIN/ok-tools/about.json"
-if env PATH="$BIN/ok-tools:/usr/bin:/bin" SKILLS_REF_BIN="$BIN/accepting" \
-  bash "$RC/scripts/release-check.sh" >"$TMP/about.out" 2>&1; then
-  fail "release check passed with GitHub About drift"
-fi
-for want in 'the repository description differs from package.json description' \
-  'the repository topics lack package.json keywords: beta' \
-  'fix: gh repo edit hannsxpeter/godplans --description "Fixture description." --add-topic beta'; do
-  grep -Fq "$want" "$TMP/about.out" || fail "About drift output lacks [$want]: $(cat "$TMP/about.out")"
+about_wants() {
+  for want in 'the repository description differs from package.json description' \
+    'the repository topics lack package.json keywords: beta' \
+    'fix: gh repo edit hannsxpeter/godplans --description "Fixture description." --add-topic beta'; do
+    grep -Fq "$want" "$1" || fail "About drift output lacks [$want]: $(cat "$1")"
+  done
+}
+for event in local push; do
+  rm -f "$RC/tests/package-contents.args"
+  event_env=
+  [ "$event" = "local" ] || event_env="GITHUB_EVENT_NAME=$event"
+  if env PATH="$BIN/ok-tools:/usr/bin:/bin" SKILLS_REF_BIN="$BIN/accepting" $event_env \
+    bash "$RC/scripts/release-check.sh" >"$TMP/about-$event.out" 2>&1; then
+    fail "release check ($event) passed with GitHub About drift"
+  fi
+  grep -q '^\[fail\] GitHub About drifted' "$TMP/about-$event.out" ||
+    fail "release check ($event) did not fail on About drift: $(cat "$TMP/about-$event.out")"
+  about_wants "$TMP/about-$event.out"
+  [ ! -e "$RC/tests/package-contents.args" ] || fail "release check ($event) went on past GitHub About drift"
 done
-[ ! -e "$RC/tests/package-contents.args" ] || fail "release check went on past GitHub About drift"
+# Pull request CI only warns: the About text is live state that no branch
+# carries, so the drift is printed with its fix and the gate goes on.
+rm -f "$RC/tests/package-contents.args"
+env PATH="$BIN/ok-tools:/usr/bin:/bin" SKILLS_REF_BIN="$BIN/accepting" GITHUB_EVENT_NAME=pull_request \
+  bash "$RC/scripts/release-check.sh" >"$TMP/about-pr.out" 2>&1 ||
+  fail "release check failed on About drift in pull request CI: $(cat "$TMP/about-pr.out")"
+grep -q '^\[warn\] GitHub About drifted' "$TMP/about-pr.out" ||
+  fail "About drift in pull request CI printed no warning: $(cat "$TMP/about-pr.out")"
+about_wants "$TMP/about-pr.out"
+grep -q 'ok   \[release-check\]' "$TMP/about-pr.out" ||
+  fail "release check did not finish after an About warning"
+[ "$(cat "$RC/tests/package-contents.args" 2>/dev/null)" = "--tracked-only" ] ||
+  fail "release check skipped the package check after an About warning"
 # No topics at all reads as every keyword missing, not as a crash.
 printf '%s\n' '{"description":"Fixture description.","repositoryTopics":null}' > "$BIN/ok-tools/about.json"
 if env PATH="$BIN/ok-tools:/usr/bin:/bin" SKILLS_REF_BIN="$BIN/accepting" \

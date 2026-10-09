@@ -78,8 +78,9 @@ for packet in "$TMP"/external/packets/*.md; do
 done
 
 # Judges are distinct by label, and a label names a grade directory, so a
-# repeated label or one that is not a single safe path segment is refused
-# before any packet is written.
+# repeated label, one that differs only in case (one directory on a
+# case-insensitive file system), or one that is not a single safe path segment
+# is refused before any packet is written.
 if node "$ROOT/scripts/eval-external.js" \
   --matrix "$TMP/matrix" \
   --source-profile codex \
@@ -91,6 +92,17 @@ fi
 grep -q 'duplicate judge label: one' "$TMP/external-dup.err" ||
   fail "a duplicate judge label was not named: $(cat "$TMP/external-dup.err")"
 [ ! -e "$TMP/external-dup" ] || fail "a duplicate judge label still wrote output"
+if node "$ROOT/scripts/eval-external.js" \
+  --matrix "$TMP/matrix" \
+  --source-profile codex \
+  --judge "one=$TMP/bin/judge-one" \
+  --judge "ONE=$TMP/bin/judge-two" \
+  --output "$TMP/external-case" >/dev/null 2>"$TMP/external-case.err"; then
+  fail "external grading accepted judge labels that differ only in case"
+fi
+grep -q 'duplicate judge label: ONE' "$TMP/external-case.err" ||
+  fail "a case-variant judge label was not named: $(cat "$TMP/external-case.err")"
+[ ! -e "$TMP/external-case" ] || fail "a case-variant judge label still wrote output"
 if node "$ROOT/scripts/eval-external.js" \
   --matrix "$TMP/matrix" \
   --source-profile codex \

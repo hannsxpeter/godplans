@@ -30,10 +30,12 @@ for (let index = 0; index < args.length; index++) {
       const separator = value.indexOf('=');
       if (separator < 1) throw new Error('--judge uses LABEL=RUNNER, where RUNNER is a relative or absolute path');
       // The label names the judge's grade directory, so it must be one safe
-      // path segment, and a repeated label would grade one judge against itself.
+      // path segment. A repeated label, or one that differs only in case (the
+      // same directory on a case-insensitive file system), would grade one
+      // judge against itself.
       const label = value.slice(0, separator);
       if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(label)) throw new Error(`invalid judge label: ${label}`);
-      if (judges.some((judge) => judge.label === label)) throw new Error(`duplicate judge label: ${label}`);
+      if (judges.some((judge) => judge.label.toLowerCase() === label.toLowerCase())) throw new Error(`duplicate judge label: ${label}`);
       judges.push({ label, runner: path.resolve(value.slice(separator + 1)) });
       break;
     }

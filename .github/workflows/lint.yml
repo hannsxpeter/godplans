@@ -23,8 +23,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          # Tag parity reads releases through gh with GH_TOKEN; nothing here
-          # pushes or fetches with the git credential, so do not persist it.
+          # Tag and About parity read GitHub through gh with GH_TOKEN; nothing
+          # here pushes or fetches with the git credential, so do not persist it.
           persist-credentials: false
 
       - name: Set up Python
@@ -47,8 +47,8 @@ jobs:
 
   # The scripts promise stock macOS: /bin/bash 3.2 and BSD awk, grep, sed, and
   # find, which Ubuntu's bash 5 and GNU tools never exercise. The release-only
-  # steps (the pinned official validator, gh tag parity, and the tracked-only
-  # package check) stay on the Ubuntu job.
+  # steps (the pinned official validator, gh tag parity, GitHub About parity,
+  # and the tracked-only package check) stay on the Ubuntu job.
   macos:
     name: stock macOS tools
     runs-on: macos-latest

@@ -7,7 +7,9 @@
 //   node scripts/lint-parity.js description-length
 //     prints the SKILL.md description length in characters.
 //   node scripts/lint-parity.js description-parity
-//     prints one line per plugin manifest whose description differs.
+//     prints one line per plugin manifest whose description differs from
+//     SKILL.md, and one when the marketplace metadata.description differs
+//     from package.json.
 //   node scripts/lint-parity.js domain-parity "CONTRACT MODULES"
 //     prints "domains N M" (N domain modules, M lists compared), then one
 //     "problem TEXT" line per disagreement.
@@ -70,27 +72,38 @@ function description() {
   return '';
 }
 
+// Two sources, each copied by hand: the SKILL.md description goes into both
+// plugin manifests, and the package.json description into the marketplace
+// tagline (metadata.description), which the GitHub About text also carries.
 function descriptionParity(value) {
   const problems = [];
-  const compare = (label, actual) => {
+  const compare = (label, actual, expected, source, short) => {
     if (typeof actual !== 'string') {
       problems.push(`${label} has no description string`);
       return;
     }
-    if (actual === value) return;
+    if (actual === expected) return;
     let at = 0;
-    while (at < actual.length && at < value.length && actual[at] === value[at]) at += 1;
-    problems.push(`${label} description differs from the SKILL.md frontmatter description at character ${at + 1} (${actual.length} vs ${value.length} characters); copy the SKILL.md description into it verbatim`);
+    while (at < actual.length && at < expected.length && actual[at] === expected[at]) at += 1;
+    problems.push(`${label} description differs from the ${source} description at character ${at + 1} (${actual.length} vs ${expected.length} characters); copy the ${short} description into it verbatim`);
   };
+  const fromSkill = (label, actual) => compare(label, actual, value, 'SKILL.md frontmatter', 'SKILL.md');
   const pluginRel = 'plugins/godplans/.claude-plugin/plugin.json';
-  compare(pluginRel, readJson(pluginRel).description);
+  fromSkill(pluginRel, readJson(pluginRel).description);
   const marketRel = '.claude-plugin/marketplace.json';
   const market = readJson(marketRel);
   const entries = Array.isArray(market.plugins) ? market.plugins.filter((entry) => entry && entry.name === 'godplans') : [];
   if (entries.length !== 1) {
     problems.push(`${marketRel} has ${entries.length} plugin entries named godplans; want exactly 1`);
   } else {
-    compare(`${marketRel} godplans plugin entry`, entries[0].description);
+    fromSkill(`${marketRel} godplans plugin entry`, entries[0].description);
+  }
+  const pkgDescription = readJson('package.json').description;
+  if (typeof pkgDescription !== 'string') {
+    problems.push('package.json has no description string');
+  } else {
+    const metadata = market.metadata && typeof market.metadata === 'object' ? market.metadata : {};
+    compare(`${marketRel} metadata`, metadata.description, pkgDescription, 'package.json', 'package.json');
   }
   return problems;
 }

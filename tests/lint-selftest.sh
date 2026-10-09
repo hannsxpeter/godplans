@@ -255,6 +255,15 @@ expect "description-parity flags both manifests and names the fix" 1 \
   "FAIL [description-parity] .claude-plugin/marketplace.json godplans plugin entry description differs from the SKILL.md frontmatter description" \
   "copy the SKILL.md description into it verbatim"
 
+# The marketplace tagline is a hand copy of package.json, not of SKILL.md.
+fresh
+perl -0pi -e 's/("metadata": \{\s*"description": )"[^"]*"/$1"A stale tagline"/' "$CASE/.claude-plugin/marketplace.json"
+run description-parity
+expect "description-parity flags a stale marketplace tagline" 1 \
+  "FAIL [description-parity] .claude-plugin/marketplace.json metadata description differs from the package.json description" \
+  "copy the package.json description into it verbatim"
+lacks "a stale tagline is not blamed on the plugin entry" "godplans plugin entry description differs"
+
 fresh
 perl -0pi -e 's/("plugins": \[\s*\{\s*"name": )"godplans"/$1"godplan"/' "$CASE/.claude-plugin/marketplace.json"
 run description-parity

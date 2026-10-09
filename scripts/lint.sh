@@ -19,7 +19,9 @@
 #                        Skills spec bound); a folded, literal, plain, or
 #                        continued description fails.
 #   description-parity   plugin.json and the godplans entry in the marketplace
-#                        carry the SKILL.md frontmatter description exactly.
+#                        carry the SKILL.md frontmatter description exactly,
+#                        and the marketplace metadata.description carries the
+#                        package.json description.
 #   dir-name-match       skill directory name matches frontmatter name.
 #   references-exist     every references/<file>.md named in SKILL.md exists.
 #   modules-complete     every domain module has the six contract sections.
