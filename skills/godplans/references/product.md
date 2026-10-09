@@ -4,7 +4,7 @@ Loaded first in the domain-pass order for every archetype: every project needs a
 
 ## Lineage
 
-Descends from aihxp prd-ready, the top of the ready-suite planning tier. prd-ready exists to refuse the AI-slop PRD (every section filled, nothing decided) and enforces one core discipline: every sentence is exactly one of three things, a decision with rationale, a flagged hypothesis with a validation plan, or a named open question with an owner and a due date. godplans inverts prd-ready's audit checks (substitution test, MoSCoW caps, sourced metrics, ten-dimension NFRs, separate risk registers, downstream handoff pre-fill) into plan-time obligations, so the product content of PLAN.mdx is born already passing them.
+Descends from prd-ready, the top of the hannsxpeter/ready-suite planning tier. prd-ready exists to refuse the AI-slop PRD (every section filled, nothing decided) and enforces one core discipline: every sentence is exactly one of three things, a decision with rationale, a flagged hypothesis with a validation plan, or a named open question with an owner and a due date. godplans inverts prd-ready's audit checks (substitution test, MoSCoW caps, sourced metrics, ten-dimension NFRs, separate risk registers, downstream handoff pre-fill) into plan-time obligations, so the product content of PLAN.mdx is born already passing them.
 
 ## Decisions to force
 

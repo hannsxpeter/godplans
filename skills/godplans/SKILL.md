@@ -4,7 +4,7 @@ description: "Produce an audit-aware, agent-executable master plan (PLAN.mdx) be
 license: MIT
 metadata:
   version: "1.15.0"
-  author: aihxp
+  author: Hanns Peter
   homepage: https://github.com/hannsxpeter/godplans
 ---
 

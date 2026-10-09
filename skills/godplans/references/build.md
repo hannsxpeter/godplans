@@ -4,7 +4,7 @@ Plans the build sections of PLAN.mdx: slices, wiring contracts, auth, states, te
 
 ## Lineage
 
-Descends from production-ready, the building-tier core of the aihxp ready-suite. Its target failure mode is the hollow dashboard: an app that looks finished but where buttons do not save, filters do not filter, charts render hardcoded JSON, sidebar links 404, and login accepts anything. The discipline that carries over is vertical-slice construction (one feature end-to-end before the next), the no-scaffold-no-placeholder rule (every visible element wired to a real backend), the CTA-completeness contract, the 30-second hollow-check grep protocol, and the deferred-CTA and open-questions lifecycles with hard closure gates. godplans inverts these from build-time enforcement into plan-time requirements: the plan is written so an executing agent cannot produce a hollow app without visibly failing a Verify line.
+Descends from production-ready, the building-tier core of hannsxpeter/ready-suite. Its target failure mode is the hollow dashboard: an app that looks finished but where buttons do not save, filters do not filter, charts render hardcoded JSON, sidebar links 404, and login accepts anything. The discipline that carries over is vertical-slice construction (one feature end-to-end before the next), the no-scaffold-no-placeholder rule (every visible element wired to a real backend), the CTA-completeness contract, the 30-second hollow-check grep protocol, and the deferred-CTA and open-questions lifecycles with hard closure gates. godplans inverts these from build-time enforcement into plan-time requirements: the plan is written so an executing agent cannot produce a hollow app without visibly failing a Verify line.
 
 ## Decisions to force
 

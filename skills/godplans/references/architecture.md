@@ -4,7 +4,7 @@ Turns audit-time architecture discipline into plan-time obligations: the orchest
 
 ## Lineage
 
-Descends from architecture-ready (aihxp ready-suite, consolidated in arc-ready), the planning-tier skill that produces system shape and why before any code or tool choice. What carries over: every box, arrow, and decision must have a named flip point and blast radius or it is decoration and gets deleted; storage shape precedes database name; NFR claims are arithmetic, not adjectives; trust boundaries are written to be copied verbatim into the threat model; and the skill refuses itself when architecture is not load-bearing. godplans inverts the audit: instead of scoring an ARCH.md after the fact, PLAN.mdx must satisfy every check before a line of code exists.
+Descends from architecture-ready (hannsxpeter/ready-suite, consolidated in hannsxpeter/arc-ready), the planning-tier skill that produces system shape and why before any code or tool choice. What carries over: every box, arrow, and decision must have a named flip point and blast radius or it is decoration and gets deleted; storage shape precedes database name; NFR claims are arithmetic, not adjectives; trust boundaries are written to be copied verbatim into the threat model; and the skill refuses itself when architecture is not load-bearing. godplans inverts the audit: instead of scoring an ARCH.md after the fact, PLAN.mdx must satisfy every check before a line of code exists.
 
 ## Decisions to force
 
