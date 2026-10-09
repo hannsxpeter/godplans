@@ -12,8 +12,11 @@
 #                        file: every tracked file and every untracked file git
 #                        does not ignore, minus binary assets and frozen eval
 #                        results. Without git, a name allowlist stands in.
-#   version-parity       every published version surface agrees; a missing
-#                        surface fails by name.
+#   version-parity       the SKILL.md frontmatter and body, the top CHANGELOG.md
+#                        entry, package.json, the marketplace and plugin
+#                        manifests, and the PLAN template carry one version; a
+#                        missing surface fails by name. The README badge is
+#                        left to version:check (scripts/version-sync.js).
 #   description-length   the SKILL.md frontmatter description is one
 #                        double-quoted line of 1-1024 characters (Agent
 #                        Skills spec bound); a folded, literal, plain, or
@@ -52,7 +55,9 @@
 #                        writes no bytecode; skipped visibly when python3
 #                        cannot run.
 #   eval-cases           behavioral case manifests are complete and valid.
-#   product-surfaces     shipped validator and evaluation entry points exist.
+#   product-surfaces     the shipped validator and half-life script and the
+#                        evaluation, release, and test entry points exist and
+#                        are executable.
 #   action-pins          every third-party GitHub Action (`uses:` or
 #                        `- uses:`, quoted or not) uses a full commit SHA.
 #   official-validator   runs skills-ref, found in SKILLS_REF_BIN, then

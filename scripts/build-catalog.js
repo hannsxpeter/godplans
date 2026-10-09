@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 'use strict';
 
-// The validator embeds `my %catalog_max = (...)` so it stays a single portable
-// file. That block is DERIVED from the reference modules, not hand-maintained:
-// this regenerates it (or verifies it with --check) using the same extraction
-// the regression suite uses. Adding a requirement never desyncs the validator.
+// The validator embeds `my %catalog_max = (...)` and `my %doc_catalog = (...)`
+// so it stays a single portable file. Both blocks are DERIVED from the
+// reference modules (the second from doc-set.md), not hand-maintained: this
+// regenerates them (or verifies them with --check) using the same extraction
+// the regression suite uses. Adding a requirement or a catalog row never
+// desyncs the validator.
 // Maintainer tooling: it lives outside the shipped skill, which never runs it.
-// Run: node scripts/build-catalog.js  (npm run catalog)
+// Run: node scripts/build-catalog.js [--check] (npm run catalog, catalog:check)
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -14,7 +16,18 @@ const path = require('node:path');
 const skillRoot = path.resolve(__dirname, '..', 'skills', 'godplans');
 const referencesDir = path.join(skillRoot, 'references');
 const validatorPath = path.join(skillRoot, 'scripts/validate-plan.sh');
-const check = process.argv.includes('--check');
+const usage = 'Usage: node scripts/build-catalog.js [--check]\n';
+const args = process.argv.slice(2);
+if (args.includes('-h') || args.includes('--help')) {
+  process.stdout.write(usage);
+  process.exit(0);
+}
+const unknown = args.find((arg) => arg !== '--check');
+if (unknown !== undefined) {
+  process.stderr.write(`Unknown argument: ${unknown}\n${usage}`);
+  process.exit(2);
+}
+const check = args.includes('--check');
 
 // Extraction mirrors tests/validate-plan.sh and the definedPrefixes scan in
 // scripts/lint-parity.js: within a `## Plan requirements` section, collect each

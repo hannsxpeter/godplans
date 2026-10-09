@@ -136,7 +136,7 @@ sub task_depends_on {
 }
 
 open my $plan_fh, '<:raw', $plan_file
-    or die "FAIL $plan_file: cannot read: $!\n";
+    or bail("cannot read: $!");
 my $plan_bytes = do { local $/; <$plan_fh> };
 close $plan_fh;
 # Decode strictly: a lenient read carries substituted text into the sidecar.
@@ -1510,8 +1510,8 @@ if (@errors) {
     exit 1;
 }
 
-# A drift failure exits 1 like every other FAIL; 2 stays the usage code.
-sub drift_fail {
+# Every FAIL exits 1, drift and I/O included; 2 stays the usage code.
+sub bail {
     print STDERR "FAIL $plan_file: $_[0]\n";
     exit 1;
 }
@@ -1520,24 +1520,24 @@ sub drift_fail {
 sub rerun {
     my ($what, $command) = @_;
     system('sh', '-c', $command);
-    drift_fail("$what " . ($? == -1 ? "could not start: $!"
+    bail("$what " . ($? == -1 ? "could not start: $!"
         : $? & 127 ? 'was killed by signal ' . ($? & 127) : 'exited ' . ($? >> 8))) if $?;
 }
 
 if ($drift_phase ne '') {
     my ($phase) = grep { $_->{number} == $drift_phase } @phases;
-    drift_fail("drift phase $drift_phase does not exist") unless defined $phase;
+    bail("drift phase $drift_phase does not exist") unless defined $phase;
     my @completed = grep { $tasks[$_]{done} } @{$phase->{tasks}};
-    drift_fail("drift phase $drift_phase is not complete") if @completed != @{$phase->{tasks}};
+    bail("drift phase $drift_phase is not complete") if @completed != @{$phase->{tasks}};
 
     for my $label (sort keys %recheck_inventory) {
-        drift_fail('recheck inventory label intake is not a file path') if $label eq 'intake';
+        bail('recheck inventory label intake is not a file path') if $label eq 'intake';
         open my $evidence_fh, '<:raw', $label
-            or drift_fail("recheck evidence $label cannot be read: $!");
+            or bail("recheck evidence $label cannot be read: $!");
         local $/;
         my $bytes = <$evidence_fh>;
         close $evidence_fh;
-        drift_fail("recheck evidence drifted: $label")
+        bail("recheck evidence drifted: $label")
             if sha256_hex($bytes) ne $recheck_inventory{$label};
         print "recheck evidence ok: $label\n";
     }
@@ -1697,11 +1697,11 @@ if ($emit_json ne '') {
     my $json = JSON::PP->new->utf8->canonical(1)->pretty->encode(\%document);
     my $json_tmp = "$emit_json.tmp.$$";
     open my $json_fh, '>:raw', $json_tmp
-        or die "FAIL $json_tmp: cannot write: $!\n";
+        or bail("cannot write $json_tmp: $!");
     print {$json_fh} $json;
     close $json_fh;
     rename $json_tmp, $emit_json
-        or die "FAIL $emit_json: cannot replace atomically: $!\n";
+        or bail("cannot replace $emit_json atomically: $!");
 }
 
 print "ok   $plan_file\n";

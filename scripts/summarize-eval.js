@@ -4,7 +4,17 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const output = path.resolve(process.argv[2] || 'evals/output');
+const usage = 'Usage: node scripts/summarize-eval.js [OUTPUT_DIR]  (default evals/output)\n';
+const arg = process.argv[2];
+if (arg === '-h' || arg === '--help') {
+  process.stdout.write(usage);
+  process.exit(0);
+}
+if ((arg && arg.startsWith('-')) || process.argv.length > 3) {
+  process.stderr.write(usage);
+  process.exit(2);
+}
+const output = path.resolve(arg || 'evals/output');
 
 function runnerMetadata(file) {
   if (!fs.existsSync(file)) return {};

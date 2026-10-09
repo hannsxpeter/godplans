@@ -6,8 +6,9 @@
 
 set -euo pipefail
 
-# The runners read the model and effort overrides that evals/README.md
-# documents for real runs, and the stand-in CLI reads its own mode variables.
+# The runners read the model and effort overrides that evals/README.md and
+# evals/external/README.md document for real runs, and the stand-in CLI reads
+# its own mode variables.
 # One exported in the caller's shell must not change what this offline test
 # expects, so every case starts from the defaults and sets what it needs.
 unset GODPLANS_CLAUDE_MODEL GODPLANS_CLAUDE_EFFORT GODPLANS_GEMINI_MODEL \

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # The catalog generator is maintainer tooling under scripts/, outside the
-# shipped skill. It must resolve the skill from its own location, and every
-# documentation-set owner must be a domain the validator knows.
+# shipped skill. It must resolve the skill from its own location; count only a
+# requirement id that starts a line as a definition, never a mid-sentence
+# citation; and fail, leaving the validator unwritten, when a documentation-set
+# owner is not a validator domain or the %known_domain table is missing.
 
 set -euo pipefail
 

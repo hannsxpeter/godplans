@@ -1602,7 +1602,7 @@ cp "$DRIFT_PLAN" "$DRIFT_FAIL_PLAN"
 perl -0pi -e 's/^- `intake` =/- [recheck] `intake` =/m' "$DRIFT_FAIL_PLAN"
 expect_fail "drift recheck of intake" "recheck inventory label intake is not a file path" --drift-check 1 "$DRIFT_FAIL_PLAN"
 
-# Exit statuses: every FAIL, drift included, exits 1; only a usage error exits 2.
+# Exit statuses: every FAIL, drift and I/O included, exits 1; only a usage error exits 2.
 expect_status() {
   name=$1
   want=$2
@@ -1633,6 +1633,7 @@ cp "$DRIFT_PLAN" "$DRIFT_FAIL_PLAN"
 perl -0pi -e 's/(- \[x\] GP-101.*?  - Verify: )`test -f package\.json`/$1`kill -TERM \$\$`/s' "$DRIFT_FAIL_PLAN"
 expect_status "drift sample killed by a signal" 1 "drift sample GP-101 was killed by signal 15" --drift-check 1 "$DRIFT_FAIL_PLAN"
 
+expect_status "emit-json into a missing directory exits 1" 1 "cannot write $TMP_DIR/no-such-dir/PLAN.json.tmp" --allow-planning --emit-json "$TMP_DIR/no-such-dir/PLAN.json" "$DRIFT_PLAN"
 expect_status "drift phase zero is a usage error" 2 "--drift-check phase must be a positive integer" --drift-check 0 "$DRIFT_PLAN"
 expect_status "unknown option is a usage error" 2 "Unknown option: --bogus" --bogus "$DRIFT_PLAN"
 
@@ -1765,8 +1766,8 @@ perl -0pi -e 's/(## Phase 2: Verification)/## Phase 2: Packaging\n\nGoal: nothin
 expect_fail "phase without tasks" "Phase 2 has no task definitions" --allow-planning "$CASE_FILE"
 
 # Module disposition: a semicolon inside the reason, landed means referenced
-# outside the frontmatter and the session log, and tasks stay out of excluded
-# or deferred modules.
+# outside the frontmatter, the session log, and the disposition block, and tasks
+# stay out of excluded or deferred modules.
 
 DISCOVERY_DROP_PLAN="$TMP_DIR/discovery-drop.mdx"
 cp "$BASE_PLAN" "$DISCOVERY_DROP_PLAN"

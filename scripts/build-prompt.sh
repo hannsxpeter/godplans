@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Generate the slim portable prompt for tools with no Agent Skills support.
-# The default core carries compliance, discovery, plan format, five
-# load-bearing modules, the template, and portable scripts. Remaining domain
-# modules stay as individually attachable files under
-# skills/godplans/references/.
+# The default core carries compliance, discovery, five load-bearing modules,
+# the quality exemplar, plan format, the template, and portable scripts. The
+# remaining domain modules and the doc-set contract stay as individually
+# attachable files under skills/godplans/references/.
 #
 # Pass --full to generate the historical all-in-one prompt for a one-off use.
 # The repository publishes the core because inlining every module charges the

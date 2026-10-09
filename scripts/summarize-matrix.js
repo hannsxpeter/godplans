@@ -5,6 +5,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
+const usage = 'Usage: node scripts/summarize-matrix.js OUTPUT_DIR PROFILE...\n';
+if (process.argv[2] === '-h' || process.argv[2] === '--help') {
+  process.stdout.write(usage);
+  process.exit(0);
+}
+if (!process.argv[2] || process.argv[2].startsWith('-')) {
+  process.stderr.write(usage);
+  process.exit(2);
+}
 const output = path.resolve(process.argv[2]);
 const profiles = process.argv.slice(3);
 // The committed roster, not the directory listing, defines the expected cases,

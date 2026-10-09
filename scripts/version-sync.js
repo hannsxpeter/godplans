@@ -2,16 +2,29 @@
 'use strict';
 
 // Single source of version truth: package.json. Writes that version into every
-// version surface (or verifies with --check), then regenerates the prompt and
-// the context metrics that hash it, so a release never hand-edits version
-// strings in lockstep. Run: npm run version:sync.
+// surface listed below, then regenerates the prompt and the context metrics
+// that hash it, so a release never hand-edits version strings in lockstep. The
+// CHANGELOG.md heading is not a surface here: release-prepare.js stubs it.
+// --check only compares and writes nothing. Run: npm run version:sync (or
+// version:check).
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
-const check = process.argv.includes('--check');
+const usage = 'Usage: node scripts/version-sync.js [--check]\n';
+const args = process.argv.slice(2);
+if (args.includes('-h') || args.includes('--help')) {
+  process.stdout.write(usage);
+  process.exit(0);
+}
+const unknown = args.find((arg) => arg !== '--check');
+if (unknown !== undefined) {
+  process.stderr.write(`Unknown argument: ${unknown}\n${usage}`);
+  process.exit(2);
+}
+const check = args.includes('--check');
 const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 
 const surfaces = [
