@@ -14,7 +14,7 @@ produce the right kind of plan for a concrete request?
 | replan-preserves-history | replan | cli-tool | stable completed work and new task IDs |
 | compliance-refusal | hard stop | prohibited product | refusal before discovery or planning |
 | product-form-routing | greenfield | ml-pipeline | primary data or ML form plus independent API form |
-| nested-pillars | greenfield | hybrid | Pillars 1.1 nested scopes, catalog, and precedence |
+| nested-pillars | greenfield | not asserted (monorepo) | Pillars nested scopes, local catalog, and precedence |
 | stale-source-evidence | brownfield | api-service | provenance binding and stale resume handling |
 | stale-prepublication | greenfield | saas-dashboard | late Critical invalidates public-release authorization |
 | observability-evidence | greenfield | api-service | installation evidence separated from real-event maturity |
@@ -28,7 +28,8 @@ when the two disagree, and `tests/eval-harness.sh` runs that check offline.
 Every case contains:
 
 - `REQUEST.md`: the user request and any case-specific setup, phrased for the
-  skill arm (it names godplans and asks for the `.godplans/` artifact set).
+  skill arm (it names godplans and, for a plan case, asks for the
+  `.godplans/` artifact set).
 - `REQUEST.baseline.md`: the same task and constraints de-branded for the
   control arm, with no skill name, no `.godplans/` path, and no format demands.
 - `EXPECTATIONS`: deterministic assertions over the response or PLAN.mdx.
@@ -56,11 +57,21 @@ Set `GODPLANS_EVAL_MODEL` or `GODPLANS_EVAL_REASONING_EFFORT` to override
 the local Codex defaults (`GODPLANS_CLAUDE_MODEL`, `GODPLANS_CLAUDE_EFFORT`, and
 `GODPLANS_GEMINI_MODEL` do the same for the other runners). Each runner
 records the model, reasoning effort, CLI version, and the input, cached-input,
-output, and total tokens its CLI reports in `RUNNER.txt`.
+output, and total tokens its CLI reports in `RUNNER.txt`. `total_tokens` is
+`input_tokens` plus `output_tokens`, and each family counts them differently.
+Codex reports cached input inside `input_tokens`. The Claude runner adds
+`cache_read_input_tokens` and `cache_creation_input_tokens` to Anthropic's
+`input_tokens`, which excludes them, so its total compares with Codex. The
+Gemini runner sums each model's `prompt` and `candidates` counts and does not
+add the CLI's separate `thoughts` or `tool` counts.
 
 The runner receives two arguments:
 
-1. Absolute path to the case `REQUEST.md`.
+1. Absolute path to the case `REQUEST.md`. A control-arm runner
+   (`GODPLANS_EVAL_BASELINE_RUNNER`, a profile's `<profile>-baseline.sh`, or
+   `--control-plan-runner` in `scripts/eval-outcome.js`) receives the same path
+   and must read the sibling `REQUEST.baseline.md` in its place when present,
+   warning when it is absent, as `codex-baseline.sh` and `vendor-cli.sh` do.
 2. Absolute output path. It ends in `PLAN.mdx` for plan cases and
    `RESPONSE.md` for refusal cases.
 
@@ -81,8 +92,9 @@ matter what, and the control arm ends up measuring godplans against itself.
 throwaway `HOME` and a throwaway `CODEX_HOME` that carries only the copied
 `auth.json` and `config.toml`, never a `skills/` directory. The skill arm then
 links the project-local skill into its workspace; the control arm never does.
-That single link is the only intended difference between the two arms, and the
-`tests/eval-harness.sh` regression asserts it.
+That single link is the only intended isolation difference between the two
+arms (the request each arm reads differs as described under Control arm), and
+the `tests/eval-harness.sh` regression asserts it.
 
 The Claude and Gemini runners isolate differently and keep the host CLI's
 existing authentication. The Claude runner uses `--safe-mode` (its skill arm
@@ -91,7 +103,9 @@ workspace-scoped skill and hook settings: its skill arm copies the skill into
 the workspace's `.agents/skills`, and its control arm writes a workspace
 `.gemini/settings.json` that disables skills and hooks. Every planning runner
 records its isolation mode in `RUNNER.txt` (`global_skills=isolated` for Codex,
-`customization_mode` for Claude and Gemini).
+`customization_mode` for Claude and Gemini). `tests/vendor-runner.sh` drives
+the Claude and Gemini planning and judge runners with stand-in CLIs, so no
+model is called, and asserts these flags and settings.
 
 The Claude and Gemini runners also skip permission prompts
 (`--dangerously-skip-permissions` and `--approval-mode yolo`) and are not
@@ -134,7 +148,8 @@ bash scripts/eval.sh --baseline
 Each case prints a `BASE` row with the control score and the delta, and the run
 ends with an `AGGREGATE` row totaling both arms. The control arm is a
 measurement and never a gate: its misses are the point, so they are not
-reported as failures and cannot change the exit code.
+reported as failures and cannot change the exit code. The release matrix still
+requires every control run to produce a score (see Publishing a baseline).
 
 A control arm only means something if it is fair, and the case `REQUEST.md`
 files are not fair to it: they are written for the skill arm and say "Use
@@ -144,17 +159,24 @@ practice the agent spends its whole turn searching for the skill's format and
 writes nothing, so the delta measures "skill installed vs skill named but
 absent" rather than the skill's value. Each case therefore ships a
 `REQUEST.baseline.md`: the same task and constraints, de-branded, asking for a
-plan at a neutral path. `codex-baseline.sh` reads it in place of `REQUEST.md`,
-holds the agent, model, reasoning effort, workspace, and `INPUT/` fixture
-identical to the skill arm, and leaks nothing from the skill (no godplans name,
-no `.godplans` path, no format contract, requirement IDs, validator, or phase
-method). `scripts/eval.sh --check-cases` rejects a `REQUEST.baseline.md` that
-names the skill, and `RUNNER.txt` records `prompt=neutral-baseline-request` so
-a published run proves the control was fair. If a case lacks a baseline
-request the runner warns and falls back to the skill-phrased `REQUEST.md`, and
-that run is explicitly not a fair comparison. When the control produces no
-plan at all, its final response is scored instead and the assertions fail
-honestly rather than being hidden as a runner error.
+plan at a neutral path. The control runners (`codex-baseline.sh`, and
+`vendor-cli.sh` behind `claude-baseline.sh` and `gemini-baseline.sh`) read it
+in place of `REQUEST.md`, hold the agent, model, reasoning effort, workspace,
+and `INPUT/` fixture identical to the skill arm, and leak nothing from the
+skill (no godplans name, no `.godplans` path, no format contract, requirement
+IDs, validator, or phase method; a replan case's `INPUT/` fixture is the prior
+plan both arms must reconcile, so it is the one exception).
+`scripts/eval.sh --check-cases` rejects a `REQUEST.baseline.md` that names
+godplans, `SKILL.md`, `PLAN.mdx`, or the validator companion, and `RUNNER.txt`
+records `prompt=neutral-baseline-request` so a published run proves the
+control was fair. If a case lacks a baseline request the runner warns, falls
+back to the skill-phrased `REQUEST.md`, and records
+`prompt=fallback-skill-phrased-request-UNFAIR`; that run is explicitly not a
+fair comparison. The control runners take the `PLAN.md` the neutral request
+names before any other plan path, and never take an `INPUT/` file the control
+left unchanged as its plan. When the control produces no plan at all, its
+final response is scored instead and the assertions fail honestly rather than
+being hidden as a runner error.
 
 Expect the control to win some assertions outright. Any case where it scores
 near the skill arm is a case whose expectations test formatting rather than
@@ -176,11 +198,21 @@ gate|prepublication|hardening_revision
 ```
 
 Supported operations are `outcome`, `frontmatter`, `domain`, `contains`,
-`contains-ci`, `not-contains`, `max-count`, and `gate`. `contains-ci` performs
-a case-insensitive fixed-string check. `gate` names a release-blocking
-invariant in its second field and requires the fixed string in its third field;
-one missing gate fails the case regardless of its other score. Every case
-declares exactly one outcome.
+`contains-ci`, `not-contains`, `max-count`, and `gate`. `outcome|plan|` runs
+the shipped validator with `--allow-planning`; `outcome|refusal|` credits any
+non-empty response, and the harness separately fails a refusal case that left
+a `PLAN.mdx`. `frontmatter|KEY|VALUE` matches a whole `KEY: VALUE` line and
+`domain|NAME|STATUS` the start of an applicability-matrix row; both read their
+second and third fields as extended regular expressions, so
+`frontmatter|domains_deferred|\[[^]]*\]` accepts any inline list. `contains`,
+`contains-ci`, `not-contains`, `max-count`, and `gate` compare fixed strings.
+`contains-ci` performs a case-insensitive fixed-string check, and `max-count`
+passes when at most the given number of lines contain its string. `gate` names
+a release-blocking invariant in its second field and requires the fixed string
+in its third field. A case passes only when every line passes, so a missing
+gate fails the case like any other miss; the gate name records which invariant
+broke. An empty or missing artifact passes only its `not-contains` lines.
+Every case declares exactly one outcome.
 
 ## Publishing a baseline
 
@@ -200,12 +232,16 @@ does not have all three CLIs can supply three alternative runner profiles
 through the same runner contract (set `GODPLANS_MATRIX_PROFILES`; each profile
 needs `evals/runners/<profile>.sh` and `evals/runners/<profile>-baseline.sh`).
 The command refuses to run when the case directories under `evals/cases/` and
-`evals/cases-roster.txt` differ in either direction, or when fewer than three
-profiles are given; `bash scripts/eval-matrix.sh --check` runs those checks
-without calling a model. Commit `MATRIX.md`, `MATRIX.json`, every family's
-`EVAL.tsv` and `METRICS.json`, all generated plans and sidecars, all control
-plans, runner metadata, and CLI event logs together. A summary without raw artifacts is not
-publishable evidence.
+`evals/cases-roster.txt` differ in either direction, when a listed case lacks
+`REQUEST.md`, `REQUEST.baseline.md`, or `EXPECTATIONS`, or when fewer than
+three profiles are given; `bash scripts/eval-matrix.sh --check` runs those
+checks without calling a model. After the run, a family that lacks a scored
+skill or control arm for any case (a runner error, missing artifacts, or a
+`BASE runner-error` row) fails the matrix and leaves no `MATRIX.md` or
+`MATRIX.json`; the other families still run. Commit `MATRIX.md`,
+`MATRIX.json`, every family's `EVAL.tsv` and `METRICS.json`, all generated
+plans and sidecars, all control plans, runner metadata, and CLI event logs
+together. A summary without raw artifacts is not publishable evidence.
 
 Never publish a skill score without the control score beside it. Each case is
 still one sample, so repeat runs and report spread before treating a delta as
@@ -240,10 +276,13 @@ Plan conformance is not the marketing thesis. `evals/outcomes/` adds the causal
 test: matched treatment and control plans go to the same fresh no-skill builder,
 then the input plan and arm identity are removed and the same fresh static
 godaudits pass audits both repositories. `SUMMARY.json` compares verifier
-status, open Critical plus High findings, and runner-reported plan and build
-tokens. The first published directional run found a -4 Critical plus High
+status, active (open or accepted-risk) Critical plus High findings, and
+runner-reported plan and build tokens. The first published directional run,
+which measured godplans 1.9.0 on 2026-07-23, found a -4 Critical plus High
 delta for treatment on `tenant-notes-api`, with both verifiers passing. It also
-found a 69.01 times planning-token cost versus control. See
+found a 69.01 times planning-token cost versus control. No later version has
+been re-measured, so these numbers are historical, not a measurement of the
+current skill. See
 `evals/outcomes/README.md` and the retained result under
 `evals/outcomes/results/2026-07-23-tenant-notes-api-codex/`.
 

@@ -39,7 +39,7 @@ The obvious partition is by reader: an executive set, an engineering set, an ope
 
 Tiering by reader guarantees N parallel document sets describing one system, and they drift inside a quarter. After that, the only interesting question, which of these is true, has no answer, because each set was written for a reader instead of from a system.
 
-Every row still carries an audience so a projection is possible the day somebody asks for one. Planning a projection nobody asked for is the theater this section exists to prevent.
+Audience is not a manifest column. When somebody asks for a reader projection, derive it from stage and owner; planning a projection nobody asked for is the theater this section exists to prevent.
 
 ## 4. Durability, and why it has three values
 
@@ -94,11 +94,11 @@ Never emit a folder named `rfc/`. In any shop with an ITSM process, RFC reads as
 |---|---|---|---|
 | `build.readme` | durable | repo | always (R-REPO-7) |
 | `build.contributing` | durable | repo | tier 2 or above (R-REPO-8) |
-| `build.dev-setup` | durable | build | always |
+| `build.dev-setup` | durable | repo | always (R-REPO-7 Quick Start, R-REPO-8 real setup) |
 | `build.codebase-map` | durable | agent-memory | always (the repo pillar) |
 | `build.config-reference` | durable | stack | the project reads configuration or environment variables |
-| `build.api-reference` | durable | build | a public API surface exists |
-| `build.feature-flags` | durable | build | the plan introduces a flag system |
+| `build.api-reference` | durable | architecture | a public API surface exists (R-ARCH-20) |
+| `build.feature-flags` | durable | deploy | the plan introduces a flag system (R-DEPLOY-14; R-BIZ-23 when it lands) |
 | `build.style-genome` | durable | style-genome | always (R-DNA-14 CODEDNA.md) |
 | `build.agent-memory` | durable | agent-memory | always (R-MEM-2 AGENTS.md and pillars) |
 | `build.llms-txt` | durable | seo | a public documentation surface exists |
@@ -161,7 +161,7 @@ Never emit a folder named `rfc/`. In any shop with an ITSM process, RFC reads as
 
 ## 6. Verdict times state equals action
 
-The verdict describes need. The state describes what exists. The action is a lookup, not a judgment. Greenfield plans are `absent` in every row and only use the first column; brownfield and replan use the whole table.
+The verdict describes need. The state describes what exists. The action is a lookup, not a judgment. Greenfield plans find nothing in the repository, so they use the `absent` column plus `present-elsewhere` for a document already held in a wiki, an intranet, or a compliance platform; brownfield and replan use the whole table.
 
 | | absent | present-current | present-drifted | present-stub | present-elsewhere |
 |---|---|---|---|---|---|
@@ -183,6 +183,7 @@ A row's exclusion is a claim about the world, so it carries the state of the evi
 | `present` | this project has the thing | no, it selects the row |
 | `absent` | this was checked and the thing is not there | yes |
 | `by-design` | the plan decides this project will not have the thing | yes |
+| `present-elsewhere` | the thing exists outside this repository (a wiki, an intranet, a compliance platform) | yes on a not-applicable row (`skip`, section 6); a selected row is `confirm` |
 | `unknown` | nobody looked, or the answer is not derivable here | **no** |
 | `hint` | something matched and it is not enough | **no** |
 
@@ -190,7 +191,7 @@ A row's exclusion is a claim about the world, so it carries the state of the evi
 
 ## 8. System of record, and stating the boundary
 
-Every row carries `system-of-record: repo | product | org | external`. A row whose documentation lives in a wiki, a ticket system, or a compliance platform is not absent; it is somewhere this plan cannot see, and the honest action is `confirm`.
+Every planned document records `system_of_record: repo | product | org | external` in its lifecycle frontmatter (section 9); in the manifest, an externally held document is a row whose last cell opens with `present-elsewhere:`. A row whose documentation lives in a wiki, a ticket system, or a compliance platform is not absent; it is somewhere this plan cannot see, and the honest action is `confirm`.
 
 State the boundary in the section itself, whether or not anything prompted it:
 
@@ -215,7 +216,7 @@ valid_until: <date, evidence rows only>
 ```
 
 - `status` starts at `draft` on everything a task generates. Promotion to `active` is a human act.
-- `review_cadence` is copied from the catalog posture, never invented. When it is `none`, the next review is a sentence and not a date, because a date implies a calendar obligation that does not exist.
+- `review_cadence` is taken from a source the plan cites or from the user's answer; otherwise it is an entry in `## Open Questions` with a recommended default (section 10), never invented. When it is `none`, the next review is a sentence and not a date, because a date implies a calendar obligation that does not exist.
 - `covers` lists the paths whose change should force a re-read. An empty `covers` is honest for most `frame` and `govern` rows, and it is not a failure.
 
 **Staleness is four independent verdicts and never one red light**: calendar-stale (cadence elapsed), drift-stale (a `covers` path changed), expiry-stale (`valid_until` passed), and unverifiable (`covers` is empty). A business case has no files to hash, so reporting it as drift-stale is theater, and a reader shown one piece of theater discounts the rest of the page.
@@ -234,7 +235,7 @@ The plan already carries the spine; the manifest names it rather than duplicatin
 - **Unknown as absent**: excluding a row because nothing looked. Refusal: `unknown` and `hint` cannot exclude; they escalate to required or to an open question.
 - **Paper theater**: planning eighty documents because a taxonomy lists eighty. Refusal: every row names the plan fact that selected it, and a row nothing selects is not planned.
 - **Checkbox headings**: a task that creates a file with the right headings and no content. Refusal: the task's acceptance names the specific content the document must carry, and an empty file that exists is worse than a missing document that is tracked, because the empty one stops anyone from noticing.
-- **Audience tiering**: parallel document sets per reader. Refusal: one set partitioned by stage, with audience as a field.
+- **Audience tiering**: parallel document sets per reader. Refusal: one set partitioned by stage; a reader projection is derived from stage and owner when somebody asks for one.
 - **Regime cosplay**: naming a compliance regime the project has not established applies to it. Refusal: name the signal, name the regime the signal might trigger, say to confirm with counsel, and never plan a task that drafts a regulator-facing instrument.
 - **Evidence edited in place**: a task that updates last quarter's scan result or post-mortem. Refusal: evidence rows get a task that produces a new dated run plus an index that lists runs.
 - **Transient artifacts as deliverables**: planning a document whose whole value expires with the debate. Refusal: the decision lands in `## Decisions` with its falsifier; the debate document is optional and never required.

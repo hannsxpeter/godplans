@@ -13,7 +13,6 @@ fail() {
 
 test -x "$ROOT/scripts/eval.sh" || fail "scripts/eval.sh is not executable"
 test -x "$ROOT/evals/runners/codex.sh" || fail "Codex runner is not executable"
-bash -n "$ROOT/evals/runners/codex.sh"
 
 # Global-skill isolation. A machine that runs these evals almost always has
 # godplans installed globally (in ~/.codex/skills and ~/.agents/skills), which
@@ -38,7 +37,9 @@ grep -q 'REQUEST.baseline.md' "$ROOT/evals/runners/codex-baseline.sh" \
   || fail "baseline runner does not prefer REQUEST.baseline.md"
 # The prompt handed to the control (the printf preamble lines) must not name
 # the skill's output path. The candidate-search loop may still accept a plan
-# the control happens to write to .godplans/, so scope this to printf lines.
+# the control writes to .godplans/, so scope this to printf lines; that loop's
+# preference for PLAN.md over an unchanged INPUT fixture is exercised in
+# tests/codex-runner.sh and tests/vendor-runner.sh.
 if grep -E "printf.*\.godplans" "$ROOT/evals/runners/codex-baseline.sh"; then
   fail "baseline runner names a .godplans path in the prompt handed to the control"
 fi
@@ -185,12 +186,6 @@ printf '%s\n' \
   'not-contains|PLACEHOLDER|' \
   'max-count|## Open Questions|1' \
   > "$TMP/cases/plan-case/EXPECTATIONS"
-
-test -x "$ROOT/evals/runners/codex-baseline.sh" || fail "baseline runner is not executable"
-bash -n "$ROOT/evals/runners/codex-baseline.sh"
-if grep -q 'ln -s' "$ROOT/evals/runners/codex-baseline.sh"; then
-  fail "baseline runner linked the skill into its workspace"
-fi
 
 if GODPLANS_EVAL_CASES="$TMP/cases" GODPLANS_EVAL_RUNNER="$TMP/bin/runner" \
   "$ROOT/scripts/eval.sh" --baseline --output "$TMP/base-output" >/dev/null 2>&1; then
@@ -354,10 +349,25 @@ if run_matrix --output "$TMP/matrix-missing" >/dev/null 2>"$TMP/matrix-missing.e
 fi
 test -s "$TMP/matrix-missing/fc/EVAL.tsv" || fail "a runner error aborted the profiles after it"
 [ ! -e "$TMP/matrix-missing/MATRIX.json" ] || fail "matrix summarized a profile with a missing run"
-grep -q 'profile fb is missing both arms for alpha' "$TMP/matrix-missing.err" ||
-  fail "the missing run was not named"
+grep -q 'profile fb has no scored skill or control arm for alpha' "$TMP/matrix-missing.err" ||
+  fail "the missing run was not named: $(cat "$TMP/matrix-missing.err")"
 
+# A control run that errors leaves a `BASE runner-error` marker, not a score.
+# eval.sh does not fail on it, so the summarizer must, naming only that arm.
 write_runner "$MATRIX_ROOT/evals/runners/fb.sh" 'printf "%s\n" "REFUSED by policy" > "$2"'
+write_runner "$MATRIX_ROOT/evals/runners/fb-baseline.sh" \
+  'case "$1" in */alpha/*) exit 1 ;; *) printf "%s\n" "plain answer" > "$2" ;; esac'
+if run_matrix --output "$TMP/matrix-no-control" >/dev/null 2>"$TMP/matrix-no-control.err"; then
+  fail "matrix exited zero with a missing control run"
+fi
+test -s "$TMP/matrix-no-control/fc/EVAL.tsv" || fail "a control runner error aborted the profiles after it"
+grep -q '^alpha[[:space:]]BASE[[:space:]]runner-error$' "$TMP/matrix-no-control/fb/EVAL.tsv" ||
+  fail "the control runner error was not recorded in EVAL.tsv"
+[ ! -e "$TMP/matrix-no-control/MATRIX.json" ] || fail "matrix summarized a profile with a missing control run"
+grep -q 'profile fb has no scored control arm for alpha' "$TMP/matrix-no-control.err" ||
+  fail "the missing control run was not named: $(cat "$TMP/matrix-no-control.err")"
+write_runner "$MATRIX_ROOT/evals/runners/fb-baseline.sh" 'printf "%s\n" "plain answer" > "$2"'
+
 run_matrix --output "$TMP/matrix-pass" >/dev/null 2>&1 || fail "a clean matrix run failed"
 node -e '
   const matrix = require(process.argv[1]);

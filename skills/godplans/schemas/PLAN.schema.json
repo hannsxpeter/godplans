@@ -48,7 +48,20 @@
         "infrastructure-or-iac"
       ]
     },
-    "archetype": { "type": "string", "minLength": 1 },
+    "archetype": {
+      "enum": [
+        "cli-tool",
+        "library",
+        "api-service",
+        "saas-dashboard",
+        "marketing-site",
+        "mobile-app",
+        "ml-pipeline",
+        "extension",
+        "game",
+        "unknown"
+      ]
+    },
     "archetype_confidence": { "enum": ["high", "medium", "low"] },
     "overlays": {
       "type": "array",

@@ -78,4 +78,62 @@ grep -q '^model=fake-model$' "$TMP/output/complete/RUNNER.txt" || fail "model me
 grep -q '^reasoning_effort=medium$' "$TMP/output/complete/RUNNER.txt" || fail "reasoning metadata is missing"
 grep -q '^usage_source=unavailable$' "$TMP/output/complete/RUNNER.txt" || fail "usage metadata fallback is missing"
 
+# Control arm. The case carries a prior plan at INPUT/.godplans/PLAN.mdx, as the
+# replan case does, and its neutral request names PLAN.md. The control's plan
+# is what it wrote, never the fixture it left unchanged.
+mkdir -p "$TMP/bin-base" "$TMP/control/INPUT/.godplans" "$TMP/codex-home"
+printf '%s\n' 'SKILL-ARM-REQUEST' > "$TMP/control/REQUEST.md"
+printf '%s\n' 'NEUTRAL-REQUEST. Write your plan to PLAN.md.' > "$TMP/control/REQUEST.baseline.md"
+printf '%s\n' '# prior plan fixture' > "$TMP/control/INPUT/.godplans/PLAN.mdx"
+cat > "$TMP/bin-base/codex" <<'FAKE'
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "${1:-}" = "--version" ]; then echo "fake-codex 1.0"; exit 0; fi
+work=""
+last=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -C) work=$2; shift ;;
+    -o) last=$2; shift ;;
+  esac
+  shift
+done
+cat > "$GODPLANS_TEST_PROMPT"
+case "$GODPLANS_FAKE_MODE" in
+  plan-md) printf '%s\n' '# control plan' > "$work/PLAN.md" ;;
+  edit-fixture) printf '%s\n' '- control edit in place' >> "$work/.godplans/PLAN.mdx" ;;
+  none) ;;
+esac
+printf '%s\n' 'control final message' > "$last"
+FAKE
+chmod +x "$TMP/bin-base/codex"
+
+run_control() {
+  PATH="$TMP/bin-base:$PATH" CODEX_HOME="$TMP/codex-home" \
+  GODPLANS_TEST_PROMPT="$TMP/control-prompt.txt" GODPLANS_FAKE_MODE=$1 \
+    "$ROOT/evals/runners/codex-baseline.sh" "$TMP/control/REQUEST.md" "$TMP/output/control-$1/$2"
+}
+
+run_control plan-md PLAN.mdx >/dev/null 2>&1 || fail "baseline runner failed"
+grep -qx '# control plan' "$TMP/output/control-plan-md/PLAN.mdx" ||
+  fail "baseline runner took the INPUT fixture instead of the PLAN.md the control wrote"
+grep -q 'NEUTRAL-REQUEST' "$TMP/control-prompt.txt" || fail "baseline runner did not send REQUEST.baseline.md"
+if grep -qi -e godplans -e 'SKILL-ARM-REQUEST' "$TMP/control-prompt.txt"; then
+  fail "baseline prompt leaks the skill or the skill-arm request"
+fi
+grep -q '^prompt=neutral-baseline-request$' "$TMP/output/control-plan-md/RUNNER.txt" ||
+  fail "baseline runner did not record the neutral request"
+run_control none PLAN.mdx >/dev/null 2>&1 || fail "a control that wrote no plan was reported as a runner error"
+grep -qx 'control final message' "$TMP/output/control-none/PLAN.mdx" ||
+  fail "a control that wrote no plan was scored on the unchanged INPUT fixture"
+run_control edit-fixture PLAN.mdx >/dev/null 2>&1 || fail "baseline runner failed on an in-place edit"
+grep -q 'control edit in place' "$TMP/output/control-edit-fixture/PLAN.mdx" ||
+  fail "a control that edited the prior plan in place lost that edit"
+# The refusal branch reads the same paths: a control that plans a request it
+# should refuse is recorded as that plan.
+rm -rf "$TMP/output/control-plan-md"
+run_control plan-md RESPONSE.md >/dev/null 2>&1 || fail "baseline runner failed on a refusal case"
+grep -qx '# control plan' "$TMP/output/control-plan-md/RESPONSE.md" ||
+  fail "a control plan written to PLAN.md for a refusal case was not recorded"
+
 echo "ok   [codex-runner]"

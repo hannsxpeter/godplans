@@ -4,7 +4,7 @@ Loaded first in the domain-pass order for every archetype: every project needs a
 
 ## Lineage
 
-Descends from aihxp prd-ready, the top of the ready-suite planning tier. prd-ready exists to refuse the AI-slop PRD (every section filled, nothing decided) and enforces one core discipline: every sentence is exactly one of three things, a decision with rationale, a flagged hypothesis with a validation plan, or a named open question with an owner and a due date. godplans inverts prd-ready's audit checks (substitution test, MoSCoW caps, sourced metrics, ten-dimension NFRs, separate risk registers, downstream handoff pre-fill) into plan-time obligations, so the product content of PLAN.mdx is born already passing them.
+Descends from prd-ready, the top of the hannsxpeter/ready-suite planning tier. prd-ready exists to refuse the AI-slop PRD (every section filled, nothing decided) and enforces one core discipline: every sentence is exactly one of three things, a decision with rationale, a flagged hypothesis with a validation plan, or a named open question with an owner and a due date. godplans inverts prd-ready's audit checks (substitution test, MoSCoW caps, sourced metrics, ten-dimension NFRs, separate risk registers, downstream handoff pre-fill) into plan-time obligations, so the product content of PLAN.mdx is born already passing them.
 
 ## Decisions to force
 
@@ -13,9 +13,9 @@ Hardest to reverse first. Each must land in the plan's Decisions section as a gr
 1. Who the single primary user is. Question: which one role, in which workday moment, under which constraint, is this for? Why hard to reverse: architecture entities, permission models, UI flows, and launch positioning all key off this identity; changing it mid-build is a pivot, not an edit. Options: (a) one named primary user, secondary users demoted to non-goals; (b) two co-primary users with an explicit conflict-resolution rule. Default: (a). Refuse "everyone who X" as a user definition.
 2. What the problem is, stated without the solution. Question: what do users do today manually, how long does it take, what does it cost? Why hard to reverse: the problem statement is the scope boundary every later cut decision appeals to; a solution-shaped problem locks in the first idea. Options: (a) friction stated in the user's vocabulary against a named workaround (usually a spreadsheet or Notion page, not a rival product); (b) friction stated against a named competitor product. Default: (a); either way it must survive the substitution test against two named competitors.
 3. How success is measured and where the numbers come from. Question: which at-most-5 metrics, with what targets, deadlines, and named instrumentation sources? Why hard to reverse: instrumentation must ship in the first build wave; redefining a metric mid-flight destroys the baseline and makes the 30-day retro unanswerable. Options: (a) one leading plus one lagging indicator with named events; (b) a fuller set up to 5. Default: (a) minimum, (b) allowed. Vanity metrics (raw signups, pageviews, downloads) are refused as primary metrics.
-4. Appetite as a duration, not an estimate. Question: how much time is this worth (e.g. 6 weeks), after which scope gets cut rather than time extended? Why hard to reverse: appetite is the axiom the roadmap's cut decisions derive from; converting it to an estimate later flips the whole plan from scope-flexes to deadline-slips. Options: fixed appetite with scope flex (Shape Up) vs estimated timeline. Default: fixed appetite; a >50% appetite delta later forks a new plan.
+4. Appetite as a duration, not an estimate. Question: how much time is this worth (e.g. 6 weeks), after which scope gets cut rather than time extended? Why hard to reverse: appetite is the axiom the roadmap's cut decisions derive from; converting it to an estimate later flips the whole plan from scope-flexes to deadline-slips. Options: fixed appetite with scope flex (Shape Up) vs estimated timeline. Default: fixed appetite; a >50% appetite delta later triggers a replan.
 5. The Must cap. Question: which requirements are genuinely Must? Why hard to reverse: the Must set defines the first release gate; an inflated Must tier silently converts the plan into a laundry list nobody can cut from. Options: cap Must at 50% of ranked requirements (hard cap 7 Musts) vs no cap. Default: the cap, with Should and Could tiers populated and Won't cross-linked to out-of-scope.
-6. Change control and the fork threshold. Question: what lifecycle state does the plan start in, where are edits logged, and what triggers a fork? Why hard to reverse: without a declared rule, the first silent post-approval edit creates a moving-target plan and every later dispute is unadjudicable. Options: Draft -> Living with changelog plus broadcast on every edit, vs Soft-frozen with PM sign-off per change. Default: Living with mandatory changelog entry and broadcast; new user, new problem, new metric, or >50% appetite delta forks a new plan.
+6. Change control and the fork threshold. Question: which post-approval edits replan, where are they broadcast, and what forces a rewrite rather than a patch? Why hard to reverse: without a declared rule, the first silent post-approval edit creates a moving-target plan and every later dispute is unadjudicable. Options: broadcast every replan, or only threshold breaches. Default: broadcast every replan; new user, new problem, new metric, or >50% appetite delta rewrites the product decisions.
 7. What the product explicitly refuses to own. Question: which adjacent problems, user groups, and integrations does this plan permanently not serve? Why hard to reverse: non-ownership statements are commitments that downstream architecture (trust boundaries, integration points) and launch positioning build on; retracting one later reopens every scope debate at once. Options: (a) a written non-ownership register with reconsider conditions; (b) implicit scope by omission. Default: (a); omission is not a decision, it is a future argument.
 
 ## Plan requirements
@@ -50,11 +50,11 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
     Criterion: WHEN the product pass finishes THE PLAN SHALL contain a handoff block per downstream pass with no empty sub-section; every gap says "deferred to <pass>" with a reason.
 14. R-PRD-14 A sign-off roster is named with what each role attests to (PM: problem and scope; eng lead: feasibility and dependencies; design lead: user and flows; QA where present: acceptance criteria testability), never blanket "approved", and the attestations are scheduled as plan milestones. Solo builders name themselves per role explicitly.
     Criterion: WHEN sign-off is planned THE PLAN SHALL list each signer with a specific attestation and a milestone task for it.
-15. R-PRD-15 The change-control lifecycle is declared upfront: state (Draft, Living, Soft-frozen, or Archived), the changelog rule for every post-approval edit, the broadcast channel, and the fork threshold (new user, new problem, new metric, or >50% appetite delta forks a new plan). Clarifications stay; scope adjustments need sign-off.
-    Criterion: WHEN the plan is emitted THE PLAN SHALL state its lifecycle state, changelog rule, broadcast channel, and fork threshold in the product section.
+15. R-PRD-15 Change control is declared upfront against the status lifecycle: a post-approval change to scope, users, or metrics returns status to planning and increments plan_version, broadcast on a named channel; past the fork threshold (new user, new problem, new metric, or >50% appetite delta) the replan rewrites the product decisions instead of patching them. Clarifications changing no commitment keep the status.
+    Criterion: WHEN the plan is emitted THE PLAN SHALL state its change-control rule, broadcast channel, and fork threshold against the status lifecycle and SHALL NOT declare a second lifecycle state.
 16. R-PRD-16 The visual-identity direction is named in one phrase (e.g. "fintech-serious", "playful-utilitarian") for the build and launch passes to inherit.
     Criterion: WHEN the product section is complete THE PLAN SHALL contain exactly one visual-identity direction phrase.
-17. R-PRD-17 Post-launch closure is scheduled inside the plan: a 30-day retrospective task against the success criteria, a support runbook task covering the top 5 expected failure modes, and a one-paragraph rollback statement.
+17. R-PRD-17 Post-launch closure is scheduled inside the plan: a 30-day retrospective task against the success criteria, a support runbook task covering the top 5 expected failure modes, and a one-paragraph rollback statement linking the R-DEPLOY-17 rollback doc when deploy lands.
     Criterion: WHEN phases are laid out THE PLAN SHALL contain tasks for the 30-day retro, the top-5 support runbook, and a rollback statement.
 
 ## Task seeds
@@ -81,7 +81,7 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
   - Requirements: R-PRD-17
 - [ ] GP-xxx Snapshot metric baselines and schedule the 30-day retrospective
   - Files: docs/retro-30d.md
-  - Acceptance: baseline value recorded per success metric at launch; retro date set 30 days after launch; template sections for each Tier 1 criterion
+  - Acceptance: baseline value recorded per success metric at launch; retro date set 30 days after launch; template sections for each success metric
   - Verify: grep -q "Baseline:" docs/retro-30d.md && grep -q "Retro date:" docs/retro-30d.md
   - Requirements: R-PRD-5, R-PRD-17
 - [ ] GP-xxx Compile the prior-art dossier
@@ -97,7 +97,7 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
 - [ ] GP-xxx Audit the plan's product section for banned language and unowned questions
   - Files: .godplans/PLAN.mdx
   - Acceptance: zero banned marketing phrases; zero TBD/TODO without owner and date; every Open Questions entry has owner, due date, blocking flag, and default
-  - Verify: ! grep -qiE "seamless|best-in-class|world-class|cutting-edge|game-chang|revolutionary|industry-leading|enterprise-grade|AI-powered" .godplans/PLAN.mdx && ! grep -iE "TBD|TODO" .godplans/PLAN.mdx | grep -qvi "owner"
+  - Verify: ! awk '/^## /{s=1;p=/^## (Sc|Req|Op)/}p||!s' .godplans/PLAN.mdx | grep -iE "TBD|TODO|seamless|best-in-class|world-class|cutting-edge|game-chang|revolutionary|industry-leading|enterprise-grade|AI-powered" | grep -qvi owner
   - Requirements: R-PRD-11, R-PRD-10
 
 ## Self-audit rubric
@@ -112,7 +112,7 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
 - Scope negative space (10): 3+ reasoned no-gos with reconsider conditions; deferral and non-ownership entries present; rabbit hole named with smallest-version alternative; out-of-scope longer than the Won't tier.
 - Registers and question hygiene (10): risks and assumptions in separate complete registers; every open question routed to the single Open Questions section with owner, due date, blocking flag, and default; three-label test holds sentence by sentence.
 - Downstream pre-fill and traceability (10): handoff inputs for architecture, roadmap, stack, and build passes filled or explicitly deferred with reason; every R-PRD requirement traceable to at least one task's Requirements: line.
-- Lifecycle and closure (5): lifecycle state, changelog rule, broadcast channel, and fork threshold declared; sign-off attestations scheduled; retro, runbook, and rollback tasks present; prior art and visual-identity phrase included.
+- Lifecycle and closure (5): change-control rule, broadcast channel, and fork threshold declared; sign-off attestations scheduled; retro, runbook, and rollback tasks present; prior art and visual-identity phrase included.
 
 ## Anti-patterns refused
 
@@ -124,7 +124,7 @@ Consumed by the orchestrator's inversion pass; each becomes acceptance criteria 
 - Fabricated personas: narrative fiction paragraphs, demographics with no research citation. Refusal: five bullets max, citation or a flagged research-gap question.
 - Vanity-metric success: raw signups, pageviews, downloads, or "ship feature X" as success. Refusal: outcome-framed metrics with numbers, deadlines, and named sources only.
 - Silent or invented NFRs: no security/compliance statement, or "99.99%" with no basis. Refusal: address all ten dimensions; every number cites its basis or becomes an owned question.
-- Moving-target PRD: post-approval edits with no changelog entry or broadcast. Refusal: declare lifecycle, changelog rule, and broadcast channel in the plan before approval; fork on threshold breaches.
+- Moving-target PRD: post-approval edits with no replan or broadcast. Refusal: declare the change-control rule and broadcast channel before approval; replan on every commitment change.
 - Marketing-adjective creep: seamlessly, best-in-class, enterprise-grade, AI-powered on a non-AI product. Refusal: banned-phrase grep in the final Verification phase; the plan does not ship containing them.
 - Rubber-stamp sign-off: signers listed with a blanket "approved" and no named attestation, or tiers left unsigned. Refusal: each signer attests to a specific thing (problem, feasibility, flows, testability) and each attestation is a scheduled milestone; an unsigned roster blocks the plan from status approved.
 - One-prompt PRD: emitting a full product section from a single-sentence idea with no mode declaration or pre-flight. Refusal: run intake and discovery first; unanswered pre-flight questions become written assumptions, never invented answers.

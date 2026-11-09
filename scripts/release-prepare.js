@@ -11,9 +11,15 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
+const usage = 'Usage: npm run release:prepare -- <patch|minor|major|X.Y.Z>\n';
 const bump = process.argv[2];
-if (!bump) {
-  process.stderr.write('Usage: npm run release:prepare -- <patch|minor|major|X.Y.Z>\n');
+if (bump === '-h' || bump === '--help') {
+  process.stdout.write(usage);
+  process.exit(0);
+}
+// A leading dash would reach npm version as a flag, not a bump.
+if (!bump || bump.startsWith('-') || process.argv.length > 3) {
+  process.stderr.write(usage);
   process.exit(2);
 }
 

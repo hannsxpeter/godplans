@@ -160,8 +160,9 @@ for profile in $PROFILES; do
     | tee "$profile_output/EVAL.tsv" || status=1
 done
 
-# The summarizer rejects a profile that lacks either arm for any case, so a
-# missing run fails the matrix instead of publishing a partial one.
+# The summarizer rejects a profile that lacks a scored skill or control arm for
+# any case (a runner-error marker is not a score), so a missing run fails the
+# matrix instead of publishing a partial one.
 node "$ROOT/scripts/summarize-matrix.js" "$OUTPUT" $PROFILES || status=1
 if [ "$status" -eq 0 ]; then
   echo "ok   $OUTPUT"

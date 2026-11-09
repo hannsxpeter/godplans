@@ -17,6 +17,7 @@ when it makes an agent produce a better plan, and when a script can prove it.
 | Where does the actual product live? | `skills/godplans/SKILL.md` and `skills/godplans/references/` |
 | What is `PROMPT.md`? | Generated output. Never hand-edit it. |
 | What are `.agents/`, `.claude/`, and `plugins/godplans/skills`? | Symlinks to the canonical skill. Never edit through them. |
+| What do I need installed? | Bash, Perl, Python 3, git, and Node.js with npm (CI uses Node.js 24 and Python 3.13). `npm run release:check` also needs an authenticated `gh` and the pinned skills-ref validator. |
 | How do I know my change is valid? | `npm run generate`, then `npm run check` |
 | What gets rejected most often? | Prose that would read equally true for any other project |
 
@@ -46,8 +47,9 @@ when it makes an agent produce a better plan, and when a script can prove it.
    `discovery`, `compliance`, `exemplar`, `doc-set`) are exempt. The linter
    checks presence (`modules-complete`) and that every domain module is wired
    into the SKILL.md Phase 4 table, the validator tables, the prompt build,
-   the context metrics, the template and discovery matrices, and the schema's
-   row count (`domain-parity`); reviewers check substance.
+   the context metrics, the portable-prompt test, the template and discovery
+   matrices, and the schema's row count (`domain-parity`); reviewers check
+   substance.
 5. **Every plan requirement must be checkable.** A requirement whose
    violation cannot be detected by reading a plan is opinion, not a
    requirement; it will be asked to change.
@@ -89,7 +91,11 @@ addresses it. That is the whole test.
    (`tests/lint-selftest.sh` injects a violation for every lint check, one case
    at a time, and expects each to fail). Release changes also run the pinned
    official validator through `npm run release:check`; see
-   [docs/RELEASING.md](docs/RELEASING.md).
+   [docs/RELEASING.md](docs/RELEASING.md). A pull request that changes
+   package.json `description` or adds a `keywords` entry gets a GitHub About
+   drift warning from CI's `release quality` job, and the maintainer updates
+   the About text. A changed `description` also goes into `metadata.description`
+   in `.claude-plugin/marketplace.json`, or `description-parity` fails.
 5. If behavior changed: add a CHANGELOG entry under a new version heading and
    bump every published version surface: SKILL.md frontmatter and body, the
    top CHANGELOG.md entry, package.json, marketplace and plugin metadata, the
@@ -141,8 +147,8 @@ generic for my project type" is worth filing even without a diagnosis.
 ## Conduct and security
 
 Issues, pull requests, and discussions follow the
-[Code of Conduct](CODE_OF_CONDUCT.md); report conduct problems privately to the
-maintainer. If you find a way the skill's content or scripts could make an
+[Code of Conduct](CODE_OF_CONDUCT.md); report conduct problems privately as the
+Code of Conduct describes. If you find a way the skill's content or scripts could make an
 agent take unsafe action, do not open a public issue: report it privately as
 [SECURITY.md](SECURITY.md) describes.
 

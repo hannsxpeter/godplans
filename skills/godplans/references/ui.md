@@ -1,10 +1,10 @@
 # UI implementation planning module
 
-Plans how the user interface gets built as code so that a post-hoc UI implementation audit scores top marks by construction. The orchestrator loads this module during the domain pass for any archetype that renders a UI (saas-dashboard, marketing-site, mobile-app, component library); headless api-service, cli, and ml-pipeline archetypes exclude it with a stated reason. Boundaries: experience design, journey heuristics, and copy tone belong to ux.md; generic code quality and bundle weight belong to code-quality.md; all security sinks (dangerouslySetInnerHTML, v-html, innerHTML, CSP) belong to security.md and may only be cross-referenced here, never planned here.
+Plans how the user interface gets built as code so that a post-hoc UI implementation audit scores top marks by construction. The orchestrator loads this module during the domain pass for any archetype that renders a UI (saas-dashboard, marketing-site, mobile-app, component library); headless api-service, cli, and ml-pipeline archetypes exclude it with a stated reason. Boundaries: experience design, journey heuristics, and copy tone belong to ux.md; generic code quality belongs to code-quality.md and the bundle budget to build.md (R-BUILD-15); all security sinks (dangerouslySetInnerHTML, v-html, innerHTML, CSP) belong to security.md and may only be cross-referenced here, never planned here.
 
 ## Lineage
 
-This module inverts uiauditor (github.com/hannsxpeter/uiauditor), the read-only UI implementation auditor grounded in WCAG 2.2, WAI-ARIA APG, Core Web Vitals, MDN, and ECMA-402. What carries over: its ten dimensions and their weights (accessibility highest under every combination), its accessibility floor (any A11Y Critical drops the whole audit one band below any other Critical), its eight enumerated always-Critical conditions, its paper-control hunt (declared-but-unwired protections are findings, not credit), its calibrate-to-paradigm rule (Tailwind config IS the token source; React Native is judged on native primitives, not semantic HTML), and its ban on platitudes. Where the auditor finds keyboard lockouts after the fact, this module makes the plan specify native elements, wired states, and zero-count verification greps before the first component exists.
+This module inverts uiauditor (github.com/hannsxpeter/auditor-suite/tree/main/skills/uiauditor), the read-only UI implementation auditor grounded in WCAG 2.2, WAI-ARIA APG, Core Web Vitals, MDN, and ECMA-402. What carries over: its ten dimensions and their weights (accessibility highest under every combination), its accessibility floor (any A11Y Critical drops the whole audit one band below any other Critical), its eight enumerated always-Critical conditions, its paper-control hunt (declared-but-unwired protections are findings, not credit), its calibrate-to-paradigm rule (Tailwind config IS the token source; React Native is judged on native primitives, not semantic HTML), and its ban on platitudes. Where the auditor finds keyboard lockouts after the fact, this module makes the plan specify native elements, wired states, and zero-count verification greps before the first component exists.
 
 ## Decisions to force
 
@@ -70,10 +70,10 @@ R-UI-16. PLAN.mdx must plan the asset pipeline: modern image formats with srcset
 Criterion: WHEN assets are in scope, THE PLAN SHALL state the image format and icon import strategy as decisions and give the shell task a favicon/manifest acceptance.
 
 R-UI-17. PLAN.mdx must plan localization before strings are written when i18n is applicable: all user-facing strings including alt and aria-label in a message catalog from day one, ICU or Intl.PluralRules pluralization (never if n === 1), Intl.DateTimeFormat/NumberFormat for dates/numbers/currency, dir derived from locale with directional icons mirrored, layouts sized for 30 percent text expansion, no text baked into images.
-Criterion: IF i18n is applicable, THE PLAN SHALL include a message-catalog task that precedes all feature UI tasks; IF not applicable, THE PLAN SHALL record the exclusion with a reason in the applicability matrix.
+Criterion: IF i18n is applicable, THE PLAN SHALL include a message-catalog task that precedes all feature UI tasks; IF not applicable, THE PLAN SHALL drop R-UI-17 in the module disposition (`dropped-by archetype`) with the reason.
 
 R-UI-18. PLAN.mdx must plan native primitives when a native or cross-platform surface exists: Pressable/Button/TextInput over tap-handler Views, accessibilityLabel/Role/State on every custom control, FlatList or SectionList with a stable keyExtractor (never .map() inside ScrollView), safe-area insets, explicit Platform.select branches where behavior differs, and a ban on web-only assumptions (div, CSS hover, px literals) in shared code.
-Criterion: IF a native toolkit is in scope, THE PLAN SHALL carry these as task acceptances including "zero .map() renders inside ScrollView"; IF not, THE PLAN SHALL exclude the dimension with a reason.
+Criterion: IF a native toolkit is in scope, THE PLAN SHALL carry these as task acceptances including "zero .map() renders inside ScrollView"; IF not, THE PLAN SHALL drop R-UI-18 in the module disposition (`dropped-by form`) with the reason.
 
 R-UI-19. PLAN.mdx must ban paper controls in its own text: no declared-but-unwired protections anywhere in the plan (a spinner not tied to a pending state, an aria-live region nothing writes to, tokens declared while components hardcode literals, a skip link to a missing id, a dark theme half-hardcoded). Every planned protection names its wiring and a mechanical check.
 Criterion: WHEN any protection is planned, THE PLAN SHALL pair it with a wiring acceptance phrased as a countable condition (for example "count of unlabeled inputs is zero"), never as an intention.
@@ -81,8 +81,8 @@ Criterion: WHEN any protection is planned, THE PLAN SHALL pair it with a wiring 
 R-UI-20. PLAN.mdx must trace the eight always-Critical audit conditions to tasks: keyboard lockout on a load-bearing control, core control with no accessible name, focus trap with no escape, zoom disabled, load-bearing media without captions/transcript, accessibility theater on a load-bearing surface, no reflow at 320px, and a load-bearing form broken at implementation level (frozen controlled input, submit losing input). Each maps to at least one task acceptance, and the final Verification phase includes a UI sweep task running the zero-count greps.
 Criterion: WHEN the Verification phase is written, THE PLAN SHALL contain a UI sweep task whose acceptance enumerates zero-count checks covering all eight always-Critical conditions applicable to the project.
 
-R-UI-21. PLAN.mdx plans WCAG 2.2 Level AA pointer and focus criteria: interactive targets meet the 24 by 24 CSS px minimum with adequate spacing (2.5.8 Target Size Minimum) and the stated mobile target contract; the focus indicator meets the focus-appearance minimum (2.4.11), never removed without an equivalent, with sufficient area and contrast; and the conformance target (WCAG 2.2 AA, plus AODA or Section 508 where the audience requires it) is named.
-Criterion: WHEN interactive UI is planned THE PLAN SHALL set the WCAG 2.2 AA conformance target and require target-size and focus-appearance acceptances with a Verify line (a grep or test for undersized targets and for removed or too-faint focus styles).
+R-UI-21. PLAN.mdx plans WCAG 2.2 Level AA pointer and focus criteria: interactive targets meet the 24 by 24 CSS px minimum with adequate spacing (2.5.8 Target Size Minimum) and the stated mobile target contract; the focused element is never fully hidden by sticky headers or overlays (2.4.11 Focus Not Obscured, Minimum), and the focus indicator is never removed without an equivalent, with sufficient area and contrast (2.4.13 Focus Appearance as the AAA reference); and the conformance target (from ux.md decision 4, WCAG 2.2 AA by default, plus AODA or Section 508 where the audience requires it) is named.
+Criterion: WHEN interactive UI is planned THE PLAN SHALL carry the conformance target ux.md decision 4 sets (WCAG 2.2 AA by default) and require target-size, focus-not-obscured, and focus-appearance acceptances with a Verify line (a grep or test for undersized targets, focus hidden under sticky elements, and removed or too-faint focus styles).
 
 ## Task seeds
 
@@ -109,7 +109,7 @@ Criterion: WHEN interactive UI is planned THE PLAN SHALL set the WCAG 2.2 AA con
 - [ ] GP-xxx Scaffold the state matrix for data views
   - Files: src/components/views/*.tsx
   - Acceptance: every data-fetching view renders loading, empty, error, and success branches tied to real state; zero key={index} on mutable lists; error boundary wraps each data-driven tree; controlled inputs paired with onChange
-  - Verify: ! grep -rEn 'key=\{(index|i)\}' src/components/
+  - Verify: ls src/components/views/*.tsx >/dev/null && ! grep -rEn 'key=\{(index|i)\}' src/components/
   - Requirements: R-UI-11, R-UI-19
 - [ ] GP-xxx Wire the LCP and asset baseline per key route
   - Files: src/app/(routes)/*, public/
@@ -119,7 +119,7 @@ Criterion: WHEN interactive UI is planned THE PLAN SHALL set the WCAG 2.2 AA con
 - [ ] GP-xxx Run the UI verification sweep (final Verification phase)
   - Files: .godplans/PLAN.mdx
   - Acceptance: zero onClick on div/span; zero positive tabindex; zero unlabeled inputs; zero raw hex literals outside the token source; zero aria-hidden on focusable ancestors; sweep results recorded under the task
-  - Verify: ! grep -rEn '<(div|span)[^>]*onClick' src/ && ! grep -rEn 'tabindex="[1-9]' src/
+  - Verify: test -d src && ! grep -rEn '<(div|span)[^>]*onClick' src/ && ! grep -rEn 'tabindex="[1-9]' src/
   - Requirements: R-UI-2, R-UI-4, R-UI-14, R-UI-19, R-UI-20
 
 ## Self-audit rubric
@@ -137,7 +137,7 @@ Score the plan's UI sections 0-100. A section below 85 gets revised before emiss
 | Render-path performance | 9 | LCP element named and prioritized per key route; fonts, code-splitting, lazy-loading, and virtualization planned; no CWV numbers asserted as fact |
 | Design system and theming | 8 | One token source, no-raw-literals and reuse-the-primitive rules, full-swap theming when planned, shadow-boundary plumbing when applicable |
 | Asset pipeline | 5 | Image format and icon import strategy decided; fonts subset and preloaded; favicon/manifest complete; iframe attributes planned |
-| Conditional coverage | 4 | I18N and NATIVE each either planned per R-UI-17/R-UI-18 or excluded with a stated reason in the applicability matrix |
+| Conditional coverage | 4 | I18N and NATIVE each either planned per R-UI-17/R-UI-18 or dropped with a stated reason in the module disposition |
 
 ## Anti-patterns refused
 

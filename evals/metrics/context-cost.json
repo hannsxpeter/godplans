@@ -5,19 +5,19 @@
     "limitation": "Provider tokenizers differ. Published model runs record actual input and output token usage in RUNNER.txt and METRICS.json."
   },
   "portable_core": {
-    "bytes": 342032,
-    "estimated_tokens": 85508,
-    "sha256": "6aa4b3275fc50375b495e8470b33168e7e01d1b79113161cd891669453ff537f"
+    "bytes": 347233,
+    "estimated_tokens": 86809,
+    "sha256": "71260c69995b771c969fc1ec800f6c710e57e30bd0404262596a550e441550b5"
   },
   "portable_full_generated": {
-    "bytes": 744893,
-    "estimated_tokens": 186224,
-    "sha256": "ca8d377ca5ccc9a876a04d107939cf01a6488241a086eda91631061ea497d4b8"
+    "bytes": 755718,
+    "estimated_tokens": 188930,
+    "sha256": "7762a1c2f77a42122f02f0edcc372dc43184dca73d3f2c3604fdec766866cf05"
   },
   "native_skill_entry": {
-    "bytes": 24953,
-    "estimated_tokens": 6239,
-    "sha256": "fb8d1bb7cebed5f1d868d78c70282994f0e46ca6ab61991bcef946d6f138d63b"
+    "bytes": 25384,
+    "estimated_tokens": 6346,
+    "sha256": "632d480f89d8b0a40ed1550b3826e59cef9c73f82ff8fc8a9325e9584110cd67"
   },
   "core_modules": {
     "compliance": {
@@ -26,129 +26,129 @@
       "sha256": "d795b29189693e0fd92f97c6a184228ab8374f172d32c6fcea33c57f4aaaad13"
     },
     "discovery": {
-      "bytes": 32530,
-      "estimated_tokens": 8133,
-      "sha256": "00022b8af2a4a0be139a76f7d68230e2f15451bb678bef1eee3aec58ec67ef3c"
+      "bytes": 32375,
+      "estimated_tokens": 8094,
+      "sha256": "dae8499e29994063706d669adfa3b44a709f65ab552a11495dbf62ab1ee0833d"
     },
     "product": {
-      "bytes": 21248,
-      "estimated_tokens": 5312,
-      "sha256": "c515248c98704df5ed12a03730d78e28e67535585828d1e6e9931b321256e0ac"
+      "bytes": 21354,
+      "estimated_tokens": 5339,
+      "sha256": "b294a942586b772a087fec7bc6b20ca6901b5a6f41eff10fc04752a9055493ec"
     },
     "architecture": {
-      "bytes": 31719,
-      "estimated_tokens": 7930,
-      "sha256": "49f2e55de0bfd673a9d6e8ac4000262096825d4b4a7b4906040a5d6f4d3a0b0b"
+      "bytes": 31900,
+      "estimated_tokens": 7975,
+      "sha256": "dcac27da43cb0580299183dfd49e2ece1006a4e5c8e3b388057730d8168ba673"
     },
     "stack": {
-      "bytes": 24319,
-      "estimated_tokens": 6080,
-      "sha256": "b00459507aa9f21d803f4265e0f3af17b2e8bde639ee9e04f80bc74b0d7cf49c"
+      "bytes": 24376,
+      "estimated_tokens": 6094,
+      "sha256": "aa6ce22ab038c1c9aa8b0c7c8f3489757107ce5697937f3938140f6029c8ed8f"
     },
     "database": {
-      "bytes": 27326,
-      "estimated_tokens": 6832,
-      "sha256": "2afcadcaa1b991d775f42c91f6bd080669b9fbad308a2a31b66e1ae811a06b39"
+      "bytes": 27452,
+      "estimated_tokens": 6863,
+      "sha256": "61f0a5f116adb1f69ab9ec49f3bfcc9c06f09a582531f3f32df382789013cbea"
     },
     "security": {
-      "bytes": 33547,
-      "estimated_tokens": 8387,
-      "sha256": "48d44cb7c50405d4dca562f4398855efc509cea9a60b219e6afb4ac4bf48153c"
+      "bytes": 34074,
+      "estimated_tokens": 8519,
+      "sha256": "455cea93444e16d1941442af6170a4de697190fc2d5b281ce1901aa93804ccad"
     },
     "exemplar": {
-      "bytes": 12207,
-      "estimated_tokens": 3052,
-      "sha256": "1e4e643836612ae66c57d95f847273de90862d3b73b020b810b1bb1a0f045c5a"
+      "bytes": 12283,
+      "estimated_tokens": 3071,
+      "sha256": "4e3964df3cccd4c091b9612c23fae58827b1674032d6fccd4e20a264bca58491"
     },
     "plan-format": {
-      "bytes": 38635,
-      "estimated_tokens": 9659,
-      "sha256": "e68828bf2f317ee9885e29d61c3b210391bf8e2fc00ba99fc935931150f69444"
+      "bytes": 39906,
+      "estimated_tokens": 9977,
+      "sha256": "7fac69ae5d283640aee303b99810998bfeca206473925c75064f74e05b9e1a52"
     }
   },
   "core_modules_total": {
-    "bytes": 228601,
-    "estimated_tokens": 57153
+    "bytes": 230790,
+    "estimated_tokens": 57700
   },
   "lazy_modules": {
     "doc-set": {
-      "bytes": 19507,
-      "estimated_tokens": 4877,
-      "sha256": "02b2dcb1f63bed621f29cba36382977c41eb2519b5151de120c27277a7a41fdc"
+      "bytes": 20254,
+      "estimated_tokens": 5064,
+      "sha256": "a97fa15ef910bc2c561e04665cdb07a4906221f553ba2e97a2939372c1d374cf"
     },
     "business": {
-      "bytes": 61452,
-      "estimated_tokens": 15363,
-      "sha256": "eae513d4b0b19035dc7d587ed025c1023b711f114ef0b0a921b5869bfdf660ad"
+      "bytes": 61514,
+      "estimated_tokens": 15379,
+      "sha256": "e478b08af23f243d5f303c5b88405da74b5dfdf2320b0ed92a6091701c86a7cb"
     },
     "llm": {
-      "bytes": 27905,
-      "estimated_tokens": 6977,
-      "sha256": "bf3a7ddce03ba859e3c08d3b4f4a35ca269a91024860390c3570beb69731c076"
+      "bytes": 27855,
+      "estimated_tokens": 6964,
+      "sha256": "2fa1e279b59ee687f2aebce89ef46efbd8e2009356f0f32cdfadaf60619ad56e"
     },
     "ux": {
-      "bytes": 22016,
-      "estimated_tokens": 5504,
-      "sha256": "3ad2aebc1f51c39a4dfa1fd77aa9ea25a1c169003e45f3e0e76b4b47b63a5c41"
+      "bytes": 22291,
+      "estimated_tokens": 5573,
+      "sha256": "6928003de02e46f3b70d1d7c6d0982705bb8d8f7d3ed53f3d5f84c03b95441fa"
     },
     "ui": {
-      "bytes": 24756,
-      "estimated_tokens": 6189,
-      "sha256": "c19b846f24e0c8650563e9d3373a6fdf6e93e2ecb2ac52f8b117f6508449df51"
+      "bytes": 25173,
+      "estimated_tokens": 6294,
+      "sha256": "b3390fe6e3d94ce6958e93cc340bafe9e4bae937ed0ef1e3ecdade8f55f21b5d"
     },
     "seo": {
-      "bytes": 24758,
-      "estimated_tokens": 6190,
-      "sha256": "981134e1547910b16ed23f255989635b6ad6b9de059649141bde8eb82a33e326"
+      "bytes": 25259,
+      "estimated_tokens": 6315,
+      "sha256": "e0d46cedcb585bc4d00eb59caddbb0e2a562e2d650f4f14f025eacff48383f21"
     },
     "code-quality": {
-      "bytes": 24815,
-      "estimated_tokens": 6204,
-      "sha256": "82e692d27a06df7e1aa1efb9dd91f5f69c2795774ed18310c94b46d9019c40df"
+      "bytes": 25057,
+      "estimated_tokens": 6265,
+      "sha256": "e76f4aae79f11818393c55f6cf83be189b82a97483ce71970aa951c57955d311"
     },
     "style-genome": {
-      "bytes": 27110,
-      "estimated_tokens": 6778,
-      "sha256": "a3270dadf6f791e65560f63849c43e79b7f2cf27b8db98f7ba14f715de8f07cd"
+      "bytes": 27567,
+      "estimated_tokens": 6892,
+      "sha256": "bebf194dd18e033e5ccc55b7b9ca460231555a268164a95e34fae1ae44f1f703"
     },
     "agent-memory": {
-      "bytes": 26755,
-      "estimated_tokens": 6689,
-      "sha256": "fb3cbbb0a3e3623f9dd4f846efc318fad4cd1733b65e55cd57e330733737e0cc"
+      "bytes": 26984,
+      "estimated_tokens": 6746,
+      "sha256": "78e7fd7002c9e5ea7e55e4dca625a01339cedd893a5b8c714d45bde40625d6a8"
     },
     "repo": {
-      "bytes": 29799,
-      "estimated_tokens": 7450,
-      "sha256": "2939d3972d7a00ee1f0c30fcda22bb53bc8240dfedc7def1b5719d2b86e94d06"
+      "bytes": 30902,
+      "estimated_tokens": 7726,
+      "sha256": "7ea17d20135373106451158e61acd74a2ed5de2e5adcd1c9e0941a98bce18c23"
     },
     "build": {
-      "bytes": 21188,
-      "estimated_tokens": 5297,
-      "sha256": "ccf63848731cd9f92d898a6ee0ae1cd523e1a9aadf77b5b1fee1c11ec4f239c0"
+      "bytes": 21173,
+      "estimated_tokens": 5294,
+      "sha256": "0ce523561c456ed62791d5da7b9b514e25b4e9bfdfa0a7139c3cadb4878894af"
     },
     "roadmap": {
-      "bytes": 23427,
-      "estimated_tokens": 5857,
-      "sha256": "28e6559574ca59d54e537fc849ecaa11224d3f2ac8521cb947f522fa7ad00e75"
+      "bytes": 23904,
+      "estimated_tokens": 5976,
+      "sha256": "07ec0118b21ca6185e6c73a40f97ea7af6c90d5073a0f306ce97163c40e4e3a7"
     },
     "deploy": {
-      "bytes": 18897,
-      "estimated_tokens": 4725,
-      "sha256": "f8eb3f40a26e5d86c0a24790dd9049a45c2da5b572b4f6d3005c62e428e522ae"
+      "bytes": 19708,
+      "estimated_tokens": 4927,
+      "sha256": "518bda6d1edeee5d6d7e7a102d3410fd85ff18ccf9597368cc804748fe45bde7"
     },
     "observe": {
-      "bytes": 25156,
-      "estimated_tokens": 6289,
-      "sha256": "4f86c67ae08f13018551bd6a1a9b3978dc1d30cec7a2ee2bce2c281dd0548594"
+      "bytes": 25195,
+      "estimated_tokens": 6299,
+      "sha256": "01e600c05a10e40126f690ff914decc72a233e79e9dd6fb4a945e2eb78bc5fc2"
     },
     "launch": {
-      "bytes": 24668,
-      "estimated_tokens": 6167,
-      "sha256": "31cebbd512890abdd19d5dd7e4c1991550932a533f87e10ebbfcb9269f9f4193"
+      "bytes": 25219,
+      "estimated_tokens": 6305,
+      "sha256": "0c0e58f10185d8ee7d56ff39472d9466820a9238b00cd4ba6038ee7f96d0db9e"
     }
   },
   "lazy_modules_total": {
-    "bytes": 402209,
-    "estimated_tokens": 100556
+    "bytes": 408055,
+    "estimated_tokens": 102019
   }
 }

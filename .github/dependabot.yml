@@ -1,6 +1,9 @@
 # Keep the SHA-pinned GitHub Actions current. scripts/lint.sh action-pins
 # requires a full commit SHA on every third-party action, so pins never move
 # on their own; Dependabot rewrites the SHA and its version comment together.
+# Nothing else is watched: package.json declares no dependencies, and
+# requirements/skills-ref.txt pins one reviewed upstream commit that a
+# maintainer moves by hand after reading the upstream diff, never a bot.
 version: 2
 updates:
   - package-ecosystem: github-actions

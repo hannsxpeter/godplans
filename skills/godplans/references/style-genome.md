@@ -1,6 +1,6 @@
 # Style genome (code DNA) planning module
 
-Fixes the project's coding style genome (naming, comments, structure, control flow, error posture, idioms) in PLAN.mdx before the first commit exists. The orchestrator loads this module for every archetype that ships custom code (all of them except a zero-code content site), in the domain-pass order after seo and before agent-memory, because the quality-pillar wiring that agent-memory plans depends on the genome this module defines. In brownfield mode this module also governs the read-only fingerprint pass.
+Fixes the project's coding style genome (naming, comments, structure, control flow, error posture, idioms) in PLAN.mdx before the first commit exists. The orchestrator loads this module for every archetype (style genome is never excluded or deferred; a zero-code content site scales it down to its formatter and linter configs), in the domain-pass order after seo and before agent-memory, because the quality-pillar wiring that agent-memory plans depends on the genome this module defines. In brownfield mode this module also governs the read-only fingerprint pass.
 
 ## Lineage
 
@@ -22,7 +22,7 @@ Ordered hardest to reverse first.
 2. Module shape and file organization.
    - Question: feature folders or layer folders, barrel files or direct imports, where helpers live.
    - Why hard to reverse: import paths fossilize into every file, and mass-moving them poisons git blame.
-   - Options: feature folders (default for apps); layer folders (defensible for small API services); barrels only if the stack module's bundler tree-shakes them.
+   - Options: feature folders (default for apps); layer folders (defensible for small API services); barrels only if the project's bundler tree-shakes them.
    - Default: feature folders, no barrel files, helpers co-located until shared by a second feature.
 3. Naming genome and domain glossary.
    - Question: casing per identifier kind, one verb dialect (get vs fetch vs load per semantic), and the canonical domain nouns (user vs account vs member).
@@ -38,7 +38,7 @@ Ordered hardest to reverse first.
    - Question: framework, co-located *.test.ts vs a tests/ tree, describe/it vs flat functions, case-naming style.
    - Why hard to reverse: location and naming get mirrored across every module; moving them later is a repo-wide rename.
    - Options: co-located (default for apps and libraries) vs tests/ tree (default for Python and Go, where the ecosystem expects it).
-   - Default: co-located test files, framework taken from the stack module's pick.
+   - Default: co-located test files, with the framework chosen here (the stack module's twelve dimensions do not include a test runner).
 6. Comment and documentation contract.
    - Question: density target, why-vs-what rule, doc-comment scope.
    - Why hard to reverse: reversible on paper but never actually reversed; drift compounds silently, and AI contributions default to over-commenting.
@@ -62,7 +62,7 @@ Ordered hardest to reverse first.
 - R-DNA-7 Error posture. The single error strategy chosen in Decisions, the defensiveness policy (validate at trust boundaries only, or stated otherwise), custom error types vs generic throws, error-message tone, and logging density and style on errors.
   Criterion: WHEN error handling is planned, THE PLAN SHALL name one strategy and one defensiveness policy and SHALL cross-reference the Decisions entry that committed them.
 - R-DNA-8 Types conventions. Explicit vs inferred return types, interface vs type, any/unknown tolerance, non-null assertions, enums vs union literals, nullability convention.
-  Criterion: IF the stack is statically typed, THE PLAN SHALL fix each of these; IF not, THE PLAN SHALL mark this dimension excluded with the stack as the reason.
+  Criterion: IF the stack is statically typed, THE PLAN SHALL fix each of these; IF not, THE PLAN SHALL drop R-DNA-8 in the module disposition (`dropped-by archetype`) naming the untyped stack.
 - R-DNA-9 Import conventions. Default vs named exports, ordering and grouping (deferred to the linter config when enforced there), relative vs alias paths, barrel re-export policy.
   Criterion: WHEN imports are planned, THE PLAN SHALL either defer a rule to a named linter config or state it as an observed convention, never both.
 - R-DNA-10 Test conventions. Framework, file location and naming, structure (describe/it vs flat), case-naming style, mocking and fixture posture.
@@ -87,7 +87,7 @@ Ordered hardest to reverse first.
   Criterion: WHEN the genome section is emitted, THE PLAN SHALL state the refresh triggers and the local-dialect-wins rule.
 - R-DNA-20 Brownfield fingerprint before authorship.
   Criterion: WHEN mode is brownfield, THE PLAN SHALL derive the genome from layered evidence (configs as enforced ground truth, measured frequencies such as naming histograms and comment density, then a close-read sample quoted in 2-4 line snippets, skipping vendored and generated paths), and SHALL record the dominant pattern plus real exceptions rather than inventing conventions the code does not exhibit.
-- R-DNA-21 Measured, not eyeballed. The numeric norms in this section come from `python3 scripts/style-stats.py <target>`, whose output the plan quotes: comment density per language, naming-casing histograms per identifier kind, median and p90 function length, median identifier length, quote and indentation habits, and documentation coverage. In brownfield the target is the existing tree, and the measured run is the second evidence layer between the configs and the close read. In greenfield there is nothing to measure, so the section states the target numbers as choices and names the run that will confirm them once the first modules land.
+- R-DNA-21 Measured, not eyeballed. The numeric norms in this section come from `python3 scripts/style-stats.py <target>`, whose output the plan quotes: comment density per language, naming-casing histograms per identifier kind, median and p90 function length, median identifier length, quote and indentation habits, and documentation coverage. In brownfield the target is the existing tree, and the measured run is the second evidence layer between the configs and the close read. In greenfield there is nothing to measure, so the section states the target numbers as choices and names the run that will confirm them once the first modules land. The confirming run executes in the planned project, which has no `scripts/style-stats.py`, so it uses `python3 .godplans/style-stats.py`: a byte-for-byte copy of the skill's script that Phase 7 saves beside the validator companion whenever the plan schedules this run.
   Criterion: IF mode is brownfield, THE PLAN SHALL quote measured values from the stats run for at least comment density, function-length median, and the casing histogram of the two most common identifier kinds, and every numeric norm in the genome SHALL trace to one of them; IF mode is greenfield, THE PLAN SHALL state each numeric norm as a chosen target and SHALL name the confirming run and the wave it happens in.
 - R-DNA-22 Config map before prose. The plan lists the enforced-layer config files it found or will commit, and next to each, the specific conventions that tool settles (line width, indentation, quotes, semicolons, trailing commas, import ordering, and any lint rule that rewrites rather than warns). That map is what makes R-DNA-1 checkable: a genome line covering a mapped convention is a duplicate with a second source of truth, and it is cut.
   Criterion: WHEN the genome section is emitted, THE PLAN SHALL contain a config map naming each enforced file and the conventions it settles, and no genome rule SHALL restate a convention the map assigns to a tool.
@@ -96,7 +96,7 @@ Ordered hardest to reverse first.
 - R-DNA-24 The check runs as a command. The enforcement loop required by R-DNA-18 names an executable Verify command, not a prose instruction to review carefully. At minimum the formatter and linter check commands run in the hook and in CI; where a diff-level style check is available (a codedna Check invocation, a custom script, or a review-time checklist wired into the PR template with a machine-checked presence test), the plan names it and where it runs.
   Criterion: WHEN the enforcement task is emitted, THE PLAN SHALL give it a Verify command whose exit code proves the check is wired, and SHALL NOT satisfy R-DNA-18 with an instruction that no command can fail.
 
-## AI tells catalog
+### AI tells catalog
 
 The reference list R-DNA-17 and R-DNA-23 select from. Carried in full rather than cited, so the planner is choosing from the catalog rather than remembering it.
 
@@ -122,8 +122,8 @@ AI defaults to maximally explicit, maximally defensive, uniformly consistent, an
 
 - [ ] GP-xxx Commit enforced style layer
   - Files: .editorconfig, .prettierrc or biome.json or pyproject.toml, eslint.config.js, package.json, .github/workflows/ci.yml
-  - Acceptance: formatter and linter configs exist at repo root; package.json scripts (or Makefile) define format and lint commands; CI runs the lint command
-  - Verify: npx prettier --check . && npx eslint . (adapt to the stack's commands from R-DNA-1)
+  - Acceptance: formatter and linter configs exist at repo root; package.json scripts (or Makefile) define format and lint commands; CI runs the lint command; a non-JavaScript stack puts the R-DNA-1 commands in Verify
+  - Verify: npx prettier --check . && npx eslint .
   - Requirements: R-DNA-1
 - [ ] GP-xxx Author CODEDNA.md style genome
   - Files: CODEDNA.md
@@ -143,18 +143,18 @@ AI defaults to maximally explicit, maximally defensive, uniformly consistent, an
 - [ ] GP-xxx Wire the diff-check enforcement loop
   - Files: .husky/pre-commit or .pre-commit-config.yaml, CONTRIBUTING.md
   - Acceptance: pre-commit runs the format check and the CODEDNA.md diff-check instruction; CONTRIBUTING.md documents the review-time check with severity ratings
-  - Verify: grep -q 'CODEDNA' .husky/pre-commit CONTRIBUTING.md
+  - Verify: grep -q CODEDNA CONTRIBUTING.md && grep -qs CODEDNA .husky/pre-commit .pre-commit-config.yaml
   - Requirements: R-DNA-18, R-DNA-19
 - [ ] GP-xxx Fingerprint existing codebase (brownfield only)
   - Files: CODEDNA.md
   - Acceptance: enforced layer read from existing configs, not re-derived; measured frequencies recorded from the stats run (casing histograms, comment density, function-length median and p90, quote style); each observed rule paired with a quoted 2-4 line snippet; known inconsistencies recorded with the local-dialect-wins rule
-  - Verify: grep -c '```' CODEDNA.md (snippet fences present) && grep -q 'Known inconsistencies' CODEDNA.md
+  - Verify: grep -q "$(printf '\140\140\140')" CODEDNA.md && grep -q 'Known inconsistencies' CODEDNA.md
   - Requirements: R-DNA-20, R-DNA-21, R-DNA-19
 
 - [ ] GP-xxx Record the measured style baseline
   - Files: CODEDNA.md, .godplans/style-stats.json
-  - Acceptance: `python3 scripts/style-stats.py . --json` output is stored; CODEDNA.md quotes comment density, function-length median and p90, and the casing histogram for functions and variables; every numeric norm in the genome traces to one of those values
-  - Verify: python3 scripts/style-stats.py . --json > .godplans/style-stats.json && grep -q 'median' CODEDNA.md
+  - Acceptance: `python3 .godplans/style-stats.py . --json` output is stored; CODEDNA.md quotes comment density, function-length median and p90, and the casing histogram for functions and variables; every numeric norm in the genome traces to one of those values
+  - Verify: python3 .godplans/style-stats.py . --json > .godplans/style-stats.json && grep -q median CODEDNA.md
   - Requirements: R-DNA-21, R-DNA-5
 
 - [ ] GP-xxx Publish the enforced-layer config map
@@ -173,7 +173,7 @@ Score the plan's style genome section 0-100.
 - Comment contract (7): density, register, doc scope, and banner rule all explicit; why-not-what stated.
 - Structural genome (9): numeric function-size norm, stated extraction threshold, module shape, and paradigm all committed.
 - Control flow and error posture (11): every control-flow habit fixed; one error strategy and one defensiveness policy, cross-referenced to Decisions.
-- Types, imports, tests (9): each fixed or excluded with a stated reason; no rule both deferred to a linter and restated as prose.
+- Types, imports, tests (9): each fixed or dropped with a stated reason; no rule both deferred to a linter and restated as prose.
 - Idiom registry and glossary (9): helpers named with paths, parallel-utility ban stated, glossary terms consistent with the data model.
 - Day-one CODEDNA.md and wiring (9): wave-one task emits the stamped profile before feature work; the marker block is planned inside agents/quality.md, with AGENTS.md and CLAUDE.md left untouched.
 - Anti-AI-tells appendix (7): selects from the catalog with numbers cited; lists only real project deviations; would produce no false tells.

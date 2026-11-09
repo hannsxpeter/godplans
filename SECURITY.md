@@ -64,9 +64,11 @@ authentication its host CLI already has:
 ## Reporting a vulnerability
 
 If you find a way this skill's content or scripts could cause an agent to
-take unsafe action, open a GitHub Security Advisory on this repository
-(preferred) or a private report to the maintainer via GitHub. Please include
-the harness (Claude Code, Codex, Cursor, other), the exact file and lines,
+take unsafe action, report it privately through GitHub private vulnerability
+reporting: open
+[security/advisories/new](https://github.com/hannsxpeter/godplans/security/advisories/new)
+(the Security tab, then Report a vulnerability). Only the maintainer sees the
+report. Please include the harness (Claude Code, Codex, Cursor, other), the exact file and lines,
 and a reproduction. Expect an acknowledgment within 72 hours.
 
 Please do not open public issues for exploitable findings before a fix

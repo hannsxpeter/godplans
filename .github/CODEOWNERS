@@ -18,10 +18,13 @@
 # agrees to plan at all.
 /skills/godplans/references/compliance.md @hannsxpeter
 
-# The validator is copied byte for byte into every user project as
-# .godplans/validate-plan.sh and must run on stock macOS bash 3.2 and Linux. A
-# regression here ships into plans that outlive the release.
-/skills/godplans/scripts/validate-plan.sh @hannsxpeter
+# The scripts that run inside users' projects. The validator is copied byte for
+# byte into every plan as .godplans/validate-plan.sh and must run on stock
+# macOS bash 3.2 and Linux; style-stats.py is copied the same way to
+# .godplans/style-stats.py when a planned task runs it; the portable prompt
+# saves plan-halflife.sh beside the validator. A regression here ships into
+# plans that outlive the release.
+/skills/godplans/scripts/ @hannsxpeter
 
 # install.sh writes into users' home directories (~/.agents/skills,
 # ~/.claude/skills, and equivalents) under POSIX sh.
@@ -30,6 +33,13 @@
 # The meta-linter, the prompt builder, version sync, and the eval and release
 # scripts. A lint check that stops failing silently removes a gate.
 /scripts/ @hannsxpeter
+
+# The gates' own configuration. package.json defines what npm run check and
+# release:check run, and its description and keywords are the GitHub About
+# text that release:check enforces. requirements/ pins the official skills-ref
+# validator that CI installs and runs.
+/package.json @hannsxpeter
+/requirements/ @hannsxpeter
 
 # Regression tests, including the lint self-test, and the behavioral eval
 # cases and frozen evidence the README cites.
@@ -40,7 +50,8 @@
 /.github/ @hannsxpeter
 
 # Plugin marketplace and plugin manifests. A manifest typo breaks
-# /plugin install for every Claude Code user; lint checks their version and
-# description against SKILL.md.
+# /plugin install for every Claude Code user; lint checks their versions and
+# plugin descriptions against SKILL.md and the marketplace tagline against
+# package.json.
 /.claude-plugin/ @hannsxpeter
 /plugins/ @hannsxpeter

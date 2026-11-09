@@ -55,7 +55,7 @@ Hardest to reverse first. Each must land in the plan's Decisions section as a gr
    Criterion: WHEN the plan is emitted THE PLAN SHALL contain a vocabulary table and a voice-and-tone note, and no planned label SHALL use a banned generic term.
 7. R-UX-7: PLAN.mdx writes the error-message standard: plain language stating what happened, why, how to fix it, and what happens next; shown at the field; never raw codes or stack traces; user input always preserved.
    Criterion: WHEN error handling is planned THE PLAN SHALL include this standard as acceptance criteria on every task that renders errors.
-8. R-UX-8: PLAN.mdx declares the WCAG 2.2 AA conformance target with its concrete consequences: contrast tokens at >=4.5:1 text and >=3:1 UI, full keyboard operability with no traps, visible focus indicators on everything focusable (no outline removal without replacement), focus order following visual order, targets >=24x24px (44-48px primary), reduced-motion respected, 200% zoom reflow without horizontal scroll, no blocking of paste or autofill in auth, no redundant entry of provided information.
+8. R-UX-8: PLAN.mdx declares the conformance target from decision 4 (WCAG 2.2 AA by default) with its concrete consequences: contrast tokens at >=4.5:1 text and >=3:1 UI, full keyboard operability with no traps, visible focus indicators on everything focusable (no outline removal without replacement), focus order following visual order, targets >=24x24px (44-48px primary), reduced-motion respected, 200% zoom reflow without horizontal scroll, no blocking of paste or autofill in auth, no redundant entry of provided information.
    Criterion: WHEN the plan is emitted THE PLAN SHALL state the conformance target and SHALL attach these constraints to the design-token and component tasks.
 9. R-UX-9: PLAN.mdx specifies the form standard per Baymard: persistent visible labels above fields (never placeholder-as-label), inline validation on blur with errors adjacent to the field, minimal field count with nothing the system holds or can derive, correct type and inputmode per field, standard autocomplete tokens, format-tolerant normalization (Postel's Law), explicit optional/required marking, double-submit guards, and never clearing a form on error.
    Criterion: IF any form is planned THE PLAN SHALL apply this standard as acceptance criteria on the form task.
@@ -71,8 +71,8 @@ Hardest to reverse first. Each must land in the plan's Decisions section as a gr
     Criterion: WHEN onboarding is planned THE PLAN SHALL name the activation event, state the signup-to-activation step count, and justify every wall that remains.
 15. R-UX-15: PLAN.mdx plans the retention loop: saved state as a reason to return, a trigger-action-reward-investment habit loop where the product warrants one, and value-driven (not spammy) re-engagement.
     Criterion: IF the product expects repeat use THE PLAN SHALL name the return trigger and the saved state that makes returning worthwhile.
-16. R-UX-16: PLAN.mdx sets performance and responsiveness budgets: LCP <=2.5s, INP <=200ms, CLS <=0.1 at p75 as targets verified post-build by Lighthouse (never asserted from static code); explicit dimensions or aspect-ratio on all media; viewport meta with zoom enabled; no horizontal scroll at 320px; touch targets sized for thumbs; a loading state for every async action.
-    Criterion: WHEN the plan is emitted THE PLAN SHALL state these budgets and SHALL route their numeric verification to the final Verification phase with the exact command.
+16. R-UX-16: PLAN.mdx sets performance and responsiveness budgets: LCP <=2.5s, INP <=200ms, CLS <=0.1 at p75 as field targets measured after launch (CrUX or RUM), with a pre-launch Lighthouse CI gate on LCP, CLS, and Total Blocking Time as the INP proxy (never asserted from static code); explicit dimensions or aspect-ratio on all media; viewport meta with zoom enabled; no horizontal scroll at 320px; touch targets sized for thumbs; a loading state for every async action.
+    Criterion: WHEN the plan is emitted THE PLAN SHALL state these budgets, SHALL route the lab gate to the final Verification phase with the exact command, and SHALL name the field source that measures p75 after launch.
 17. R-UX-17: PLAN.mdx writes an anti-deceptive-design policy covering the deceptive.design taxonomy: cancellation as easy as signup, "Reject all" as prominent and as few clicks as "Accept all", total pricing and fees shown before commitment, no pre-checked opt-ins or upsells, no fake scarcity or manufactured social proof, granular revocable consent, privacy-favoring defaults with collection explained at the point of collection, and real organization and contact credibility signals.
     Criterion: IF the product has billing, consent, or subscription flows THE PLAN SHALL include this policy as acceptance criteria on those tasks.
 18. R-UX-18: PLAN.mdx plans component-state completeness and hierarchy: hover, focus, active, disabled, loading, empty, and error states designed for every interactive element; interactive elements look interactive and non-interactive elements never masquerade as buttons; exactly one dominant primary action per screen; expert accelerators (keyboard shortcuts, bulk actions, saved defaults) that never block novices.
@@ -87,7 +87,7 @@ Hardest to reverse first. Each must land in the plan's Decisions section as a gr
 - [ ] GP-xxx Implement shared async-state primitives (loading, empty, error, success)
   - Files: src/components/states/AsyncBoundary.tsx, src/components/states/EmptyState.tsx, src/components/states/ErrorState.tsx
   - Acceptance: EmptyState requires title, reason, and action props; ErrorState requires a forward action prop; no component renders bare "No data" text
-  - Verify: grep -rn "No data" src/components && exit 1 || grep -q "action" src/components/states/EmptyState.tsx
+  - Verify: ! grep -rn 'No data' src/components && grep -q action src/components/states/EmptyState.tsx
   - Requirements: R-UX-3, R-UX-7
 - [ ] GP-xxx Build the signup-to-activation journey within its step budget
   - Files: src/routes/signup/, src/routes/onboarding/, src/lib/activation.ts
@@ -97,7 +97,7 @@ Hardest to reverse first. Each must land in the plan's Decisions section as a gr
 - [ ] GP-xxx Implement the form standard on all input surfaces
   - Files: src/components/forms/Field.tsx, src/components/forms/Form.tsx
   - Acceptance: every Field renders a visible label element; autocomplete tokens set for name, email, tel, and address fields; validation fires on blur; submit handler guards double submission
-  - Verify: grep -rln "placeholder=" src/components/forms | xargs grep -L "<label" | wc -l | grep -q "^0$"
+  - Verify: grep -q '<label' src/components/forms/Field.tsx && test -z "$(grep -rl 'placeholder=' src/components/forms | xargs -r grep -L '<label')"
   - Requirements: R-UX-9, R-UX-8
 - [ ] GP-xxx Implement the workflow state machine with server-side role checks
   - Files: src/server/workflow/machine.ts, src/server/workflow/transitions.ts
@@ -127,12 +127,12 @@ Score the UX sections of the draft plan 0-100. Below 85 total, revise before emi
 - Actor, jobs, and context of use (10): full marks require one named primary actor with functional, emotional, and social jobs, a context-of-use statement, and every journey tracing to one actor.
 - Journeys and step budgets (14): 2-4 journeys mapped end to end with numbered steps, a budget per goal, no re-entry of held data, cross-channel handoffs and designed endings stated.
 - State matrix and error standard (14): every async action and screen has enumerated states, every dead end has a forward action, the error-message standard and 100ms/400ms budgets appear as task acceptance criteria.
-- Accessibility plan (13): WCAG 2.2 AA declared with contrast, keyboard, focus, target, motion, zoom, and redundant-entry constraints attached to concrete token and component tasks.
+- Accessibility plan (13): the decision 4 conformance target (WCAG 2.2 AA by default) declared with contrast, keyboard, focus, target, motion, zoom, and redundant-entry constraints attached to concrete token and component tasks.
 - Process and workflow integrity (13): state machines drawn with roles per transition, all five integrity mechanics specified, steps classified Lean with a named bottleneck.
 - Forms and input (8): the full Baymard standard applied as acceptance criteria on every form task.
 - IA and navigation (8): nav structure shown, labels in user vocabulary, two find-X traces recorded, search and zero-results planned where warranted.
 - Onboarding and activation (8): activation event named, signup-to-value step count stated, every remaining wall justified, retention loop planned.
-- Performance budgets (6): CWV targets stated with post-build verification routed to the Verification phase by exact command; layout-stability and responsive rules on tasks.
+- Performance budgets (6): CWV targets stated with the lab gate routed to the Verification phase by exact command and the p75 field source named; layout-stability and responsive rules on tasks.
 - Trust and anti-deception (6): the anti-deceptive-design policy present and bound to billing, consent, and subscription tasks.
 
 ## Anti-patterns refused

@@ -38,14 +38,19 @@ for judge in one two; do
     score_a=22
     score_b=20
   fi
+  # The fixture judge is schema-less, like the Gemini adapter: it reads the
+  # criterion keys from the packet's Required JSON schema, so a packet that
+  # stops carrying the grade shape fails here.
   printf '%s\n' \
     '#!/usr/bin/env bash' \
     'set -eu' \
     'packet=$(sed -n "s/^# Packet //p" "$1" | head -1)' \
-    'node - "$packet" "$2" '"$score_a"' '"$score_b"' <<'"'"'NODE'"'"'' \
+    'node - "$packet" "$1" "$2" '"$score_a"' '"$score_b"' <<'"'"'NODE'"'"'' \
     'const fs = require("node:fs");' \
-    'const [packet, output, totalA, totalB] = process.argv.slice(2);' \
-    'const criteria = ["decision_completeness", "falsifiability", "execution_actionability", "risk_targeting", "proportionality", "internal_consistency"];' \
+    'const [packet, packetFile, output, totalA, totalB] = process.argv.slice(2);' \
+    'const match = /^## Required JSON\n[\s\S]*?```json\n([\s\S]*?)\n```/m.exec(fs.readFileSync(packetFile, "utf8"));' \
+    'if (!match) throw new Error("packet carries no Required JSON schema");' \
+    'const criteria = JSON.parse(match[1]).properties.plans.items.properties.scores.required;' \
     'const scores = (total) => { const base = Math.floor(Number(total) / criteria.length); const extra = Number(total) % criteria.length; return Object.fromEntries(criteria.map((key, index) => [key, base + (index < extra ? 1 : 0)])); };' \
     'const grade = { packet_id: packet, plans: [{ label: "A", scores: scores(totalA), total: Number(totalA) }, { label: "B", scores: scores(totalB), total: Number(totalB) }], preference: "A", rationale: "fixture" };' \
     'fs.writeFileSync(output, JSON.stringify(grade));' \
@@ -67,6 +72,47 @@ node -e '
   if (summary.mean_absolute_inter_rater_gap !== 2) throw new Error("inter-rater gap");
   if (!summary.judges.one || !summary.judges.two) throw new Error("judge summary");
 ' "$TMP/external/SUMMARY.json" || fail "external-grade summary is wrong"
+for packet in "$TMP"/external/packets/*.md; do
+  grep -q 'decision_completeness' "$packet" && grep -q '"preference"' "$packet" ||
+    fail "packet does not carry the grade schema: $(basename "$packet")"
+done
+
+# Judges are distinct by label, and a label names a grade directory, so a
+# repeated label, one that differs only in case (one directory on a
+# case-insensitive file system), or one that is not a single safe path segment
+# is refused before any packet is written.
+if node "$ROOT/scripts/eval-external.js" \
+  --matrix "$TMP/matrix" \
+  --source-profile codex \
+  --judge "one=$TMP/bin/judge-one" \
+  --judge "one=$TMP/bin/judge-two" \
+  --output "$TMP/external-dup" >/dev/null 2>"$TMP/external-dup.err"; then
+  fail "external grading accepted two judges with the same label"
+fi
+grep -q 'duplicate judge label: one' "$TMP/external-dup.err" ||
+  fail "a duplicate judge label was not named: $(cat "$TMP/external-dup.err")"
+[ ! -e "$TMP/external-dup" ] || fail "a duplicate judge label still wrote output"
+if node "$ROOT/scripts/eval-external.js" \
+  --matrix "$TMP/matrix" \
+  --source-profile codex \
+  --judge "one=$TMP/bin/judge-one" \
+  --judge "ONE=$TMP/bin/judge-two" \
+  --output "$TMP/external-case" >/dev/null 2>"$TMP/external-case.err"; then
+  fail "external grading accepted judge labels that differ only in case"
+fi
+grep -q 'duplicate judge label: ONE' "$TMP/external-case.err" ||
+  fail "a case-variant judge label was not named: $(cat "$TMP/external-case.err")"
+[ ! -e "$TMP/external-case" ] || fail "a case-variant judge label still wrote output"
+if node "$ROOT/scripts/eval-external.js" \
+  --matrix "$TMP/matrix" \
+  --source-profile codex \
+  --judge "../one=$TMP/bin/judge-one" \
+  --judge "two=$TMP/bin/judge-two" \
+  --output "$TMP/external-label" >/dev/null 2>"$TMP/external-label.err"; then
+  fail "external grading accepted a judge label that is not a path segment"
+fi
+grep -q 'invalid judge label: \.\./one' "$TMP/external-label.err" ||
+  fail "an unsafe judge label was not named: $(cat "$TMP/external-label.err")"
 
 printf '%s\n' \
   '#!/usr/bin/env bash' \
@@ -184,6 +230,7 @@ node -e '
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' > "$PROBE/VERIFY.sh"
 run_probe "$TMP/probe-rerun" >/dev/null 2>&1 || fail "a passing probe run failed"
 [ -f "$TMP/probe-rerun/SUMMARY.json" ] || fail "a passing probe run wrote no summary"
+[ -f "$TMP/probe-rerun/SUMMARY.md" ] || fail "a passing probe run wrote no SUMMARY.md"
 printf '%s\n' '#!/usr/bin/env bash' 'kill -TERM $$' > "$PROBE/VERIFY.sh"
 if run_probe "$TMP/probe-rerun" >/dev/null 2>"$TMP/probe-rerun.err"; then
   fail "a verifier stopped by a signal was scored as a verification result"
@@ -191,5 +238,6 @@ fi
 grep -q 'harness error: VERIFY.sh was stopped by SIGTERM' "$TMP/probe-rerun.err" ||
   fail "a signalled verifier was not a harness error: $(cat "$TMP/probe-rerun.err")"
 [ ! -e "$TMP/probe-rerun/SUMMARY.json" ] || fail "a failed rerun left the earlier SUMMARY.json in place"
+[ ! -e "$TMP/probe-rerun/SUMMARY.md" ] || fail "a failed rerun left the earlier SUMMARY.md in place"
 
 echo "ok   [evidence-harnesses]"

@@ -1,6 +1,6 @@
 # Exemplar module: the quality bar, worked
 
-Loaded before the Phase 5b prose-integrity pass and again before Phase 6 scoring. Five plan elements are shown twice: the version that fails and the version that ships. The difference is always the same difference: the bad version survives substitution into any other project; the good version could only belong to this one.
+Loaded before the Phase 5b prose-integrity pass and again before Phase 6 scoring. Six plan elements are shown as the version that fails and the version that ships. The difference is always the same difference: the bad version survives substitution into any other project; the good version could only belong to this one.
 
 The prose-integrity gate in section 6 adapts ideas from [cursor/pstack unslop](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md) (MIT, Lauren Tan): preserve meaning while removing model-like filler, then check the result again. The wording and project-specific gate below are original to godplans; no source text or catalog is copied.
 
@@ -34,9 +34,11 @@ Falsifier:
 - Signal: p95 read latency on the largest workspace and active workspace count
 - Failure boundary: p95 exceeds 250 ms for seven days, or active workspaces exceed 5,000 before Phase 5
 - Replan action: return to planning and evaluate the rejected schema-per-tenant migration
-Hypothesis flagged: Neon cold-start latency under 500ms on the free
-tier is acceptable for the beta. Validation: GP-105 measures p95
-connect latency; if over 500ms, move to a warm instance before Phase 3.
+
+### Assumptions ledger
+- A1: Neon cold-start connect latency stays under 500 ms on the free tier during the beta (assumed; no latency budget was stated)
+  - Blast radius: wrong costs +1 task and +0 phases; a warm instance replaces the free tier before Phase 3
+  - Validated by: GP-105
 ```
 
 ## 2. A task

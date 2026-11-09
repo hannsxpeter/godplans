@@ -255,6 +255,15 @@ expect "description-parity flags both manifests and names the fix" 1 \
   "FAIL [description-parity] .claude-plugin/marketplace.json godplans plugin entry description differs from the SKILL.md frontmatter description" \
   "copy the SKILL.md description into it verbatim"
 
+# The marketplace tagline is a hand copy of package.json, not of SKILL.md.
+fresh
+perl -0pi -e 's/("metadata": \{\s*"description": )"[^"]*"/$1"A stale tagline"/' "$CASE/.claude-plugin/marketplace.json"
+run description-parity
+expect "description-parity flags a stale marketplace tagline" 1 \
+  "FAIL [description-parity] .claude-plugin/marketplace.json metadata description differs from the package.json description" \
+  "copy the package.json description into it verbatim"
+lacks "a stale tagline is not blamed on the plugin entry" "godplans plugin entry description differs"
+
 fresh
 perl -0pi -e 's/("plugins": \[\s*\{\s*"name": )"godplans"/$1"godplan"/' "$CASE/.claude-plugin/marketplace.json"
 run description-parity
@@ -339,11 +348,11 @@ expect "requirement prefixes are compared with the modules" 1 \
   "FAIL [domain-parity] skills/godplans/references/seo.md defines R-SEO-N requirements, but %module_prefix gives seo the prefix SEOX"
 
 # The validator derives the prefix-to-module map with reverse; a validator
-# with neither that line nor a %requirement_domain table fails.
+# without that line fails.
 fresh
 perl -0pi -e 's/^my %prefix_module = reverse %module_prefix;\n//m' "$CASE/skills/godplans/scripts/validate-plan.sh"
 run domain-parity
-expect "a validator with no prefix-to-module map fails" 1 "FAIL [domain-parity] skills/godplans/scripts/validate-plan.sh prefix-to-module map: cannot find %prefix_module = reverse %module_prefix or a %requirement_domain table"
+expect "a validator with no prefix-to-module map fails" 1 "FAIL [domain-parity] skills/godplans/scripts/validate-plan.sh prefix-to-module map: cannot find %prefix_module = reverse %module_prefix"
 perl -0pi -e 's/^(my %module_prefix = \(.*?\);\n)/$1my %prefix_module = reverse %module_prefix;\n/ms' "$CASE/skills/godplans/scripts/validate-plan.sh"
 run domain-parity
 expect "a prefix map derived with reverse passes" 0 "ok   [domain-parity]"
@@ -378,11 +387,13 @@ expect "symlinks-valid flags a missing plugin projection" 1 "FAIL [symlinks-vali
 # ---- json-valid --------------------------------------------------------------
 fresh
 printf '%s\n' '{ invalid json' > "$CASE/evals/cases/brownfield-cli/INPUT/package.json"
-mkdir -p "$CASE/.godplans"
+mkdir -p "$CASE/.godplans" "$CASE/.venv-skills-ref/lib"
 printf '{"truncated": ' > "$CASE/.godplans/PLAN.json"
+printf '{"name": ' > "$CASE/.venv-skills-ref/lib/METADATA.json"
 run json-valid
 expect "json-valid flags a tracked file" 1 "FAIL [json-valid] invalid JSON: evals/cases/brownfield-cli/INPUT/package.json"
 lacks "json-valid skips git-ignored plan output" ".godplans/PLAN.json"
+lacks "json-valid skips the git-ignored validator venv" ".venv-skills-ref"
 
 # ---- shell-syntax ------------------------------------------------------------
 # The printf arguments keep this file's own lines from matching the bash 4
@@ -468,6 +479,11 @@ fresh
 printf '      - uses: actions/checkout@v4\n' >> "$CASE/.github/workflows/lint.yml"
 run action-pins
 expect "action-pins flags the - uses: list-item form" 1 "FAIL [action-pins] floating GitHub Action reference in .github/workflows/lint.yml: actions/checkout@v4"
+
+fresh
+perl -0pi -e 's|actions/checkout\@[0-9a-f]{40}|actions/checkout\@v7|' "$CASE/.github/workflows/lint.yml"
+run action-pins
+expect "action-pins flags a floating plain uses: reference" 1 "FAIL [action-pins] floating GitHub Action reference in .github/workflows/lint.yml: actions/checkout@v7"
 
 fresh
 printf '      - uses: "actions/checkout@%s"\n' 0123456789abcdef0123456789abcdef01234567 >> "$CASE/.github/workflows/lint.yml"

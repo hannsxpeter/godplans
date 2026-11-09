@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "godplans generated plan sidecar, format godplans/plan-json@1 (emitted by godplans 1.13.0 and earlier: 18 applicability rows)",
+  "title": "godplans generated plan sidecar, format godplans/plan-json@1 (emitted by godplans 1.9.0 through 1.13.0: 18 applicability rows; parallel was added in 1.10.0 and archetype_confidence, overlays, module_disposition, documentation, evidence_state, and revisit_when in 1.11.0, so all of them are optional here)",
   "type": "object",
   "required": [
     "format",
@@ -13,16 +13,12 @@
     "mode",
     "product_form",
     "archetype",
-    "archetype_confidence",
-    "overlays",
     "public_release",
     "source_revision",
     "input_digest",
     "validated_at",
     "progress",
     "applicability",
-    "module_disposition",
-    "documentation",
     "decisions",
     "phases",
     "tasks",
@@ -85,7 +81,7 @@
       "maxItems": 18,
       "items": {
         "type": "object",
-        "required": ["domain", "status", "reason", "evidence_state", "revisit_when"],
+        "required": ["domain", "status", "reason"],
         "properties": {
           "domain": { "type": "string", "minLength": 1 },
           "status": { "enum": ["applicable", "deferred", "excluded"] },
@@ -192,7 +188,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "phase", "wave", "done", "parallel", "files", "depends_on", "reuses", "acceptance", "verify", "requirements"],
+        "required": ["id", "phase", "wave", "done", "files", "depends_on", "reuses", "acceptance", "verify", "requirements"],
         "properties": {
           "id": { "type": "string", "pattern": "^GP-[1-9][0-9]{2,}$" },
           "phase": { "type": "integer", "minimum": 1 },

@@ -1,8 +1,8 @@
 {
   "name": "godplans",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "private": true,
-  "description": "Plan everything before anything. A single-command AI agent skill that produces an audit-aware, validated, agent-executable master plan before application code is written.",
+  "description": "Plan everything before anything. One command turns an idea or an existing codebase into an audit-aware, validated master plan (PLAN.mdx), from pricing and product decisions to architecture, security, and launch, that any coding agent executes checkbox by checkbox. For Claude Code, Codex, Cursor, Gemini CLI, OpenCode, and any Agent Skills client.",
   "keywords": [
     "agent-skills",
     "ai-agents",
@@ -32,7 +32,7 @@
     "url": "git+https://github.com/hannsxpeter/godplans.git"
   },
   "license": "MIT",
-  "author": "aihxp (https://github.com/hannsxpeter)",
+  "author": "Hanns Peter (https://github.com/hannsxpeter)",
   "files": [
     "skills",
     "install.sh",
@@ -46,6 +46,7 @@
     "evals/metrics",
     "evals/outcomes/README.md",
     "evals/outcomes/cases",
+    "evals/outcomes/results/2026-07-23-tenant-notes-api-codex/treatment/plan/PLAN.json",
     "evals/runners",
     "evals/README.md",
     "tests",
@@ -76,8 +77,6 @@
     "metrics:check": "node scripts/context-metrics.js --check",
     "build:prompt": "bash scripts/build-prompt.sh",
     "release:check": "bash scripts/release-check.sh",
-    "install:skill": "sh install.sh",
-    "prepack": "npm run check",
-    "postpack": "echo 'Install the skill with: sh install.sh (or npx skills add hannsxpeter/godplans)'"
+    "prepack": "npm run check"
   }
 }
