@@ -1,7 +1,7 @@
 # godplans
 
 [![lint](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml/badge.svg)](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml)
-[![version](https://img.shields.io/badge/version-1.15.0-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.16.0-blue)](CHANGELOG.md)
 [![agent skills](https://img.shields.io/badge/Agent%20Skills-compatible-2f6fed)](skills/godplans/SKILL.md)
 [![planning domains](https://img.shields.io/badge/planning%20domains-19-2f6fed)](#how-it-works)
 [![plan gate](https://img.shields.io/badge/plan%20gate-machine%20checked-2f6fed)](skills/godplans/scripts/validate-plan.sh)
@@ -77,7 +77,7 @@ That is the whole interface. There are no sub-commands to learn.
 2. **One batch of questions.** Three to five of them, only about decisions that are painful to reverse. Every question ships with a recommended answer, so typing `defaults` is a complete response.
 3. **Every decision gets made.** Not deferred to "we'll figure it out in the code."
 4. **The prose is cleaned without changing the plan.** Unsupported attribution, filler, indirect wording, and vocabulary drift are removed while decisions, sources, task edges, and verification stay fixed.
-5. **A critic grades the work.** An independent pass scores each area against its own rubric and sends anything under 85 out of 100 back to be redone.
+5. **A critic grades the work.** An independent pass scores each area against its own rubric and sends anything under 85 out of 100 back to be redone. On request, a council of critics from three model providers scores the plan instead of one.
 6. **You get `.godplans/PLAN.mdx`.** One file. Yours to read, edit, and approve.
 
 The installer refuses to overwrite or remove a folder it does not own. Use `--force` only when replacement is intentional.
@@ -303,7 +303,7 @@ Details in [references/compliance.md](skills/godplans/references/compliance.md).
 
 ## Lineage
 
-godplans consolidates, inverts, and adapts seventeen skills into one command. "Inverts" is the operative word for audit sources: checks those tools run *after* the build became requirements godplans writes *before* it. The eight auditors live together in [hannsxpeter/auditor-suite](https://github.com/hannsxpeter/auditor-suite), and each auditor row links its folder there.
+godplans consolidates, inverts, and adapts eighteen skills into one command. "Inverts" is the operative word for audit sources: checks those tools run *after* the build became requirements godplans writes *before* it. The eight auditors live together in [hannsxpeter/auditor-suite](https://github.com/hannsxpeter/auditor-suite), and each auditor row links its folder there.
 
 | Source | What carries over |
 |---|---|
@@ -323,6 +323,7 @@ godplans consolidates, inverts, and adapts seventeen skills into one command. "I
 | [wayfinder](https://github.com/mattpocock/skills/blob/main/skills/engineering/wayfinder/SKILL.md) (MIT, Matt Pocock) | Two ideas, re-expressed for a single-file plan: a fact lives in exactly one place (the frontmatter domain lists are now checked against the applicability matrix that decides them), and the set of work safe to take next is proved rather than asserted (`[P]` parallel-safety is now enforced, not promised). Also the refer-by-name presentation rule. No text, prompt, or code copied; godplans takes none of its issue-tracker map, ticket types, fog-of-war section, or one-ticket-per-session protocol |
 | [ADHD](https://github.com/UditAkhourii/adhd) (MIT, Udit Akhouri) | Two ideas, re-expressed for planning: the critic must not be the author (Phase 6), and a menu of options is not a set of alternatives (R-STACK-21, the R-ARCH-4 open set, the Open Questions off-framing rule). No text, prompt, or code copied; godplans takes none of its novelty scoring, frame library, or runtime |
 | [pstack unslop](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md) (MIT, Lauren Tan) | The meaning-preserving prose pass before independent scoring: remove unsupported attribution, filler, indirect wording, false symmetry, and vocabulary drift while keeping the plan's decisions, sources, IDs, task edges, and checks fixed. The rules and examples are re-expressed for executable plans; no text or catalog is copied |
+| [tstack council](https://github.com/t3dotgg/tstack/tree/main/skills/council) (MIT, Theo Browne) | The opt-in council mode in Phase 6: three critics from three provider families score the same draft independently, and a missing family is reported instead of substituted. The panel rules are re-expressed for plan scoring; no text is copied |
 
 ## FAQ
 
