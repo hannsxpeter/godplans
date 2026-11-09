@@ -27,7 +27,7 @@ The left column is a rewrite. The right column is a sentence.
 
 Almost everything in an audit report was knowable at plan time. Nobody had collected it there. godplans is that collection, done once, mechanically.
 
-It descends from seventeen skills. Thirteen are sibling skills: arc-ready and ready-suite for the arc tiers; the eight auditors now collected in [auditor-suite](https://github.com/hannsxpeter/auditor-suite) (codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, uxauditor, productauditor) for the audit dimensions; pillars for agent memory; codedna for the style genome; docdna for the documentation set. The other four are the plan discipline of BuilderIO's visual-plan skill, two single-source ideas from Matt Pocock's wayfinder skill, two from Udit Akhouri's ADHD skill, and the meaning-preserving editorial pass from Lauren Tan's pstack unslop skill. Every audit check in the sibling skills was read, inverted into a plan-time requirement, and filed into the domain module that now enforces it. The eight auditors alone contributed several hundred concrete checks; those became the acceptance criteria a godplans plan distributes onto tasks. The unslop concepts are re-expressed for executable plans; no source text or catalog is copied.
+It descends from eighteen skills. Thirteen are sibling skills: arc-ready and ready-suite for the arc tiers; the eight auditors now collected in [auditor-suite](https://github.com/hannsxpeter/auditor-suite) (codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, uxauditor, productauditor) for the audit dimensions; pillars for agent memory; codedna for the style genome; docdna for the documentation set. The other five are the plan discipline of BuilderIO's visual-plan skill, two single-source ideas from Matt Pocock's wayfinder skill, two from Udit Akhouri's ADHD skill, the meaning-preserving editorial pass from Lauren Tan's pstack unslop skill, and the cross-provider critic panel from Theo Browne's tstack council skill. Every audit check in the sibling skills was read, inverted into a plan-time requirement, and filed into the domain module that now enforces it. The eight auditors alone contributed several hundred concrete checks; those became the acceptance criteria a godplans plan distributes onto tasks. The unslop and council concepts are re-expressed for executable plans; no source text or catalog is copied.
 
 The result is an audit-aware plan: checks that can be anticipated become acceptance criteria before implementation starts. That prevents avoidable findings. It does not claim that planning can prove runtime behavior or eliminate the need for an independent audit. Nothing can.
 
@@ -63,9 +63,9 @@ Each of these started as a real failure. The italic line is the short version; t
 
 ### Inversion over orchestration
 
-*Running seventeen skills in a row would have kept all of them stuck at the end.*
+*Running eighteen skills in a row would have kept all of them stuck at the end.*
 
-The obvious way to combine seventeen skills is a pipeline that runs them in order. That preserves their after-the-fact character; the auditors would still be grading finished work. godplans instead moved every check to the earliest moment it could bind: plan time. The auditors remain useful as end-of-project verification that the inversion held.
+The obvious way to combine eighteen skills is a pipeline that runs them in order. That preserves their after-the-fact character; the auditors would still be grading finished work. godplans instead moved every check to the earliest moment it could bind: plan time. The auditors remain useful as end-of-project verification that the inversion held.
 
 ### One question batch
 

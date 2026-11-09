@@ -34,7 +34,7 @@ Plan everything before anything. godplans is a planning superskill: it runs the 
 
 The core move is inversion. Auditors run after the work exists and tell you what is wrong. godplans takes the dimensions those auditors check (code quality, security, database, LLM integration, SEO, UI, UX, product delivery and monetization) and the disciplines the arc tiers enforce (PRD, architecture, roadmap, stack, repo, build, deploy, observability, launch, hardening) and converts applicable checks into plan-time requirements with acceptance criteria on concrete tasks. This is designed to prevent avoidable findings and rewrites; it does not replace runtime verification or an independent final audit.
 
-godplans descends from: hannsxpeter/arc-ready and hannsxpeter/ready-suite (the tier disciplines), hannsxpeter/auditor-suite (codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, uxauditor, and productauditor: the inverted audit dimensions), hannsxpeter/pillars (agent memory), hannsxpeter/codedna (style genome), hannsxpeter/docdna (the documentation set), UditAkhourii/adhd (the critic is not the author), BuilderIO visual-plan (plan discipline and the visual layer), mattpocock/skills wayfinder (one fact in one place, and a frontier that is proved rather than asserted), and cursor/pstack unslop (a meaning-preserving prose integrity pass before independent scoring).
+godplans descends from: hannsxpeter/arc-ready and hannsxpeter/ready-suite (the tier disciplines), hannsxpeter/auditor-suite (codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, uxauditor, and productauditor: the inverted audit dimensions), hannsxpeter/pillars (agent memory), hannsxpeter/codedna (style genome), hannsxpeter/docdna (the documentation set), UditAkhourii/adhd (the critic is not the author), BuilderIO visual-plan (plan discipline and the visual layer), mattpocock/skills wayfinder (one fact in one place, and a frontier that is proved rather than asserted), cursor/pstack unslop (a meaning-preserving prose integrity pass before independent scoring), and t3dotgg/tstack council (a cross-provider review panel that reports a missing member instead of substituting one).
 
 ## Ground rules (non-negotiable)
 
@@ -146,6 +146,8 @@ The author does not grade the author. Run this phase under critic posture, in a 
 
 **6c. Revise and rescore.** Any scored domain below 85: revise that section and rescore. Every revision quotes the deduction it answers. A rescore that raises a domain with no corresponding revision is a self-report and is discarded. Do not raise a score by adding work that breaks the scale ceiling; cut or consolidate first.
 
+**6d. Council (opt-in)** is available in the installed skill only; with this prompt, Phase 6 runs with one critic.
+
 Print the scorecard in chat when done, including whether the critic ran isolated. A plan that would not survive its own descendant auditors does not ship.
 
 ### Phase 7: Emit and hand off
@@ -180,7 +182,7 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 - **Invented numbers**: an availability target, recovery objective, retention period, or review cadence the plan made up so a section would be complete. Cite it, decide it with a falsifier, or ask it.
 - **Ungated promises**: a marker an executor acts on that nothing verifies. `[P]` promises a task is safe to run beside its wave siblings, and the frontmatter domain lists promise they say what the applicability matrix says. Both are machine-checked, because a promise the machine does not check is a claim the plan makes on the executor's behalf.
 
-## Skill version: 1.15.0
+## Skill version: 1.16.0
 
 
 ---
@@ -2198,7 +2200,7 @@ with an R-ROAD-7 validation task scheduled ahead of it, not a question. Write
 
 ## Session log
 
-- YYYY-MM-DD plan created (godplans v1.15.0)
+- YYYY-MM-DD plan created (godplans v1.16.0)
 
 
 ---

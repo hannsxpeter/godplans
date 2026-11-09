@@ -64,3 +64,12 @@ If you are an agent working on this repository itself:
   sources, generators, artifacts, and checks is in
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and the log of drift that
   reviews found is in [docs/DRIFT.md](docs/DRIFT.md).
+
+## Checks
+
+- **Fast** (while editing): `bash scripts/lint.sh unicode-clean`, plus the
+  lint check that covers the file you changed (`bash scripts/lint.sh <check>`).
+- **Full** (before handing work back): `npm run generate` when SKILL.md, a
+  reference module, the PLAN template, the validator, or `plan-halflife.sh`
+  changed, then `npm run check`. Add `npm run eval:check` when `evals/`
+  changed. Never run the model-spending eval commands listed above.

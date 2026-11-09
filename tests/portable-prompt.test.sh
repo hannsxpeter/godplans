@@ -234,4 +234,28 @@ for written in "$REPO_DIR/PROMPT.md" "$REPO_DIR/PROMPT.full.md"; do
 done
 [ ! -e "$REPO_DIR/PROMPT.full.test.md" ] || fail "test run left PROMPT.full.test.md in the repository"
 
+# strip_council must fail the build, not pass quietly, when either boundary of
+# the Phase 6d block is renamed. Build against a fixture that links everything
+# in the skill except a modified SKILL.md.
+council_fixture() {
+  sed_expr=$1
+  fix="$TMP/council-fixture"
+  rm -rf "$fix" || return 1
+  mkdir -p "$fix/scripts" "$fix/skills/godplans" || return 1
+  cp "$BUILD" "$fix/scripts/build-prompt.sh" || return 1
+  for entry in "$REPO_DIR"/skills/godplans/*; do
+    [ "${entry##*/}" = SKILL.md ] || ln -s "$entry" "$fix/skills/godplans/${entry##*/}" || return 1
+  done
+  sed "$sed_expr" "$REPO_DIR/skills/godplans/SKILL.md" > "$fix/skills/godplans/SKILL.md" || return 1
+  [ -s "$fix/skills/godplans/SKILL.md" ] || return 1
+  if bash "$fix/scripts/build-prompt.sh" --output "$TMP/council-fixture.out" >/dev/null 2>"$TMP/council-fixture.err"; then
+    return 1
+  fi
+  grep -Fq "strip_council boundaries" "$TMP/council-fixture.err"
+}
+council_fixture 's/^\*\*6d\. Council (opt-in)\.\*\*/**6d. Panel (opt-in).**/' ||
+  fail "build did not fail when the 6d council heading was renamed"
+council_fixture 's/^Print the scorecard/Show the scorecard/' ||
+  fail "build did not fail when the Print the scorecard paragraph was renamed"
+
 echo "ok   [portable-prompt]"

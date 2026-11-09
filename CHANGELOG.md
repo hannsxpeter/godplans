@@ -3,6 +3,25 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [1.16.0] - 2026-11-09
+
+An opt-in release. The single critic stays the default.
+
+### Added
+
+- Phase 6 gains an optional council mode (6d), adapted from the MIT-licensed
+  t3dotgg/tstack council skill. When the request asks for a council or a
+  cross-provider review, three critics from three model provider families score
+  the same draft independently. A domain passes at a median of 85 or higher,
+  every surviving deduction is answered or dismissed with a reason, and a
+  domain still under 85 after three rounds goes to the user as a blocking
+  disagreement. A missing provider family is reported, never substituted, and
+  fewer than two families falls back to the single critic. The portable prompts
+  omit council (build-prompt.sh swaps the block for a one-line note), so their
+  size budget is unchanged. The SKILL.md lineage line, README step 5, README
+  credits, and ABOUT name tstack.
+- AGENTS.md carries a Checks block with the fast and full commands.
+
 ## [1.15.0] - 2026-10-09
 
 A review-and-repair release. Eight reviewers read 1.14.0 in parallel (public

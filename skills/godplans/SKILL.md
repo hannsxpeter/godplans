@@ -3,7 +3,7 @@ name: godplans
 description: "Produce an audit-aware, agent-executable master plan (PLAN.mdx) before application code is written. One command runs discovery, forces hard-to-reverse decisions, and plans product, business (pricing, entitlements, billing, metrics, feedback), architecture, roadmap, stack, repo, build, deploy, observability, launch, security, code quality, style genome, database, LLM integration, SEO, UI, UX, and agent memory upfront. After-the-fact audit checks become plan-time acceptance criteria, a prose-integrity pass removes generic language without changing meaning, and a self-contained validator enforces task structure and approval state. Use when the user says: plan this project, godplans, master plan, product plan, plan everything upfront, plan before code, audit-aware plan, replan, or starts a greenfield project or major feature. Refuses plan theater, vague tasks without verification, unsupported quality guarantees, and projects whose core purpose violates the Anthropic Usage Policy."
 license: MIT
 metadata:
-  version: "1.15.0"
+  version: "1.16.0"
   author: Hanns Peter
   homepage: https://github.com/hannsxpeter/godplans
 ---
@@ -16,7 +16,7 @@ Plan everything before anything. godplans is a planning superskill: it runs the 
 
 The core move is inversion. Auditors run after the work exists and tell you what is wrong. godplans takes the dimensions those auditors check (code quality, security, database, LLM integration, SEO, UI, UX, product delivery and monetization) and the disciplines the arc tiers enforce (PRD, architecture, roadmap, stack, repo, build, deploy, observability, launch, hardening) and converts applicable checks into plan-time requirements with acceptance criteria on concrete tasks. This is designed to prevent avoidable findings and rewrites; it does not replace runtime verification or an independent final audit.
 
-godplans descends from: hannsxpeter/arc-ready and hannsxpeter/ready-suite (the tier disciplines), hannsxpeter/auditor-suite (codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, uxauditor, and productauditor: the inverted audit dimensions), hannsxpeter/pillars (agent memory), hannsxpeter/codedna (style genome), hannsxpeter/docdna (the documentation set), UditAkhourii/adhd (the critic is not the author), BuilderIO visual-plan (plan discipline and the visual layer), mattpocock/skills wayfinder (one fact in one place, and a frontier that is proved rather than asserted), and cursor/pstack unslop (a meaning-preserving prose integrity pass before independent scoring).
+godplans descends from: hannsxpeter/arc-ready and hannsxpeter/ready-suite (the tier disciplines), hannsxpeter/auditor-suite (codeauditor, secauditor, dbauditor, llmauditor, seoauditor, uiauditor, uxauditor, and productauditor: the inverted audit dimensions), hannsxpeter/pillars (agent memory), hannsxpeter/codedna (style genome), hannsxpeter/docdna (the documentation set), UditAkhourii/adhd (the critic is not the author), BuilderIO visual-plan (plan discipline and the visual layer), mattpocock/skills wayfinder (one fact in one place, and a frontier that is proved rather than asserted), cursor/pstack unslop (a meaning-preserving prose integrity pass before independent scoring), and t3dotgg/tstack council (a cross-provider review panel that reports a missing member instead of substituting one).
 
 ## Ground rules (non-negotiable)
 
@@ -128,6 +128,16 @@ The author does not grade the author. Run this phase under critic posture, in a 
 
 **6c. Revise and rescore.** Any scored domain below 85: revise that section and rescore. Every revision quotes the deduction it answers. A rescore that raises a domain with no corresponding revision is a self-report and is discarded. Do not raise a score by adding work that breaks the scale ceiling; cut or consolidate first.
 
+**6d. Council (opt-in).** Runs only when the user's request asks for a council or cross-provider review (read from the argument text; there is no sub-command). Otherwise Phase 6 runs as written, with one critic as the default.
+
+- **Check first.** Assemble the draft per Phase 7 step 1 before round one, then run `bash .godplans/validate-plan.sh --allow-planning .godplans/PLAN.mdx` and fix what it reports until it exits zero. A round costs three model runs. Phase 7's emission gate still runs at the end.
+- **Panel.** Three delegates, one current flagship model from each of three provider families, as the user or harness picks. Name no model IDs; record the names the harness reports. Use the host's delegation tools or each provider's official client under its own sign-in (`references/compliance.md` A2, Authentication hygiene), never extracted subscription credentials, at high reasoning effort where exposed. Before sending, name in chat the providers that receive the plan; in brownfield mode it describes private code.
+- **No substitution.** Two delegates from one family are not a council. Name any unreachable family. With two families, run and record the council as partial; with fewer, run the single critic and record that council did not run.
+- **Delegates.** Each runs isolated and read-only, never sees another's output, gets the Phase 6 inputs only, runs 6a and 6b, and returns per-domain scores with quoted deductions. Discard any deduction whose quote is not verbatim in the plan. Record a missing score as `no score`; never invent one.
+- **Aggregate.** A domain passes at a median of 85 or higher. In council mode the median rule and the round cap below replace 6c's per-score trigger and open-ended loop; the rest of 6c binds: every revision quotes the deduction it answers, a rescore with no matching revision is discarded, and the scale ceiling holds. Answer each surviving deduction with a revision or dismiss it with a one-line reason printed in chat; a deduction answerable only by work past the ceiling is cut, consolidated, or dismissed with that reason.
+- **Rounds.** One full panel pass is a round; later rounds rescore revised domains only, delegates see the dismissal list, and a dismissal returns only with new evidence. After round three, a domain under 85 goes to the user in the Phase 7 presentation as a blocking disagreement with its deductions; the plan does not ship until the user decides.
+- **Output.** The scorecard shows one column per delegate per round, each domain's median and spread, the panel, round count, and dismissed deductions. Add one Session log line (under 140 characters).
+
 Print the scorecard in chat when done, including whether the critic ran isolated. A plan that would not survive its own descendant auditors does not ship.
 
 ### Phase 7: Emit and hand off
@@ -179,4 +189,4 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 | `scripts/style-stats.py` | Measured style baseline for the style-genome pass (naming histograms, comment density, function length) |
 | `schemas/PLAN.schema.json` | Published JSON Schema for the generated PLAN.json sidecar (`plan-json@2`; `PLAN.v1.schema.json` covers `@1` sidecars) |
 
-## Skill version: 1.15.0
+## Skill version: 1.16.0
