@@ -86,14 +86,30 @@ const fs = require('fs');
 const [packFile, packageFile] = process.argv.slice(2);
 
 const manifest = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
-if (manifest.private !== true) {
-  process.stderr.write('FAIL [package-contents] package.json must be private; godplans is not published to npm\n');
+if (manifest.name !== '@hxp-tools/godplans') {
+  process.stderr.write('FAIL [package-contents] package.json name must be @hxp-tools/godplans\n');
+  process.exit(1);
+}
+if (manifest.private === true) {
+  process.stderr.write('FAIL [package-contents] package.json must not be private; godplans publishes to npm\n');
+  process.exit(1);
+}
+if (!manifest.publishConfig || manifest.publishConfig.access !== 'public') {
+  process.stderr.write('FAIL [package-contents] package.json publishConfig.access must be public\n');
+  process.exit(1);
+}
+if (!manifest.bin || manifest.bin.godplans !== './bin/godplans.js') {
+  process.stderr.write('FAIL [package-contents] package.json bin.godplans must point at ./bin/godplans.js\n');
   process.exit(1);
 }
 
 const payload = JSON.parse(fs.readFileSync(packFile, 'utf8'));
 const paths = new Set(payload[0].files.map((entry) => entry.path));
 for (const required of [
+  'bin/godplans.js',
+  'assets/hero.svg',
+  'assets/quest-map.svg',
+  'assets/plan-loop.svg',
   'scripts/release-check.sh',
   'scripts/eval-matrix.sh',
   'scripts/eval-external.js',

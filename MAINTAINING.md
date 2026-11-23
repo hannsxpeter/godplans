@@ -1,6 +1,6 @@
 # Maintaining godplans
 
-Maintainer rituals. Contributors should read [CONTRIBUTING.md](CONTRIBUTING.md) first. How the pieces fit, and which check catches which stale file, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The release checklist is in [docs/RELEASING.md](docs/RELEASING.md), and this file does not repeat it. Drift found in past reviews, and the check that now prevents each case, is in [docs/DRIFT.md](docs/DRIFT.md).
+Maintainer rituals. Contributors should read [CONTRIBUTING.md](CONTRIBUTING.md) first. How the pieces fit, and which check catches which stale file, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The release checklist is in [docs/RELEASING.md](docs/RELEASING.md), and this file does not repeat it.
 
 ## The version model
 
@@ -30,7 +30,7 @@ Two checks hold the surfaces together:
 
 Never hand-edit a version string, including the badge. `install.sh` reads the version from SKILL.md when it runs, so it needs no edit.
 
-Semver, as practiced so far: patch releases carry documentation, CI, or correctness fixes (1.11.1, 1.12.1, 1.12.2, 1.12.3). Minor releases add requirements, phases, domains, or validator checks (1.12.0, 1.13.0, 1.14.0, 1.15.0). There has been no major release since 1.0.0.
+Semver, as practiced so far: patch releases carry documentation, CI, or correctness fixes (1.11.1, 1.12.1, 1.12.2, 1.12.3). Minor releases add requirements, phases, domains, or validator checks (1.12.0, 1.13.0, 1.14.0, 1.15.0). Major releases change the product surface (2.0.0 published as `@hxp-tools/godplans` with the suite branding).
 
 ## Ritual: adding a domain module
 
@@ -82,7 +82,7 @@ Semver, as practiced so far: patch releases carry documentation, CI, or correctn
 16. **Replan.** A plan written before the domain fails the new validator with "applicability matrix is missing domain <name>". SKILL.md (Modes, Replan) already tells the agent to add the matrix row, the frontmatter entry, and (when applicable) the disposition line, to re-point any documentation row whose catalog owner moved, and to treat an applicable new domain as material. Confirm the message still matches that rule, and say in the CHANGELOG that existing plans need a replan.
 17. **Counts and lists in prose** (no check). Update:
     - in README.md: the "planning domains" badge, the domain-pass node in the How it works diagram and the sentence that lists the passes, the slim-core paragraph (its core list for a core module, or "The other fourteen domain modules" for a lazy one), the repository map's module count, and the lineage table and source count when the module inverts a new source;
-    - the counts in docs/ABOUT.md;
+    - the counts in README.md;
     - the "N domain modules" ground rule in CONTRIBUTING.md and the "N domain modules" bullet in AGENTS.md;
     - in docs/ARCHITECTURE.md: the "Domain modules (N)" row, the core and lazy lists and, for a core module, the "five load-bearing domains" count under "Core and lazy modules", and the `%deferrable_domain`, `%never_excludable`, and `%overlay_domains` rows when step 2 changed them.
 18. **Generate and check.** Run `npm run generate`, then `npm run check`. Release it as a minor version, as 1.14.0 was.
@@ -127,7 +127,7 @@ Some modules cite facts that expire. Review them at least every six months, and 
 
 To refresh: check each fact against its source, then update the review date where the module records one: the business.md Lineage and seo.md's R-SEO-14 (agent-memory.md pins a version, not a date). When productauditor's or seoauditor's `facts.md` has a newer "Last reviewed" date, compare it with the module first. Then run `npm run generate`. business.md, ux.md, seo.md, and agent-memory.md are lazy, so editing them changes only the context metrics. compliance.md and security.md are inlined in the portable core, so editing them also changes PROMPT.md and counts against the budget. Record the review in the CHANGELOG.
 
-In the same pass, confirm that the lineage links resolve: the README Lineage table, the "descends from" paragraph in SKILL.md, docs/ABOUT.md, and each module's Lineage section. No check follows links. The seven standalone auditor repositories were deleted on 2026-07-14, when they were folded into hannsxpeter/auditor-suite, and their links went dead without any failure.
+In the same pass, confirm that the lineage links resolve: the README sibling links, the "descends from" paragraph in SKILL.md, and each module's Lineage section. No check follows links. The seven standalone auditor repositories were deleted on 2026-07-14, when they were folded into hannsxpeter/auditor-suite, and their links went dead without any failure.
 
 ## Ritual: when lint or the self-test fails
 

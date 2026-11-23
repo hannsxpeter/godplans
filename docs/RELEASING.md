@@ -51,9 +51,12 @@ SemVer value.
    included, so a red job blocks the merge.
 7. Pull the merged `main`, create annotated tag `vX.Y.Z`, and push the tag.
 8. Create the GitHub release from the matching CHANGELOG section.
-9. Verify the release page, tag target, default branch version, and a clean
-   local worktree.
-10. Check the repository topics for stale extra topics, the one kind of About
+9. Publish the npm package: `npm publish` (scoped public via
+   `publishConfig.access`). Confirm
+   `https://www.npmjs.com/package/@hxp-tools/godplans`.
+10. Verify the release page, tag target, default branch version, npm version,
+    and a clean local worktree.
+11. Check the repository topics for stale extra topics, the one kind of About
     drift `npm run release:check` does not flag (step 4 enforces the
     description and every `keywords` entry). Remove a topic that no longer
     matches a keyword with `gh repo edit --remove-topic`; GitHub allows at
@@ -92,6 +95,8 @@ git push origin "v$version"
 gh release create "v$version" --verify-tag --title "godplans v$version" --notes-file "$release_notes"
 rm -f "$release_notes"
 trap - EXIT HUP INT TERM
+npm publish
+npm view @hxp-tools/godplans version
 gh repo view hannsxpeter/godplans --json description,repositoryTopics \
   --jq '.description, ([.repositoryTopics[].name] | join(" "))'
 node -p "const p = require('./package.json'); p.description + '\n' + p.keywords.join(' ')"

@@ -3,6 +3,30 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [2.0.0] - 2026-11-23
+
+Product release. godplans ships as `@hxp-tools/godplans` with the same board
+branding as the rest of the hxp-tools family.
+
+### Added
+
+- Public npm package `@hxp-tools/godplans` with `npx @hxp-tools/godplans`
+  wrapping `install.sh`.
+- Brand assets under `assets/`: `hero.svg`, `quest-map.svg`, and `plan-loop.svg`.
+- Gamified README: Press start, quest map levels, and plan loop.
+
+### Changed
+
+- Short package and GitHub About description.
+- README rewritten as a product front door; long lineage and FAQ detail cut.
+- `package.json` is no longer private; `publishConfig.access` is `public`.
+
+### Removed
+
+- `docs/DRIFT.md` and `docs/ABOUT.md` (redundant with README, ARCHITECTURE, and
+  the mechanically enforced checks).
+- `assets/hero.jpg` (replaced by the SVG board).
+
 ## [1.16.0] - 2026-11-09
 
 An opt-in release. The single critic stays the default.

@@ -182,7 +182,7 @@ godplans plans; it does not build. The status lifecycle is `planning -> approved
 - **Invented numbers**: an availability target, recovery objective, retention period, or review cadence the plan made up so a section would be complete. Cite it, decide it with a falsifier, or ask it.
 - **Ungated promises**: a marker an executor acts on that nothing verifies. `[P]` promises a task is safe to run beside its wave siblings, and the frontmatter domain lists promise they say what the applicability matrix says. Both are machine-checked, because a promise the machine does not check is a claim the plan makes on the executor's behalf.
 
-## Skill version: 1.16.0
+## Skill version: 2.0.0
 
 
 ---
@@ -2200,7 +2200,7 @@ with an R-ROAD-7 validation task scheduled ahead of it, not a question. Write
 
 ## Session log
 
-- YYYY-MM-DD plan created (godplans v1.16.0)
+- YYYY-MM-DD plan created (godplans v2.0.0)
 
 
 ---

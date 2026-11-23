@@ -116,8 +116,7 @@ addresses it. That is the whole test.
 Maintainers follow [docs/RELEASING.md](docs/RELEASING.md) for versioned releases
 and [MAINTAINING.md](MAINTAINING.md) for recurring maintenance.
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) maps the pieces and how each
-source flows through a generator to the artifacts and checks that depend on it,
-and [docs/DRIFT.md](docs/DRIFT.md) is the log of drift that reviews found.
+source flows through a generator to the artifacts and checks that depend on it.
 
 ## Good first contributions
 
@@ -131,9 +130,9 @@ places to start:
   `validate-plan.sh` pass it. That is a bug, and the fix comes with a regression case.
 - **A behavioral case.** Add a request under `evals/cases/` whose plan output you can
   assert on deterministically, and list it in `evals/cases-roster.txt`.
-- **Clarity in the docs.** The [README](README.md) and [docs/ABOUT.md](docs/ABOUT.md)
-  should be readable by someone who does not write code. If a paragraph lost you,
-  saying so is a real contribution.
+- **Clarity in the docs.** The [README](README.md) should be readable by someone
+  who does not write code. If a paragraph lost you, saying so is a real
+  contribution.
 
 ## Reporting issues
 

@@ -151,11 +151,11 @@ lacks "--verbose after a name runs nothing else" "[unicode-clean]"
 
 # ---- one failure never stops the run ---------------------------------------
 fresh
-printf 'a \342\200\224 b\n' >> "$CASE/docs/ABOUT.md"
+printf 'a \342\200\224 b\n' >> "$CASE/docs/ARCHITECTURE.md"
 printf '%s\n' '{ invalid json' > "$CASE/evals/cases/brownfield-cli/INPUT/package.json"
 run --all
 expect "--all reports every failing check and runs the rest" 1 \
-  "FAIL [unicode-clean] non-ASCII character in docs/ABOUT.md:" \
+  "FAIL [unicode-clean] non-ASCII character in docs/ARCHITECTURE.md:" \
   "FAIL [json-valid] invalid JSON: evals/cases/brownfield-cli/INPUT/package.json" \
   "ok   [context-metrics]" \
   "FAIL [lint] failing checks: unicode-clean json-valid"
