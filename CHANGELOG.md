@@ -171,7 +171,7 @@ which check now holds it, or that none does.
   GitHub About text. RELEASING.md waits for both CI jobs and splits its commands
   at the merge; `main` now requires both jobs, administrators included.
 - The author and copyright holder is Hanns Peter in LICENSE, `package.json`,
-  both plugin manifests, and SKILL.md, replacing the former handle aihxp; the
+  both plugin manifests, and SKILL.md, replacing the former handle. The
   lineage of product, architecture, and build names hannsxpeter/ready-suite and
   hannsxpeter/arc-ready.
 - Eval cases: product-form-routing accepts `api-service` as well as
@@ -1180,8 +1180,8 @@ Initial release.
 - The godplans Agent Skill: one command that runs discovery, forces every
   hard-to-reverse decision, and emits a complete, agent-executable master
   plan at `.godplans/PLAN.mdx` before any code is written.
-- 18 domain reference modules descending from aihxp arc-ready and
-  ready-suite (product, architecture, roadmap, stack, repo, build, deploy,
+- 18 domain reference modules descending from hannsxpeter/arc-ready and
+  hannsxpeter/ready-suite (product, architecture, roadmap, stack, repo, build, deploy,
   observe, launch), the seven hannsxpeter auditors inverted into plan-time
   requirements (security from secauditor and harden-ready, code-quality
   from codeauditor, database from dbauditor, llm from llmauditor, seo from
