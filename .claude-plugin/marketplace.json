@@ -5,8 +5,8 @@
     "url": "https://github.com/hannsxpeter"
   },
   "metadata": {
-    "description": "Plan everything before anything. Nineteen domains, one validated master plan, checkbox tasks any coding agent can execute.",
-    "version": "2.0.0"
+    "description": "Plan everything before anything. Ask, decide, grade, clear the gate. A planning skill for AI coding tools.",
+    "version": "2.0.1"
   },
   "plugins": [
     {

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 520" width="1280" height="520" role="img" aria-labelledby="t d">
+  <title id="t">The godplans quest map</title>
+  <desc id="d">Six stages in order: orient, ask, decide, invert, grade, gate. The plan gate is the boss, and it opens only when the validator passes and you approve the plan.</desc>
+  <defs>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#1D2A40" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="520" fill="#101722"/>
+  <rect width="1280" height="520" fill="url(#grid)"/>
+  <text x="48" y="58" font-family="Newsreader, Georgia, 'Times New Roman', serif" font-weight="600" font-size="34" fill="#F2EBDD">The quest map</text>
+  <text x="48" y="88" font-family="Archivo, 'Helvetica Neue', Arial, sans-serif" font-size="16" fill="#9AA7BD">/godplans walks every stage in one run. No code gets written until the gate falls.</text>
+  <path d="M120 250H1030" stroke="#2B3A55" stroke-width="10" stroke-dasharray="4 10"/>
+  <path d="M120 250H880" stroke="#4FD1A1" stroke-width="6"/>
+  <g font-family="Archivo, 'Helvetica Neue', Arial, sans-serif" text-anchor="middle">
+    <g fill="#182233" stroke="#4FD1A1" stroke-width="4">
+      <rect x="88" y="218" width="64" height="64"/>
+      <rect x="278" y="218" width="64" height="64"/>
+      <rect x="468" y="218" width="64" height="64"/>
+      <rect x="658" y="218" width="64" height="64"/>
+      <rect x="848" y="218" width="64" height="64"/>
+    </g>
+    <g font-family="Newsreader, Georgia, 'Times New Roman', serif" font-weight="600" font-size="34" fill="#4FD1A1">
+      <text x="120" y="262">1</text><text x="310" y="262">2</text><text x="500" y="262">3</text><text x="690" y="262">4</text><text x="880" y="262">5</text>
+    </g>
+    <g font-weight="600" font-size="20" letter-spacing="2" fill="#F2EBDD">
+      <text x="120" y="324">ORIENT</text><text x="310" y="324">ASK</text><text x="500" y="324">DECIDE</text><text x="690" y="324">INVERT</text><text x="880" y="324">GRADE</text>
+    </g>
+    <g font-size="15" fill="#4FD1A1">
+      <text x="120" y="350">new, existing, replan</text><text x="310" y="350">3 to 5 questions</text><text x="500" y="350">19 domains</text><text x="690" y="350">audit checks</text><text x="880" y="350">85 of 100</text>
+    </g>
+    <g font-size="14" fill="#9AA7BD">
+      <text x="120" y="378">reads the repo first</text>
+      <text x="310" y="378">"defaults" is an answer</text>
+      <text x="500" y="378">decide, defer, or exclude</text>
+      <text x="690" y="378">become task criteria</text>
+      <text x="880" y="378">independent critic</text>
+    </g>
+    <path d="M1090 168L1152 190V250C1152 288 1124 316 1090 330C1056 316 1028 288 1028 250V190Z" fill="#2A1A1E" stroke="#FF6B57" stroke-width="5"/>
+    <text x="1090" y="244" font-family="Newsreader, Georgia, 'Times New Roman', serif" font-weight="600" font-size="42" fill="#FF6B57">6</text>
+    <text x="1090" y="278" font-weight="600" font-size="16" letter-spacing="2" fill="#F2EBDD">PLAN GATE</text>
+    <text x="1090" y="146" font-weight="600" font-size="14" letter-spacing="3" fill="#FF6B57">FINAL BOSS</text>
+    <text x="1090" y="358" font-size="15" fill="#FF6B57">validate-plan.sh</text>
+    <text x="1090" y="378" font-size="14" fill="#9AA7BD">falls only to your approval</text>
+  </g>
+  <g font-family="Archivo, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#9AA7BD">
+    <rect x="48" y="450" width="14" height="14" fill="none" stroke="#4FD1A1" stroke-width="3"/>
+    <text x="72" y="462">stage</text>
+    <rect x="150" y="450" width="14" height="14" fill="none" stroke="#FF6B57" stroke-width="3"/>
+    <text x="174" y="462">boss gate: the validator passes and you approve before any agent builds</text>
+    <text x="1232" y="462" text-anchor="end">one file: .godplans/PLAN.mdx</text>
+  </g>
+</svg>

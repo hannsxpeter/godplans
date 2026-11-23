@@ -107,9 +107,12 @@ const payload = JSON.parse(fs.readFileSync(packFile, 'utf8'));
 const paths = new Set(payload[0].files.map((entry) => entry.path));
 for (const required of [
   'bin/godplans.js',
-  'assets/hero.svg',
-  'assets/quest-map.svg',
-  'assets/plan-loop.svg',
+  'docs/assets/hero.svg',
+  'docs/assets/quest-map.svg',
+  'docs/assets/badge-graded.svg',
+  'docs/assets/badge-validated.svg',
+  'docs/assets/badge-approved.svg',
+  'docs/assets/badge-done.svg',
   'scripts/release-check.sh',
   'scripts/eval-matrix.sh',
   'scripts/eval-external.js',
