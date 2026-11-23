@@ -1,88 +1,166 @@
 <p align="center">
-  <img src="assets/hero.svg" alt="godplans 2.0.0. Plan everything before anything. Status board lists 19 domains, one command, critic gate 85 of 100, validated plan gate, and .godplans/ artifacts." width="100%">
+  <img src="https://raw.githubusercontent.com/hannsxpeter/godplans/main/docs/assets/hero.svg" alt="godplans. Plan everything before anything. Orient, ask, decide, invert, grade, then the plan gate." width="100%">
 </p>
 
-<p align="center">
-  <a href="https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml"><img alt="verify" src="https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml/badge.svg"></a>
-  <a href="https://www.npmjs.com/package/@hxp-tools/godplans"><img alt="npm" src="https://img.shields.io/npm/v/@hxp-tools/godplans.svg"></a>
-  <a href="CHANGELOG.md"><img alt="version" src="https://img.shields.io/badge/version-2.0.0-blue"></a>
-  <a href="skills/godplans/SKILL.md"><img alt="agent skills" src="https://img.shields.io/badge/Agent%20Skills-compatible-2f6fed"></a>
-  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue"></a>
-</p>
+[![npm](https://img.shields.io/npm/v/@hxp-tools/godplans)](https://www.npmjs.com/package/@hxp-tools/godplans)
+[![CI](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml/badge.svg)](https://github.com/hannsxpeter/godplans/actions/workflows/lint.yml)
+[![version](https://img.shields.io/badge/version-2.0.1-blue)](CHANGELOG.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-<h3 align="center">Plan everything before anything.</h3>
+godplans turns the start of a software project into a quest with rules. The
+model does the planning. godplans adds what a model will not do on its own: ask
+only the questions that are expensive to get wrong, force a decision in all
+nineteen planning domains, turn the checks an auditor would run at the end into
+acceptance criteria at the start, grade the draft with an independent critic,
+and lock the result behind a validator and your sign-off. Nothing gets built
+from a plan you have not approved.
 
-<p align="center"><em>You answer a few hard questions. godplans writes the plan. Any coding agent clears the checkboxes.</em></p>
-
-godplans turns an idea or an existing codebase into one audit-aware master plan
-(`.godplans/PLAN.mdx`) before application code is written. Nineteen planning
-domains force the decisions that are expensive to reverse. Anticipatable audit
-checks become task acceptance criteria. A self-contained validator keeps the
-plan honest. Sibling of [godpowers](https://github.com/hannsxpeter/godpowers)
-and [godaudits](https://github.com/hannsxpeter/godaudits). Part of
-[`@hxp-tools`](https://www.npmjs.com/org/hxp-tools).
-
----
+It is one skill and one command. The output is one file,
+`.godplans/PLAN.mdx`, that any coding agent executes checkbox by checkbox.
 
 ## Press start
 
 ```bash
-npx @hxp-tools/godplans@latest
-# or install the skill into your harnesses:
-npx skills add hannsxpeter/godplans
-# or from source:
-git clone https://github.com/hannsxpeter/godplans
-cd godplans && sh install.sh
+npx @hxp-tools/godplans
 ```
 
-Then, inside your agent, clear the first level:
+That installs the skill for every coding tool it finds. Use `--project` to
+install into the current project instead of your home directory,
+`--tools claude,codex` to pick hosts, and `--uninstall` to remove exactly what
+it installed.
 
-| Host | First run |
-|---|---|
-| Claude Code, Cursor, VS Code, Factory | `/godplans I want to build ...` |
-| Codex | `$godplans` |
-| Windsurf | `@godplans` |
+Then, in any project folder, describe what you want to build:
 
-Everything lands in `.godplans/`. Planning is read-only against your app code.
+```text
+/godplans I want to build a shared expense tracker for roommates
+```
 
-### Claude Code plugin (alternative)
+In Codex the command is `$godplans`; in Windsurf it is `@godplans`.
+
+Claude Code can also install it as a plugin (the command is namespaced, for
+example `/godplans:godplans`):
 
 ```text
 /plugin marketplace add hannsxpeter/godplans
 /plugin install godplans@godplans
 ```
 
-Claude Code prefixes plugin skills, so the command becomes `/godplans:godplans`.
-
----
+Pick one install method per host. `npx skills add hannsxpeter/godplans` and a
+git clone with `sh install.sh` still work.
 
 ## The quest map
 
-One command. Five levels. Each writes or unlocks artifacts under `.godplans/`.
-
 <p align="center">
-  <img src="assets/quest-map.svg" alt="Quest map with five levels: greenfield, brownfield, replan, approve, execute." width="100%">
+  <img src="https://raw.githubusercontent.com/hannsxpeter/godplans/main/docs/assets/quest-map.svg" alt="Quest map: orient, ask, decide, invert, grade, then the plan gate as the final boss." width="100%">
 </p>
 
-| Level | Clear it with | Reward |
-|---|---|---|
-| 1. Greenfield | `/godplans` on a new idea | `PLAN.mdx` |
-| 2. Brownfield | `/godplans` in an existing repo | cited real file paths |
-| 3. Replan | `/godplans` when reality moved | completed work kept |
-| 4. Approve | set `status: approved` | agents may build |
-| 5. Execute | any coding agent | checkboxes clear to `done` |
+| Stage | What happens |
+| --- | --- |
+| Orient | Greenfield, brownfield, or replan. In an existing repo it reads the stack, structure, and style first, and the plan cites real files. |
+| Ask | One batch of three to five questions, only about decisions that are painful to reverse. Each ships with a recommended answer, so `defaults` is a complete reply. |
+| Decide | Every one of the nineteen domains is planned now, deferred behind a named trigger, or excluded with a reason. |
+| Invert | Checks an auditor would run after the build become acceptance criteria on specific tasks before it. |
+| Grade | An independent critic scores every applicable domain. Anything under 85 out of 100 is revised and rescored. |
+| Gate | The validator has to pass and you have to approve. Until then, agents refuse to build. |
 
-The game layer is a map, not a scoreboard. There are no points or XP. The real
-gates are the critic scores (85 of 100 per domain) and the machine-checked
-validator.
+Before any of it, the idea is screened against the
+[Anthropic Usage Policy](https://www.anthropic.com/legal/aup). Prohibited
+purposes are refused by name, and legitimate projects with risky parts get
+mandatory guardrail tasks.
+
+## Three ways in
+
+| Mode | When | What you get |
+| --- | --- | --- |
+| Greenfield | A brand new idea | The full plan from one sentence |
+| Brownfield | An existing codebase | A plan that extends what is there and cites real files |
+| Replan | Reality moved | Completed work kept, new work under new IDs, dead tasks struck through with the reason |
+
+There are no sub-commands. The mode comes from what is on disk.
+
+## Achievements
+
+An achievement is a state your plan reaches, earned in order. None of them can
+be claimed by editing a checkbox.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hannsxpeter/godplans/main/docs/assets/badge-graded.svg" alt="Achievement: Graded. Every applicable domain scored 85 or higher." width="240">
+  <img src="https://raw.githubusercontent.com/hannsxpeter/godplans/main/docs/assets/badge-validated.svg" alt="Achievement: Validated. The plan validator passed on this exact plan." width="240">
+  <img src="https://raw.githubusercontent.com/hannsxpeter/godplans/main/docs/assets/badge-approved.svg" alt="Achievement: Approved. You signed off on the plan, so agents may build." width="240">
+  <img src="https://raw.githubusercontent.com/hannsxpeter/godplans/main/docs/assets/badge-done.svg" alt="Achievement: Done. The final verification phase passed." width="240">
+</p>
+
+| Achievement | Earned by |
+| --- | --- |
+| Graded | The critic scores every applicable domain 85 or higher and prints the scorecard |
+| Validated | `validate-plan.sh` passes on the plan as written |
+| Approved | You set `status: approved` after reading the plan |
+| Done | The mandatory final verification phase passes |
+
+Validated and Done are backed by executed commands. Graded is the critic's
+scorecard, and Approved is your decision; see [Limits](#limits).
+
+## The final boss: the plan gate
+
+The plan has a lifecycle, and the validator enforces it:
+`planning -> approved -> executing -> done`.
+
+| Status | What it allows |
+| --- | --- |
+| `planning` | Drafting and review. Agents refuse to build. |
+| `approved` | You signed off. The first task moves it to `executing`. |
+| `executing` | Agents clear tasks; each one proves itself with its own verify command. |
+| `done` | Only a passing final verification phase sets it. Nothing marks itself complete. |
+
+```bash
+# check a draft before you approve it
+bash .godplans/validate-plan.sh --allow-planning .godplans/PLAN.mdx
+
+# the execution gate, after approval
+bash .godplans/validate-plan.sh .godplans/PLAN.mdx
+
+# reprove a finished phase before the next one starts
+bash .godplans/validate-plan.sh --drift-check 1 .godplans/PLAN.mdx
+```
+
+The drift check reruns a sample of completed verify commands and the phase
+checkpoint. Any failure sends the plan back to `planning`.
+
+## Your save file
+
+Everything lives in `.godplans/`, which you commit with your code:
+
+- `PLAN.mdx`: the plan. Objective and non-goals, decisions with the
+  alternatives that were rejected, numbered requirements, architecture
+  diagrams, phases of checkbox tasks, and exactly one Open Questions section.
+- `PLAN.json`: a typed sidecar generated from the MDX, for tools that should
+  not parse markdown.
+- `validate-plan.sh`: a self-contained copy of the validator, so the agent
+  that builds the plan does not need godplans installed.
+
+Every task names its files, dependencies, acceptance criteria, one verify
+command, and the requirements it serves:
+
+```markdown
+- [ ] GP-203 [W2.1] Add workspace scoping to the expenses table
+  - Files: db/migrations/003_expenses_workspace.sql, src/db/expenses.ts
+  - Depends on: GP-104
+  - Reuses: the workspace helper already in src/db/tenancy.ts
+  - Acceptance: every expenses query filters on workspace_id
+  - Verify: `npm run test:tenancy`
+  - Requirements: R-2.3, R-SEC-4
+```
+
+Close the laptop mid-build, come back in three weeks, switch tools: work
+resumes by reading the file, not the chat.
 
 <details>
-<summary>What the 19 domains cover</summary>
+<summary>The nineteen domains</summary>
 
-| Area | Question |
-|---|---|
+| Domain | Question it settles |
+| --- | --- |
 | Product | What to build and for whom? |
-| Business | Who pays, for what, and how success is measured? |
+| Business | Who pays, for what, and how is success measured? |
 | Architecture | How do the pieces fit under load? |
 | Stack | On what technology? |
 | Database | How is data modeled, indexed, and protected? |
@@ -93,7 +171,7 @@ validator.
 | Search visibility | Can search and answer engines find it? |
 | Code quality | Is it readable, tested, and safe to change? |
 | Style genome | Does new code match the neighborhood? |
-| Agent memory | Do AI instruction files actually load? |
+| Agent memory | Do the instruction files coding agents read actually load? |
 | Repository | Is the project set up for others? |
 | Build | Is anything stubbed or faked? |
 | Roadmap | Is the sequence coherent and honest? |
@@ -101,102 +179,68 @@ validator.
 | Observe | Would you know when it breaks? |
 | Launch | Is it ready for the public? |
 
-A domain that does not apply yet is deferred behind a trigger or excluded with
-a reason. A command-line tool does not get a hollow search-visibility section.
+A command-line tool excludes search visibility with a reason instead of
+getting a hollow section about it.
 
 </details>
 
----
-
-## Plan loop
-
-<p align="center">
-  <img src="assets/plan-loop.svg" alt="Plan loop: orient, ask, decide, grade, emit, execute." width="100%">
-</p>
-
-**What you get**
-
-| File | What it is |
-|---|---|
-| `PLAN.mdx` | Readable master plan with checkbox tasks |
-| `PLAN.json` | Typed sidecar for tools that should not parse MDX |
-| `validate-plan.sh` | Self-contained companion that proves the plan contract |
-
-A task looks like this:
-
-```markdown
-- [ ] GP-203 [W2.1] Add workspace scoping to the expenses table
-  - Files: db/migrations/003_expenses_workspace.sql, src/db/expenses.ts
-  - Depends on: GP-104
-  - Acceptance: every expenses query filters on workspace_id
-  - Verify: `npm run test:tenancy`
-  - Requirements: R-2.3, R-SEC-4
-```
-
-Lifecycle: `planning -> approved -> executing -> done`. Agents refuse to build
-from an unapproved plan. Only a passing final verification phase can mark it
-`done`.
-
-```bash
-bash .godplans/validate-plan.sh --allow-planning .godplans/PLAN.mdx
-bash .godplans/validate-plan.sh .godplans/PLAN.mdx
-bash .godplans/validate-plan.sh --drift-check 1 .godplans/PLAN.mdx
-```
-
----
-
-## Why plan first
-
-An audit that finds a missing tenant-isolation policy after three weeks has
-found a rewrite. A plan that requires that policy before the first migration
-has prevented one.
-
-godplans closes the gap between planning tools and after-the-fact auditors by
-moving anticipatable checks into the blueprint. Sibling auditors live in
-[auditor-suite](https://github.com/hannsxpeter/auditor-suite). Execution and
-evidence-backed "done" live in
-[godpowers](https://github.com/hannsxpeter/godpowers). End-of-build scoring
-lives in [godaudits](https://github.com/hannsxpeter/godaudits).
-
-"Audit-aware" means fewer preventable findings. It does not mean guaranteed
-audit-clean, and it does not replace tests or an independent review.
-
----
-
 ## Works with your tools
 
-| Tool | Install path | Invoke |
-|---|---|---|
-| Claude Code | `~/.claude/skills/godplans` | `/godplans` |
-| Codex CLI | `~/.agents/skills/godplans` | `$godplans` |
-| Cursor / VS Code / Copilot | `.agents` and `.claude` paths | `/godplans` |
-| Windsurf | compat paths; native Windsurf skills | `@godplans` |
-| Gemini CLI / OpenCode / Amp | `~/.agents/skills/godplans` | auto |
-| Any chat UI | paste [PROMPT.md](PROMPT.md) | manual |
+| Tool | Invoke |
+| --- | --- |
+| Claude Code, Cursor, VS Code and Copilot, Factory | `/godplans` |
+| Codex CLI | `$godplans` |
+| Windsurf | `@godplans` |
+| Gemini CLI, OpenCode, Amp, Cline, Zed | picked up from the shared skill paths |
+| Any chat UI, Aider, T3 Chat | paste [PROMPT.md](PROMPT.md) |
 
-No skill support? Paste [PROMPT.md](PROMPT.md) and attach lazy modules from
-`skills/godplans/references/` as needed.
+## Limits
 
----
+- Graded is an attestation: the critic's scorecard is printed in chat, and the
+  validator does not re-run it. Validated and Done are backed by executed
+  commands.
+- "Audit-aware" means fewer preventable findings, not audit-clean. Planning
+  cannot prove runtime behavior and does not replace tests, a security review,
+  or an independent audit.
+- godplans plans. It does not build. Any coding agent executes the plan.
+- Planning this thoroughly costs tokens; see the numbers below.
 
-## Docs
+## Honest status
 
-| Path | Role |
-|---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Sources, generators, artifacts, checks |
-| [`docs/RELEASING.md`](docs/RELEASING.md) | Release checklist |
-| [`MAINTAINING.md`](MAINTAINING.md) | Maintainer rituals |
-| [`CHANGELOG.md`](CHANGELOG.md) | Release history |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Style rules before a PR |
+One published head-to-head, on godplans 1.9.0 with gpt-5.6-sol on the Codex
+CLI (2026-07-23). The same builder built the same multi-tenant notes API twice,
+once from a godplans plan and once from the plain request. Both passed the same
+functional tests. A blind auditor then scored both repositories:
 
-## Development
+| | Critical findings | High findings |
+| --- | --- | --- |
+| Built from a godplans plan | 0 | 1 |
+| Built without one | 1 | 4 |
 
-```bash
-npm test
-npm run lint
-npm run check
-```
+Planning used 11,236,025 cumulative tokens against 162,816 for the control.
+That is one case on one model, and no later version has been re-measured. The
+[method, limits, and raw artifacts](evals/outcomes/results/2026-07-23-tenant-notes-api-codex/README.md)
+are published in full. If you run the harness, share the numbers, especially
+the ones that make godplans look bad.
 
-## License
+## The family
 
-[MIT](LICENSE).
+godplans is part of [`@hxp-tools`](https://www.npmjs.com/org/hxp-tools):
+
+- [godpowers](https://github.com/hannsxpeter/godpowers): project memory on disk
+  and no "done" without evidence. Executes plans.
+- [goddesign](https://github.com/hannsxpeter/goddesigns): draw one card, lock
+  it, clear the gate. Designs pages.
+- [godaudits](https://github.com/hannsxpeter/godaudits): evidence-first audits
+  after the build. Plan requirement `R-SEC-3` pairs with audit check `A-SEC-3`.
+
+## More
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Releasing](docs/RELEASING.md)
+- [Maintaining](MAINTAINING.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
+- [Changelog](CHANGELOG.md)
+
+MIT licensed.

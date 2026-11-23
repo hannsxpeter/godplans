@@ -3,6 +3,32 @@
 All notable changes to godplans are documented here. The format follows
 Keep a Changelog; versioning follows SemVer.
 
+## [2.0.1] - 2026-11-23
+
+A brand release. godplans now uses the same quest design system as godpowers
+and goddesign. No skill, module, validator, or plan-format change.
+
+### Added
+
+- `docs/assets/hero.svg` and `docs/assets/quest-map.svg`: the navy grid board
+  with mint stages and the plan gate as the coral final boss.
+- Four achievement badges under `docs/assets/`: Graded, Validated, Approved,
+  and Done, each tied to a real plan state.
+
+### Changed
+
+- README rebuilt on the family layout: Press start, the quest map, three ways
+  in, achievements, the final boss, your save file, limits, and honest status.
+  Images load from raw GitHub URLs so they render on npm too.
+- Package, marketplace, and GitHub About description: "Plan everything before
+  anything. Ask, decide, grade, clear the gate. A planning skill for AI coding
+  tools."
+
+### Removed
+
+- The 2.0.0 `assets/` board (hero, quest map, plan loop), which followed the
+  godaudits style instead of the family style.
+
 ## [2.0.0] - 2026-11-23
 
 Product release. godplans ships as `@hxp-tools/godplans` with the same board

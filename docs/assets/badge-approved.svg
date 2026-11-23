@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" width="320" height="96" role="img" aria-labelledby="t">
+  <title id="t">Achievement: Approved. You signed off, so agents may build.</title>
+  <rect width="320" height="96" fill="#101722"/>
+  <rect x="2" y="2" width="316" height="92" fill="#182233" stroke="#FF9F5A" stroke-width="4"/>
+  <rect x="14" y="14" width="68" height="68" fill="#FF9F5A"/>
+  <path d="M38 40V32C38 25 43 21 49 21C55 21 59 25 60 31" fill="none" stroke="#101722" stroke-width="6"/>
+  <rect x="28" y="40" width="40" height="32" fill="#101722"/>
+  <rect x="45" y="50" width="6" height="12" fill="#FF9F5A"/>
+  <text x="98" y="38" font-family="Newsreader, Georgia, 'Times New Roman', serif" font-weight="600" font-size="28" fill="#F2EBDD">Approved</text>
+  <text x="98" y="60" font-family="Archivo, 'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#9AA7BD">You signed off on the plan,</text>
+  <text x="98" y="78" font-family="Archivo, 'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#9AA7BD">so agents may build.</text>
+</svg>

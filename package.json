@@ -1,7 +1,7 @@
 {
   "name": "@hxp-tools/godplans",
-  "version": "2.0.0",
-  "description": "Plan everything before anything. Nineteen domains, one validated master plan, checkbox tasks any coding agent can execute.",
+  "version": "2.0.1",
+  "description": "Plan everything before anything. Ask, decide, grade, clear the gate. A planning skill for AI coding tools.",
   "keywords": [
     "agent-skills",
     "ai-agents",
@@ -42,7 +42,6 @@
   },
   "files": [
     "bin",
-    "assets",
     "skills",
     "install.sh",
     "scripts",
