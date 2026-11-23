@@ -1,8 +1,7 @@
 {
-  "name": "godplans",
-  "version": "1.16.0",
-  "private": true,
-  "description": "Plan everything before anything. One command turns an idea or an existing codebase into an audit-aware, validated master plan (PLAN.mdx), from pricing and product decisions to architecture, security, and launch, that any coding agent executes checkbox by checkbox. For Claude Code, Codex, Cursor, Gemini CLI, OpenCode, and any Agent Skills client.",
+  "name": "@hxp-tools/godplans",
+  "version": "2.0.0",
+  "description": "Plan everything before anything. Nineteen domains, one validated master plan, checkbox tasks any coding agent can execute.",
   "keywords": [
     "agent-skills",
     "ai-agents",
@@ -25,15 +24,25 @@
     "security-by-design",
     "developer-tools"
   ],
-  "homepage": "https://github.com/hannsxpeter/godplans",
-  "bugs": "https://github.com/hannsxpeter/godplans/issues",
+  "homepage": "https://github.com/hannsxpeter/godplans#readme",
+  "bugs": {
+    "url": "https://github.com/hannsxpeter/godplans/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hannsxpeter/godplans.git"
   },
   "license": "MIT",
-  "author": "Hanns Peter (https://github.com/hannsxpeter)",
+  "author": "hannsxpeter",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "godplans": "./bin/godplans.js"
+  },
   "files": [
+    "bin",
+    "assets",
     "skills",
     "install.sh",
     "scripts",
@@ -78,5 +87,8 @@
     "build:prompt": "bash scripts/build-prompt.sh",
     "release:check": "bash scripts/release-check.sh",
     "prepack": "npm run check"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

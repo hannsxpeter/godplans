@@ -1,6 +1,6 @@
 # Architecture
 
-How godplans is put together: which files are sources, which are generated from them, and which check fails when a generated file falls behind its source. For maintainer rituals (the version model, adding a domain module, the prompt budget, dated facts), see [MAINTAINING.md](../MAINTAINING.md). For the inconsistencies these checks were built to stop, see [DRIFT.md](DRIFT.md).
+How godplans is put together: which files are sources, which are generated from them, and which check fails when a generated file falls behind its source. For maintainer rituals (the version model, adding a domain module, the prompt budget, dated facts), see [MAINTAINING.md](../MAINTAINING.md). For the release checklist, see [RELEASING.md](RELEASING.md).
 
 ## Contents
 
@@ -91,7 +91,7 @@ A plan written before a domain existed fails with "applicability matrix is missi
 
 **Portable.** `scripts/build-prompt.sh` writes PROMPT.md. It strips the SKILL.md frontmatter and the File map section, replaces the Phase 6d council block with a one-line note (a pasted prompt cannot delegate to three providers), rewrites repository paths that point at inlined content (for example, to "the inlined validator"), and rewrites the half-life command to `bash .godplans/plan-halflife.sh ...`. The header tells the reader to write the inlined validator to `.godplans/validate-plan.sh` and to save that script beside it. Neither the core nor the full prompt inlines `style-stats.py`, so both rewrite the SKILL.md and discovery.md sentences that run it to record the measured style baseline as not run, and the Phase 7 sentence that copies it to make the copy only when a native install is reachable. Project paths such as `.godplans/PLAN.mdx` stay literal, because the planning agent can reach them. `--full` writes the all-module prompt to PROMPT.full.md for one-off use.
 
-`package.json` is `"private": true`. godplans is not published to npm, and the repository uses `npm pack` only in `tests/package-contents.sh`. `npm test` runs that test against the working tree, where a packed file git ignores fails. The release gate runs it with `--tracked-only`, where a packed file git does not track fails.
+`package.json` publishes as `@hxp-tools/godplans`. The repository uses `npm pack` in `tests/package-contents.sh` to prove the tarball. `npm test` runs that test against the working tree, where a packed file git ignores fails. The release gate runs it with `--tracked-only`, where a packed file git does not track fails.
 
 ## 6. Derived artifacts and the checks that catch staleness
 
@@ -112,7 +112,7 @@ A plan written before a domain existed fails with "applicability matrix is missi
 
 **One command runs the generators in dependency order:** `npm run generate`, which is `npm run catalog && npm run build:prompt && npm run metrics:context`. The catalog runs first because it rewrites the validator, which the prompt inlines. The metrics run last because they hash PROMPT.md and build the full prompt. After editing SKILL.md, any reference module (the context metrics hash lazy modules too), the template, the validator, or `plan-halflife.sh`, run `npm run generate`, then `npm run check`. `npm run check` runs `version:check`, `catalog:check`, `metrics:check`, the full lint, and `npm test`, in that order.
 
-**What `domain-parity` does not read.** The domain list also appears in discovery's deferral lists, the SKILL.md description and its file-map count, the base fixture in `tests/validate-plan.sh`, and the counts and lists in README, ABOUT, CONTRIBUTING, AGENTS.md, and this file. The validator rejects the base fixture when its matrix lacks a known domain. The rest are hand-kept, and MAINTAINING.md lists them in its add-a-domain checklist.
+**What `domain-parity` does not read.** The domain list also appears in discovery's deferral lists, the SKILL.md description and its file-map count, the base fixture in `tests/validate-plan.sh`, and the counts and lists in README, CONTRIBUTING, AGENTS.md, and this file. The validator rejects the base fixture when its matrix lacks a known domain. The rest are hand-kept, and MAINTAINING.md lists them in its add-a-domain checklist.
 
 ## 7. Evaluation layers
 

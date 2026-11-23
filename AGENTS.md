@@ -60,10 +60,10 @@ If you are an agent working on this repository itself:
   CLIs and spend real model runs; the matrix alone runs every case, both arms,
   for at least three model families. `npm run check`, `npm run eval:check`, and
   `bash scripts/eval-matrix.sh --check` call no model.
-- Maintainer rituals are in [MAINTAINING.md](MAINTAINING.md), the map of
+- Maintainer rituals are in [MAINTAINING.md](MAINTAINING.md). The map of
   sources, generators, artifacts, and checks is in
-  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and the log of drift that
-  reviews found is in [docs/DRIFT.md](docs/DRIFT.md).
+  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The release checklist is in
+  [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Checks
 
