@@ -98,8 +98,8 @@ if (!manifest.publishConfig || manifest.publishConfig.access !== 'public') {
   process.stderr.write('FAIL [package-contents] package.json publishConfig.access must be public\n');
   process.exit(1);
 }
-if (!manifest.bin || manifest.bin.godplans !== './bin/godplans.js') {
-  process.stderr.write('FAIL [package-contents] package.json bin.godplans must point at ./bin/godplans.js\n');
+if (!manifest.bin || manifest.bin.godplans !== 'bin/godplans.js') {
+  process.stderr.write('FAIL [package-contents] package.json bin.godplans must point at bin/godplans.js\n');
   process.exit(1);
 }
 
